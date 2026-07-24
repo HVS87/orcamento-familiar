@@ -1757,6 +1757,331 @@ G("importador de extratos CSV");
   guardar(); render();
 })();
 
+G("painel de atenção e saúde dos dados");
+(function(){
+  comExemplo();
+  irA("painel");
+  ok(q(".alerta") != null, "o painel reúne o que pede atenção");
+  var as = alertas();
+  ok(as.every(function(a){ return [0,1,2].indexOf(a.grau) >= 0; }), "cada alerta tem grau conhecido");
+  ok(as.every(function(a){ return a.titulo && a.vista; }), "e sabe para onde levar");
+  for (var i = 1; i < as.length; i++) ok(as[i-1].grau >= as[i].grau, "ordenados por urgência");
+
+  // Um limite ultrapassado gera alerta de grau 2
+  var cat = S.categorias.filter(function(c){ return c.tipo === "despesa"; })[0];
+  S.limites[cat.id] = 1;
+  S.movimentos.push({id:"qa-lim", data:MES+"-02", tipo:"despesa", descricao:"Estouro QA",
+    valor:500, categoriaId:cat.id, membroId:""});
+  render();
+  ok(alertas().some(function(a){ return a.grau === 2 && /passou o limite/.test(a.titulo); }),
+     "limite ultrapassado gera alerta urgente");
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "qa-lim"; });
+  delete S.limites[cat.id];
+  render();
+
+  // Revisão de taxa: inclusiva no mês corrente
+  var cv = S.creditos.filter(function(c){ return c.tipoTaxa === "variavel"; })[0];
+  if (cv){
+    var pr = proximaRevisao(cv, MES);
+    ok(mesDiff(MES, pr) >= 0, "a próxima revisão nunca fica no passado", pr);
+    var passo = revisaoCredito(cv);
+    eq(mesDiff(mesDoDia(cv.inicio), pr) % passo, 0, "e cai num múltiplo do período de revisão");
+  }
+
+  // Saúde dos dados
+  irA("config");
+  ok(/Saúde dos dados/.test(texto()), "há cartão de saúde dos dados");
+  ok(saudeDados().every(function(i){ return i.txt && i.vista; }), "cada lacuna sabe para onde levar");
+  S.movimentos.push({id:"qa-sc", data:MES+"-03", tipo:"despesa", descricao:"Sem cat QA",
+    valor:10, categoriaId:"", membroId:""});
+  ok(saudeDados().some(function(i){ return /sem categoria/.test(i.txt); }), "deteta movimentos sem categoria");
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "qa-sc"; });
+  render();
+})();
+
+G("regras de categorização e recorrências");
+(function(){
+  comExemplo();
+  irA("config");
+  ok(q("#rgPadrao") != null, "há formulário de regras");
+  preencher("rgPadrao", "");
+  clicar('[data-act="regraAdd"]');
+  eq((S.regrasCategoria || []).length, 0, "sem padrão não cria");
+  preencher("rgPadrao", "CONTINENTE");
+  var catAlim = catPorNome("Alimentação");
+  q("#rgCat").value = catAlim;
+  clicar('[data-act="regraAdd"]');
+  eq(S.regrasCategoria.length, 1, "cria a regra");
+  eq(categoriaSugerida("COMPRA CONTINENTE LX"), catAlim, "a regra aplica-se na importação");
+  eq(categoriaSugerida("continente amoreiras"), catAlim, "e ignora maiúsculas e acentos");
+  // A regra ganha à semelhança
+  var catLazer = catPorNome("Lazer e cultura");
+  S.regrasCategoria[0].categoriaId = catLazer;
+  eq(categoriaSugerida("COMPRA CONTINENTE LX"), catLazer, "a regra vence a sugestão por semelhança");
+  irA("config");
+  clicar('[data-act="regraApagar"]');
+  eq(S.regrasCategoria.length, 0, "elimina a regra");
+
+  // Recorrências
+  eq(chaveRecorrencia("NETFLIX 12,99"), chaveRecorrencia("NETFLIX 15,99"), "a chave ignora números");
+  ["-1","-2","-3"].forEach(function(_, i){
+    S.movimentos.push({id:"qa-r"+i, data:mesShift(MES, -(i+1))+"-08", tipo:"despesa",
+      descricao:"SPOTIFY PT", valor:7.99, categoriaId:"", membroId:""});
+  });
+  var rs = detetarRecorrencias();
+  var achou = rs.filter(function(r){ return /SPOTIFY/i.test(r.nome); })[0];
+  ok(achou != null, "deteta a despesa repetida em três meses");
+  eq(achou.meses, 3, "conta os meses distintos");
+  eq(+achou.valor.toFixed(2), 7.99, "e a média do valor");
+  // Valores dispares não contam como recorrência
+  S.movimentos.push({id:"qa-d0", data:mesShift(MES,-1)+"-09", tipo:"despesa", descricao:"VARIAVEL QA", valor:10, categoriaId:"", membroId:""});
+  S.movimentos.push({id:"qa-d1", data:mesShift(MES,-2)+"-09", tipo:"despesa", descricao:"VARIAVEL QA", valor:200, categoriaId:"", membroId:""});
+  S.movimentos.push({id:"qa-d2", data:mesShift(MES,-3)+"-09", tipo:"despesa", descricao:"VARIAVEL QA", valor:900, categoriaId:"", membroId:""});
+  ok(!detetarRecorrencias().some(function(r){ return /VARIAVEL/i.test(r.nome); }),
+     "valores muito diferentes não são recorrência");
+
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  ok(/repetem-se/.test(texto()), "os movimentos sugerem pôr no plano");
+  var n0 = S.recorrentes.length;
+  clicar('[data-act="recorrenciaCriar"]');
+  eq(S.recorrentes.length, n0 + 1, "criar acrescenta a rubrica");
+  // Uma vez no plano, deixa de ser sugerida
+  ok(!detetarRecorrencias().some(function(r){ return /SPOTIFY/i.test(r.nome); }),
+     "já no plano, deixa de ser sugerida");
+  S.movimentos = S.movimentos.filter(function(m){ return !/^qa-/.test(m.id); });
+  S.recorrentes = S.recorrentes.filter(function(r){ return !/SPOTIFY/i.test(r.nome || ""); });
+  guardar(); render();
+})();
+
+G("ritmo, mapa anual e tesouraria");
+(function(){
+  comExemplo();
+  // Ritmo
+  ok(fracaoDoMes() > 0 && fracaoDoMes() <= 1, "a fração do mês está entre 0 e 1", fracaoDoMes());
+  MES = mesShift(isoMes(hoje()), -2); render();
+  eq(fracaoDoMes(), 1, "num mês fechado, a fração é 1");
+  MES = isoMes(hoje()); render();
+  ok(/marcaRitmo/.test(barraRitmo(50, 100, "red")), "a barra traz a marca de ritmo");
+  ok(!/marcaRitmo/.test(barraRitmo(50, 0, "red")), "sem limite, não há marca");
+  ok(/excedeu/.test(textoRitmo(150, 100)), "acima do limite, di-lo");
+  eq(textoRitmo(10, 0), "—", "sem limite não há leitura de ritmo");
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="limites"]');
+  var cabec = qq("#app thead th").map(function(x){ return x.textContent.trim(); });
+  ok(cabec.indexOf("Ritmo") >= 0, "os limites ganham coluna de ritmo", cabec.join(" | "));
+
+  // Mapa anual
+  irA("painel");
+  ok(q(".mapa") != null, "há mapa anual");
+  eq(qq(".mapa .mc").length % 12, 0, "com doze colunas por categoria");
+
+  // Tesouraria
+  var t = tesourariaProjetada(12);
+  eq(t.length, 12, "a tesouraria projeta doze meses");
+  eq(t[0].acumulado, totalLiquidez() + t[0].saldo, "parte da liquidez de hoje", 0.01);
+  for (var i = 1; i < t.length; i++){
+    eq(t[i].acumulado, t[i-1].acumulado + t[i].saldo, "cada mês acumula sobre o anterior", 0.01);
+  }
+  ok(/Tesouraria a 12 meses/.test(texto()), "e mostra-se no painel");
+})();
+
+G("cenários guardados");
+(function(){
+  comExemplo();
+  irA("estrategias");
+  var n0 = (S.cenarios || []).length;
+  clicar('[data-act="cenarioGuardar"]');
+  ok(q("#dlgIn") != null, "pede o nome do cenário");
+  q("#dlgIn").value = "QA — cenário";
+  confirmarDialogo();
+  eq(S.cenarios.length, n0 + 1, "guarda o cenário");
+  var guardado = S.cenarios[S.cenarios.length-1];
+  eq(guardado.nome, "QA — cenário", "com o nome dado");
+  ok(guardado.cfg && guardado.cfg.instrumento, "e a configuração completa");
+  ok(/Cenários guardados/.test(texto()), "aparece na tabela");
+
+  // Repor devolve os parâmetros
+  var mensalOriginal = parseNum(guardado.cfg.mensal);
+  S.estrategia.mensal = 1234; render();
+  clicar('[data-act="cenarioAplicar"]');
+  eq(parseNum(S.estrategia.mensal), mensalOriginal, "repor devolve a poupança mensal");
+
+  clicar('[data-act="cenarioApagar"]');
+  eq(S.cenarios.length, n0, "elimina o cenário");
+  // Cenário corrompido na importação não rebenta
+  var n = normalizar({cenarios:[{nome:"X", cfg:{instrumento:"nao-existe"}}, "lixo", null]});
+  eq(n.cenarios.length, 1, "cenários inválidos são descartados");
+  eq(n.cenarios[0].cfg.instrumento, "aforro", "instrumento desconhecido cai num válido");
+})();
+
+G("seleção em lote e edição em linha");
+(function(){
+  comExemplo();
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  var lista = movimentosFiltrados();
+  ok(lista.length >= 2, "há movimentos para trabalhar", lista.length);
+
+  // Selecionar
+  var chks = qq('input[data-act="movSel"]');
+  chks[0].checked = true; ACOES.movSel(chks[0]);
+  eq(Object.keys(ui.movSel).length, 1, "marca um movimento");
+  ok(q(".lote") != null, "a barra de lote aparece");
+  ok(q("tr.selecionada") != null, "a linha fica assinalada");
+
+  // Todos e limpar
+  var todos = q('[data-act="movSelTodos"]');
+  todos.checked = true; ACOES.movSelTodos(todos);
+  eq(Object.keys(ui.movSel).length, movimentosFiltrados().length, "marca todos os visíveis");
+  clicar('[data-act="loteLimpar"]');
+  eq(Object.keys(ui.movSel).length, 0, "limpar desmarca tudo");
+
+  // Aplicar categoria em lote
+  var alvos = movimentosFiltrados().slice(0, 2);
+  ui.movSel = {}; alvos.forEach(function(m){ ui.movSel[m.id] = true; });
+  render();
+  var catId = catPorNome("Presentes");
+  q("#loteCat").value = catId;
+  clicar('[data-act="loteAplicar"]');
+  if (haDialogo()) cancelarDialogo();
+  ok(alvos.every(function(m){
+    return S.movimentos.filter(function(x){ return x.id === m.id; })[0].categoriaId === catId;
+  }), "todos os selecionados ficam na categoria");
+  eq(Object.keys(ui.movSel).length, 0, "e a seleção limpa-se");
+
+  // Termo comum, base da regra proposta
+  eq(termoComum(["COMPRA CONTINENTE LX","CONTINENTE AMOREIRAS"]), "CONTINENTE", "encontra o termo partilhado");
+  eq(termoComum(["ABC","XYZ"]), "", "sem termo partilhado devolve vazio");
+  eq(termoComum(["SO UMA"]), "", "com uma só descrição não há termo");
+
+  // Edição em linha
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  var td = q('td[data-edit="descricao"]');
+  var idm = td.dataset.id;
+  editarCelula(td);
+  ok(td.querySelector("input") != null, "clique duplo abre o campo");
+  td.querySelector("input").value = "Descrição editada QA";
+  td.querySelector("input").dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", bubbles:true}));
+  eq(S.movimentos.filter(function(m){ return m.id === idm; })[0].descricao, "Descrição editada QA",
+     "Enter grava a edição");
+
+  // Escape desiste
+  var td2 = q('td[data-edit="descricao"]');
+  var id2 = td2.dataset.id;
+  var antes2 = S.movimentos.filter(function(m){ return m.id === id2; })[0].descricao;
+  editarCelula(td2);
+  td2.querySelector("input").value = "NAO GRAVAR";
+  td2.querySelector("input").dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+  eq(S.movimentos.filter(function(m){ return m.id === id2; })[0].descricao, antes2, "Escape desiste");
+
+  // Valor inválido não corrompe
+  var tdv = q('td[data-edit="valor"]');
+  var idv = tdv.dataset.id;
+  var antesV = parseNum(S.movimentos.filter(function(m){ return m.id === idv; })[0].valor);
+  editarCelula(tdv);
+  tdv.querySelector("input").value = "não é número";
+  tdv.querySelector("input").dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", bubbles:true}));
+  eq(parseNum(S.movimentos.filter(function(m){ return m.id === idv; })[0].valor), antesV,
+     "valor inválido não altera o movimento");
+
+  // Teclado: setas percorrem as linhas
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  var linhas = qq("tr[data-mov]");
+  linhas[0].focus();
+  linhas[0].dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowDown", bubbles:true}));
+  ok(document.activeElement === linhas[1], "a seta para baixo desce uma linha");
+  linhas[1].dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowUp", bubbles:true}));
+  ok(document.activeElement === linhas[0], "e a seta para cima sobe");
+})();
+
+G("procura de dados na paleta");
+(function(){
+  comExemplo();
+  ok(comandosDados("a").length === 0, "termos com menos de duas letras não procuram dados");
+  var ativos = filtrarComandos("apartamento").filter(function(c){ return c.tipo === "ativo"; });
+  ok(ativos.length >= 1, "encontra ativos pelo nome");
+  var movs = filtrarComandos("continente").filter(function(c){ return c.tipo === "movimento"; });
+  ok(movs.length >= 1, "encontra movimentos pela descrição");
+  var cats = filtrarComandos("alimenta").filter(function(c){ return c.tipo === "categoria"; });
+  ok(cats.length >= 1, "encontra categorias");
+  ok(filtrarComandos("zzzznaoexiste").length === 0, "sem correspondência, não inventa");
+  // Executar um resultado leva à vista respetiva
+  if (movs.length){
+    movs[0].run();
+    // «movimentos» é um alias: resolve para a vista Despesas, secção Movimentos
+    eq(VIEW, "despesas", "abrir um movimento leva às despesas");
+    eq(ui.secaoDespesa, "movimentos", "na secção dos movimentos");
+    filtros.texto = ""; render();
+  }
+})();
+
+G("arranque por perfil e estados vazios");
+(function(){
+  var backupS = JSON.parse(JSON.stringify(S));
+  localStorage.removeItem(STORE_KEY);
+  S = estadoVazio(); MES = isoMes(hoje()); render();
+
+  irA("painel");
+  eq(qq('[data-act="perfilAplicar"]').length, Object.keys(PERFIS).length, "o ecrã vazio oferece os perfis");
+
+  ok(aplicarPerfil("casal"), "aplicar um perfil funciona");
+  ok(S.membros.length >= 2, "cria os membros");
+  ok(S.recorrentes.length >= 5, "e as despesas fixas", S.recorrentes.length);
+  ok(Object.keys(S.limites).length >= 5, "com limites correspondentes");
+  var n = S.recorrentes.length;
+  aplicarPerfil("casal");
+  eq(S.recorrentes.length, n, "aplicar duas vezes não duplica");
+  ok(!aplicarPerfil("inexistente"), "perfil desconhecido não faz nada");
+
+  // Estados vazios ilustrados
+  S = estadoVazio(); MES = isoMes(hoje()); render();
+  ["rendimentos","ativos","creditos","objetivos"].forEach(function(v){
+    irA(v);
+    ok(q(".vazio .ilu") != null, "a vista "+v+" tem estado vazio ilustrado");
+  });
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  ok(q(".vazio .ilu") != null, "e os movimentos também");
+
+  S = normalizar(backupS);
+  limparCacheCredito();
+  render();
+})();
+
+G("acessibilidade e relatório");
+(function(){
+  comExemplo();
+  var textoAntes = S.texto, contrasteAntes = S.contraste;
+  irA("config");
+  eq(qq('[data-act="temaTexto"]').length, 3, "três tamanhos de texto");
+  eq(qq('[data-act="temaContraste"]').length, 2, "dois níveis de contraste");
+
+  clicar('[data-act="temaTexto"][data-v="maior"]');
+  eq(document.documentElement.getAttribute("data-texto"), "maior", "o tamanho fica no atributo");
+  ok(parseFloat(getComputedStyle(document.body).fontSize) > 15, "e o corpo cresce mesmo");
+  clicar('[data-act="temaContraste"][data-v="alto"]');
+  eq(document.documentElement.getAttribute("data-contraste"), "alto", "o contraste fica no atributo");
+  clicar('[data-act="temaTexto"][data-v="normal"]');
+  clicar('[data-act="temaContraste"][data-v="normal"]');
+  ok(document.documentElement.getAttribute("data-texto") == null, "normal não deixa atributo");
+  ok(document.documentElement.getAttribute("data-contraste") == null, "e o contraste também não");
+  eq(normalizar({texto:"gigante"}).texto, "normal", "tamanho desconhecido cai no normal");
+  eq(normalizar({contraste:"medio"}).contraste, "normal", "contraste desconhecido cai no normal");
+
+  // Relatório
+  ui.relatorio = true; render();
+  ok(q(".relatorio .capa") != null, "o relatório tem capa");
+  ok(/Orçamento familiar/.test(texto()), "com o título");
+  ok(qq(".relatorio .card").length >= 3, "e vários blocos");
+  ui.relatorio = false; render();
+  ok(q(".relatorio") == null, "e sai-se dele");
+
+  S.texto = textoAntes; S.contraste = contrasteAntes; aplicarTema(); guardar(); render();
+})();
+
 G("celebração de objetivo");
 (function(){
   var backupS = JSON.parse(JSON.stringify(S));

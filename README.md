@@ -17,8 +17,11 @@ Cada nível abre para dentro sem se perder de vista: uma fonte de rendimento dec
 ## 🎯 O que faz
 
 ### Painel
-- **Indicadores do mês**: rendimento, despesa, saldo e taxa de poupança — cada um com a **variação face ao mês anterior** e um **traço de tendência** dos últimos 6 meses; o botão **⇄** compara com o mês homólogo do ano anterior
+- **Precisa da sua atenção**: uma lista única, por urgência, do que os dados já dizem mas nunca foi dito num sítio só — limite ultrapassado ou perto, mês em défice, crédito com **revisão de taxa** à porta, taxa de esforço acima de 40%, objetivo fora de ritmo ou fora de prazo, liquidez abaixo de 3 meses, movimentos por categorizar, ativos com valor estimado há mais de um ano. Cada alerta leva ao sítio onde se resolve
+- **Indicadores do mês**: rendimento, despesa, saldo e taxa de poupança — cada um com a **variação face ao mês anterior** e um **traço de tendência** dos últimos 6 meses; o botão **⇄** compara com o mês homólogo do ano anterior. Os valores **interpolam** ao mudar de mês, em vez de saltarem
 - **Resumo narrado do mês fechado**: a maior despesa, a categoria que mais cresceu e a poupança face à média — gerado localmente
+- **Tesouraria a 12 meses**: a liquidez de hoje mais o saldo de cada mês, com os encargos anuais e semestrais no mês em que caem — mostra *quando* o dinheiro aperta, e assinala o ponto mais baixo
+- **Mapa do ano**: categorias em linhas, os 12 meses em colunas, a despesa em intensidade de cor. A sazonalidade — energia no inverno, férias no verão — é invisível na vista mensal e óbvia aqui
 - **Dica do próximo passo**: um cartão dispensável sugere o primeiro degrau do percurso ainda por dar (rendimentos → despesas fixas → ativos → limites → objetivos)
 - **Previsto vs. real**: compara o plano com os movimentos efetivos e mostra o desvio de cada linha
 - **Despesa por categoria**: gráfico de anel interativo — clique numa fatia para **abrir o detalhe** dos movimentos dessa categoria ali mesmo
@@ -36,7 +39,20 @@ Nos **Movimentos**, um **calendário-mapa de calor** mostra a despesa de cada di
 - **Atalhos de teclado** — `g` + letra navega (g p painel, g r rendimentos…), `n` + letra cria (n m movimento, n a ativo…), `?` mostra a folha de atalhos
 - **Arrastar para reordenar** — categorias (Definições) e rubricas do plano têm pega ⠿; a primeira arrumação das rubricas fixa a ordem manual
 - **Ícones por categoria** — cada categoria pode ter um emoji (a semente já os traz: 🛒 Alimentação, 🏠 Habitação…), visível nas tabelas, seletores e no donut
-- **Importador de extratos (CSV)** — em Despesas → Movimentos: cola-se ou escolhe-se o ficheiro, a ferramenta deteta o separador e as colunas, converte datas e valores, **sugere a categoria** pelos movimentos já classificados com descrições parecidas e ignora duplicados
+- **Importador de extratos (CSV)** — em Despesas → Movimentos: cola-se ou escolhe-se o ficheiro, a ferramenta deteta o separador e as colunas, converte datas e valores (rejeitando as impossíveis), **sugere a categoria** e ignora duplicados
+- **Regras de categorização** — «descrições com CONTINENTE → Alimentação», guardadas em Definições ou propostas ao categorizar em lote. Ganham à sugestão por semelhança, e fazem a segunda importação ser quase toda automática
+- **Deteção de recorrências** — uma despesa que aparece em três ou mais meses com valor semelhante é proposta como rubrica do plano, com um clique para a criar
+- **Seleção múltipla e ações em lote** — marque vários movimentos e atribua-lhes a mesma categoria (ou elimine-os) de uma vez; ao aplicar, oferece guardar o termo comum como regra
+- **Edição em linha** — clique duplo numa célula de descrição, categoria ou valor e edite ali; Enter grava, Escape desiste
+- **Navegação por teclado nas tabelas** — setas percorrem as linhas, Enter edita, Espaço seleciona, Delete elimina (com anulação)
+- **A paleta procura dados** — o Ctrl+K encontra movimentos, ativos, créditos, objetivos, fontes e categorias pelo nome, não só vistas
+- **Saúde dos dados** (Definições) — o que está por preencher ou por ligar: movimentos sem categoria, imóveis sem VPT, veículos sem IUC, créditos sem ativo, categorias sem limite
+- **Limites com ritmo** — a barra ganha uma marca de onde se devia estar hoje, e a leitura em palavras: «no ritmo · 16,40 €/dia» ou «excedeu 38 €»
+- **Cenários guardados** (Estratégias) — fotografe os parâmetros com um nome e compare «mudar de casa» com «comprar carro» na mesma tabela
+- **Arranque por perfil** — no ecrã vazio: *vivo sozinho · casal · família com filhos · com casa própria*. Semeia membros, despesas fixas típicas e limites, para ajustar (e com anulação imediata)
+- **Estados vazios ilustrados** — cada vista vazia mostra um mini-diagrama do que ali vai: uma fonte a decompor-se em componentes, uma prestação a dividir-se em juros, capital e seguros
+- **Relatório mensal** (Dados ▾) — uma folha desenhada para imprimir ou guardar em PDF: capa, indicadores, fluxo do dinheiro, desvios, despesa por categoria, património e objetivos
+- **Acessibilidade** — três tamanhos de texto e um modo de **alto contraste** em Definições → Aparência
 - **Visita guiada (🎓)** — um tutorial opcional de 14 passos que percorre todos os módulos, do painel às estratégias, destacando o elemento relevante de cada vista e explicando o que lá se faz. Começa no botão 🎓 do cabeçalho, no ecrã de boas-vindas, na paleta ou na primeira sugestão do painel; navega-se com as setas e sai-se com Esc. Sem dados, carrega o exemplo primeiro
 - **Paleta de comandos (Ctrl+K)** — saltar para qualquer vista ou disparar uma ação rápida (novo movimento, novo ativo, exportar, imprimir) sem tirar as mãos do teclado; a procura ignora acentos
 - **Eliminar com anulação** — apagar é imediato e o toast dá seis segundos para **Anular**; só o «Apagar tudo» mantém o diálogo de confirmação
@@ -420,7 +436,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 10 715 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 10 896 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -430,8 +446,8 @@ Três suites, 10 715 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo, coerência do exemplo e do código | 3617 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos, dica do próximo passo, eliminação com anulação, navegação móvel, anéis e celebração dos objetivos, visita guiada, temas e paletas, Sankey e drill-down, calendário de calor, marcos, comparação homóloga, resumo mensal, privacidade, atalhos de teclado, reordenação, ícones, importador CSV (incluindo datas impossíveis), explicador, diálogo, exportação | 579 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo, coerência do exemplo e do código | 3690 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, explicador, diálogo, exportação | 687 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.
