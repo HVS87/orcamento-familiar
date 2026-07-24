@@ -1,0 +1,17 @@
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Configuração local do Claude Code
+.claude/settings.local.json
+
+# Exportações locais do orçamento (dados pessoais — nunca versionar)
+orcamento-familiar-*.json
+movimentos-*.csv
