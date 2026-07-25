@@ -405,6 +405,42 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 #paleta li[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
 #paleta .tipo{margin-left:auto;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 
+/* Grupos de botões no cabeçalho de um cartão, que têm de poder quebrar */
+.acoesCabecalho{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;min-width:0}
+
+/* Minigráficos nas células */
+svg.mini{width:70px;height:20px;display:block}
+
+/* Ordem na lista de amortização */
+.ordem{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+  border-radius:50%;background:var(--surface-3);color:var(--muted);font-size:11.5px;font-weight:650}
+.ordem.primeiro{background:var(--accent);color:#fff}
+
+/* Fita de meses no cabeçalho */
+#fitaMeses{display:flex;gap:3px;align-items:flex-end}
+#fitaMeses button{background:none;border:0;cursor:pointer;padding:2px 1px;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;width:26px}
+#fitaMeses button:hover{background:var(--surface-2)}
+#fitaMeses button:focus-visible{outline:2px solid var(--accent)}
+#fitaMeses button[aria-current="true"]{background:var(--accent-soft)}
+#fitaMeses .cx{height:26px;display:flex;align-items:flex-end;width:100%}
+#fitaMeses .bx{width:100%;border-radius:2px;display:block}
+#fitaMeses .lx{font-size:9.5px;color:var(--muted);line-height:1}
+#fitaMeses button[aria-current="true"] .lx{color:var(--accent);font-weight:650}
+@media (max-width:900px){ #fitaMeses{display:none} }
+
+/* Cartões do painel: barra de colapso discreta, no canto */
+.comCab{position:relative}
+.comCab > .card{margin:0}
+.cabPainel{position:absolute;top:9px;right:11px;z-index:2;display:flex;align-items:center;gap:7px}
+.cabPainel button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;
+  line-height:1;padding:3px 5px;border-radius:6px}
+.cabPainel button:hover{background:var(--surface-2);color:var(--text)}
+.cabPainel button:focus-visible{outline:2px solid var(--accent)}
+.card.cartaoFechado{display:flex;align-items:center;gap:9px;padding:11px 14px;position:relative}
+.card.cartaoFechado .cabPainel{position:static;flex:1 1 auto}
+.card.cartaoFechado .tt{font-size:13.5px;font-weight:600;color:var(--muted)}
+
 /* Indicador de gravação */
 #estadoGuardado{font-size:11.5px;white-space:nowrap;min-width:0}
 @media (max-width:640px){ #estadoGuardado{display:none} }
@@ -622,12 +658,14 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
     </div>
     <div class="grp">
       <label class="field hidden" for="mesSel">Mês</label>
-      <input type="month" id="mesSel" style="width:160px" aria-label="Mês em análise">
+      <input type="month" id="mesSel" style="width:150px" aria-label="Mês em análise">
       <button class="btn icon" id="mesPrev" title="Mês anterior" aria-label="Mês anterior">‹</button>
+      <div id="fitaMeses" class="no-print" role="group" aria-label="Saltar para outro mês"></div>
       <button class="btn icon" id="mesNext" title="Mês seguinte" aria-label="Mês seguinte">›</button>
     </div>
     <div class="grp">
       <span id="estadoGuardado" class="muted" aria-live="polite"></span>
+      <button class="btn icon" data-act="essencialAlternar" aria-label="Modo essencial" aria-pressed="false">◱</button>
       <button class="btn icon" data-act="desfazer" aria-label="Desfazer" disabled>↶</button>
       <button class="btn icon" data-act="refazer" aria-label="Refazer" disabled>↷</button>
       <button class="btn icon" data-act="privAlternar" title="Modo privacidade — desfoca os valores" aria-label="Modo privacidade" aria-pressed="false">👁</button>
@@ -1892,6 +1930,16 @@ const AJUDAS_ACAO = {
   temaDensidade:["Densidade", "Compacta reduz tipos e espaçamentos para caberem mais linhas por ecrã; Confortável é a leitura por omissão.", ""],
   privAlternar:["Modo privacidade", "Desfoca todos os valores — para mostrar o ecrã ou tirar capturas sem expor números. Os gráficos mantêm as formas.", ""],
   compararAlternar:["Comparar com o ano passado", "As legendas dos indicadores passam a mostrar o mesmo mês do ano anterior e a variação face a ele.", ""],
+  painelColapsar:["Fechar ou abrir o cartão", "Um cartão fechado deixa de ser calculado, não apenas de se ver. A escolha fica guardada.", ""],
+  painelVisivel:["Mostrar ou esconder", "Escolha que cartões quer no painel. Começa com cinco; o resto liga-se aqui.", ""],
+  painelReporPadrao:["Repor o padrão", "Devolve a escolha e a ordem dos cartões ao estado de origem.", ""],
+  essencialAlternar:["Modo essencial", "Mostra só o indispensável, sem mexer na configuração dos cartões. Volta-se atrás no mesmo botão.", ""],
+  amortMetodo:["Método de amortização", "«Mais juros» ataca primeiro a taxa mais alta e poupa mais no total; «menor saldo» livra-se de um crédito mais cedo.", ""],
+  movDuplicar:["Duplicar movimento", "Cria uma cópia para ajustar, em vez de escrever tudo de novo.", ""],
+  patDuplicar:["Duplicar ativo", "Cria uma cópia com os mesmos encargos e rendimentos.", ""],
+  crDuplicar: ["Duplicar crédito", "Cria uma cópia com as mesmas condições, para comparar cenários.", ""],
+  recDuplicar:["Duplicar rubrica", "Cria uma cópia da despesa fixa, para variantes da mesma coisa.", ""],
+  copiarMesAnterior:["Copiar o mês anterior", "Repete os movimentos do mês passado com as mesmas datas e valores. Os que já existem aqui ficam de fora.", ""],
   desfazer:   ["Desfazer", "Anula a última alteração aos dados. Guarda até 40 passos — e o Ctrl+Z faz o mesmo, exceto dentro de um campo de texto, onde vale o desfazer do navegador.", ""],
   refazer:    ["Refazer", "Repõe uma alteração que tinha desfeito. Fazer algo de novo apaga o que havia para refazer.", ""],
   temaTexto:  ["Tamanho do texto", "Aumenta o corpo de letra de toda a interface, incluindo tabelas e indicadores. Fica guardado com os dados.", ""],
@@ -2005,6 +2053,9 @@ function estadoVazio(){
     cenarios: [],          // fotografias nomeadas dos parâmetros das estratégias
     texto: "normal",       // normal | grande | maior
     contraste: "normal",   // normal | alto
+    // `ocultos: null` significa «nunca configurado»: quem resolve é o
+    // `painelOcultos()`, porque o quadro dos cartões só existe mais abaixo.
+    painel: {ocultos: null, ordem: [], fechados: []},
   };
 }
 
@@ -2015,7 +2066,8 @@ let editando = {};           // view -> id em edição
 let filtros = { texto:"", categoria:"", membro:"", tipo:"" };
 let ordem = {};              // tabela -> {col, dir}
 let ui = {
-  evolucaoMeses:12, simExtra:0, simAnos:10, donutFoco:null, movSel:{},
+  evolucaoMeses:12, simExtra:0, simAnos:10, donutFoco:null, movSel:{}, essencial:false,
+  amortMetodo:"avalanche", amortExtra:150,
   secaoDespesa:"plano",      // plano | movimentos | limites
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
@@ -2237,6 +2289,11 @@ function normalizar(d){
   out.recorrentes = Array.isArray(d.recorrentes) ? d.recorrentes : [];
   out.movimentos  = Array.isArray(d.movimentos) ? d.movimentos : [];
   out.objetivos   = Array.isArray(d.objetivos) ? d.objetivos : [];
+  // Um objetivo ligado a um ativo que desapareceu volta a acompanhar-se à mão
+  out.objetivos.forEach(o => {
+    if (o.ativoId == null) o.ativoId = "";
+    else o.ativoId = String(o.ativoId);
+  });
   // Objetivos já concluídos em cópias antigas não voltam a ser celebrados.
   out.objetivos.forEach(o => {
     if (o.celebrado == null) o.celebrado = parseNum(o.alvo) > 0 && parseNum(o.atual) >= parseNum(o.alvo);
@@ -2254,6 +2311,16 @@ function normalizar(d){
     .filter(r => r && typeof r.padrao === "string" && r.padrao.trim())
     .map(r => ({padrao: String(r.padrao).trim(), categoriaId: String(r.categoriaId || "")}));
   out.recorrenciasIgnoradas = Array.isArray(d.recorrenciasIgnoradas) ? d.recorrenciasIgnoradas : [];
+  // Painel: só chaves conhecidas. Quem nunca configurou fica com o padrão,
+  // e um cartão acrescentado numa versão futura aparece se for de padrão.
+  const pn = (d.painel && typeof d.painel === "object") ? d.painel : {};
+  const conhecida = (k) => !!CARTOES_PAINEL[k];
+  out.painel = {
+    ocultos: Array.isArray(pn.ocultos) ? pn.ocultos.filter(conhecida)
+             : Object.keys(CARTOES_PAINEL).filter(k => !CARTOES_PAINEL[k].padrao),
+    ordem: Array.isArray(pn.ordem) ? pn.ordem.filter(conhecida) : [],
+    fechados: Array.isArray(pn.fechados) ? pn.fechados.filter(conhecida) : [],
+  };
   out.texto = ["normal","grande","maior"].indexOf(d.texto) >= 0 ? d.texto : "normal";
   out.contraste = d.contraste === "alto" ? "alto" : "normal";
   out.cenarios = (Array.isArray(d.cenarios) ? d.cenarios : [])
@@ -3189,6 +3256,65 @@ function tabelaCredito(cr, choque){
 /** Invalida o cache quando os créditos mudam. */
 const limparCacheCredito = () => _tabelas.clear();
 
+/**
+ * Amortizar um crédito mais depressa: quantos meses poupa e quantos juros.
+ * Parte do capital em dívida no mês em análise e simula mês a mês com a
+ * prestação atual mais o reforço. A taxa usada é a corrente — numa taxa
+ * indexada ela mudará, e por isso o resultado é uma estimativa, não uma
+ * promessa.
+ */
+function simularReforco(cr, extra, mes){
+  const m = mes || MES;
+  const linhas = tabelaCredito(cr);
+  const idx = linhas.findIndex(l => l.mes === m);
+  const partida = idx >= 0 ? idx : 0;
+  const restantes = linhas.slice(partida);
+  if (!restantes.length) return null;
+
+  const saldo0 = restantes[0].saldo + restantes[0].capital;   // antes de pagar este mês
+  const i = Math.max(0, taxaCorrente(cr)) / 100 / 12;
+  const prest = restantes[0].prestacao;
+  const reforco = Math.max(0, parseNum(extra));
+
+  const correr = (pagamento) => {
+    let saldo = saldo0, juros = 0, k = 0;
+    const limite = 1200;                    // 100 anos: rede contra prestação insuficiente
+    while (saldo > 0.005 && k < limite){
+      const j = saldo * i;
+      const cap = Math.min(Math.max(0, pagamento - j), saldo);
+      if (cap <= 0) return null;            // não amortiza: a prestação nem cobre os juros
+      juros += j; saldo -= cap; k++;
+    }
+    return {meses: k, juros};
+  };
+
+  const semReforco = correr(prest);
+  const comReforco = correr(prest + reforco);
+  if (!semReforco || !comReforco) return null;
+  return {
+    saldo: saldo0, prestacao: prest, reforco,
+    mesesAntes: semReforco.meses, mesesDepois: comReforco.meses,
+    mesesPoupados: semReforco.meses - comReforco.meses,
+    jurosPoupados: semReforco.juros - comReforco.juros,
+    fim: mesShift(m, comReforco.meses - 1),
+  };
+}
+
+/**
+ * Por que ordem amortizar. «Avalanche» ataca primeiro a taxa mais alta e
+ * é a que poupa mais juros; «bola de neve» ataca o saldo mais pequeno e
+ * dá vitórias mais cedo. As duas são defensáveis — a escolha é de quem paga.
+ */
+function ordemAmortizacao(metodo){
+  const ativos = S.creditos.filter(c => creditoAtivo(c, MES) && saldoDevedorMes(c, MES) > 0.5);
+  const comDados = ativos.map(c => ({
+    cr: c, taxa: taxaCorrente(c), divida: saldoDevedorMes(c, MES), prestacao: encargoCredito(c, MES),
+  }));
+  return metodo === "bola"
+    ? comDados.sort((a,b) => a.divida - b.divida)
+    : comDados.sort((a,b) => b.taxa - a.taxa);
+}
+
 /** Seguros associados ao crédito, por mês. */
 const seguroCredito = (cr) => Math.max(0, parseNum(cr.seguroMensal));
 
@@ -3761,8 +3887,15 @@ function barrasEvolucao(meses){
       '</g>';
   });
 
+  // Camada de seleção: arrastar sobre o gráfico amplia o período escolhido
+  const brush = '<rect id="brushArea" x="'+padL+'" y="'+padT+'" width="'+iw+'" height="'+ih+
+    '" fill="transparent" style="cursor:ew-resize" data-brush="1" '+
+    'data-l="'+padL+'" data-w="'+iw+'" data-n="'+meses.length+'"/>'+
+    '<rect id="brushSel" x="0" y="'+padT+'" width="0" height="'+ih+
+    '" fill="var(--accent)" opacity=".18" pointer-events="none"/>';
+
   return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Evolução mensal">'+
-    grelha + barras + linha + zonas + marcos + '</svg>'+
+    grelha + barras + linha + zonas + marcos + brush + '</svg>'+
     '<div class="legend">'+
       '<div><span class="dot" style="background:var(--pos)"></span>Rendimento</div>'+
       '<div><span class="dot" style="background:var(--neg)"></span>Despesa</div>'+
@@ -4310,7 +4443,7 @@ function alertas(){
 
   // Objetivos fora de ritmo
   S.objetivos.forEach(o => {
-    const falta = Math.max(0, parseNum(o.alvo) - parseNum(o.atual));
+    const falta = Math.max(0, parseNum(o.alvo) - poupadoObjetivo(o));
     if (falta <= 0 || !o.prazo) return;
     const meses = mesDiff(MES, mesDoDia(o.prazo));
     if (meses < 0){
@@ -4360,6 +4493,80 @@ function diasQueFaltam(){
   return Math.max(0, ultimo - hoje().getDate());
 }
 
+/**
+ * A conta por trás de um número. Os explicadores dizem a fórmula; isto
+ * mostra as parcelas com que ela foi feita, este mês.
+ */
+const DERIVACOES = {
+  "Rendimento": () => {
+    const fx = fiscalTotal();
+    return {titulo:"Rendimento", linhas:[
+      ["Bruto de todas as fontes", fx.bruto],
+      ["— Segurança Social", -fx.ss],
+      ["— Retenção de IRS", -fx.irs],
+      ["— Tributação autónoma", -fx.autonomo],
+    ], total:["Líquido", fx.liquido]};
+  },
+  "Despesa": () => {
+    const r = realMes(MES), p = planoMes(MES);
+    const usa = (r.rend > 0 || r.desp > 0) ? r : p;
+    const porGrupo = {necessidades:0, desejos:0, poupanca:0};
+    S.categorias.filter(c => c.tipo === "despesa").forEach(c => {
+      porGrupo[c.grupo || "desejos"] += usa.porCat[c.id] || 0;
+    });
+    return {titulo:"Despesa", linhas:[
+      ["Necessidades", porGrupo.necessidades],
+      ["Desejos", porGrupo.desejos],
+      ["Poupança e amortização", porGrupo.poupanca],
+    ], total:["Total", usa.desp]};
+  },
+  "Saldo do mês": () => {
+    const r = realMes(MES), p = planoMes(MES);
+    const usa = (r.rend > 0 || r.desp > 0) ? r : p;
+    return {titulo:"Saldo do mês", linhas:[
+      ["Rendimento", usa.rend],
+      ["— Despesa", -usa.desp],
+    ], total:["Saldo", usa.saldo]};
+  },
+  "Património líquido": () => {
+    const b = balanco();
+    return {titulo:"Património líquido", linhas:[
+      ["Ativos financeiros", b.carteira],
+      ["Ativos reais", b.bens],
+      ["— Capital em dívida", -b.divida],
+    ], total:["Líquido", b.liquido]};
+  },
+};
+
+function mostrarDerivacao(rotulo){
+  const fn = DERIVACOES[rotulo];
+  if (!fn) return false;
+  const d = emPasse(fn);
+  $("#modalHost").innerHTML =
+    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" style="max-width:460px">'+
+    '<h3>'+esc(d.titulo)+' — de onde vem</h3>'+
+    '<div class="tblwrap"><table><tbody>'+
+    d.linhas.map(l => '<tr><td>'+esc(l[0])+'</td><td class="r num '+(l[1] < 0 ? "neg" : "")+'">'+
+      esc(eur(l[1]))+'</td></tr>').join("")+
+    '</tbody><tfoot><tr><td><strong>'+esc(d.total[0])+'</strong></td>'+
+    '<td class="r num"><strong>'+esc(eur(d.total[1]))+'</strong></td></tr></tfoot></table></div>'+
+    '<div class="actions"><button class="btn" data-dlg="no">Fechar</button></div>'+
+    '</div></div>';
+  const host = $("#modalHost");
+  const fechar = () => { host.innerHTML = ""; };
+  host.querySelector('[data-dlg="no"]').onclick = fechar;
+  host.querySelector(".overlay").onclick = (e) => { if (e.target === e.currentTarget) fechar(); };
+  return true;
+}
+
+/* Clicar num indicador com derivação conhecida mostra a conta. */
+document.addEventListener("click", (e) => {
+  const k = e.target.closest && e.target.closest(".kpi");
+  if (!k || e.target.closest("button, a, input, select")) return;
+  const lbl = k.querySelector(".lbl");
+  if (lbl) mostrarDerivacao(lbl.textContent.trim());
+});
+
 /** Cartão de alertas do painel. */
 function cartaoAtencao(){
   const lista = alertas();
@@ -4403,6 +4610,17 @@ function saudeDados(){
 
   const rdSemComp = S.rendimentos.filter(rd => !(rd.componentes || []).length).length;
   if (rdSemComp) itens.push({txt: rdSemComp+" fonte(s) de rendimento sem componentes", vista:"rendimentos", btn:"Ver rendimentos"});
+
+  // Dois objetivos a seguir o mesmo ativo contam o dinheiro duas vezes
+  const porAtivo = {};
+  S.objetivos.filter(o => o.ativoId).forEach(o => { porAtivo[o.ativoId] = (porAtivo[o.ativoId] || 0) + 1; });
+  const repetidos = Object.keys(porAtivo).filter(k => porAtivo[k] > 1).length;
+  if (repetidos) itens.push({txt: repetidos+" ativo(s) a financiar mais do que um objetivo — o mesmo dinheiro conta duas vezes",
+    vista:"objetivos", btn:"Ver objetivos"});
+
+  const objOrfaos = S.objetivos.filter(o => o.ativoId && !S.ativos.some(a => a.id === o.ativoId)).length;
+  if (objOrfaos) itens.push({txt: objOrfaos+" objetivo(s) ligados a um ativo que já não existe",
+    vista:"objetivos", btn:"Ver objetivos"});
 
   return itens;
 }
@@ -4686,36 +4904,6 @@ function viewPainel(){
     '</div><div class="tblwrap">'+barrasEvolucao(meses)+'</div></div>';
 
   // Créditos e objetivos (resumo)
-  let resumoExtra = "";
-  if (S.creditos.length){
-    const emDivida = S.creditos.reduce((s,c) => s + saldoDevedorMes(c, MES), 0);
-    resumoExtra +=
-      '<div class="card"><div class="card-head"><div class="t"><h2>Créditos</h2>'+
-      '<div class="sub">Encargo mensal e taxa de esforço.</div></div>'+
-      '<button class="btn sm no-print" data-act="ir" data-view="creditos">Ver detalhe</button></div>'+
-      '<div class="grid g3">'+
-        kpi("Prestações/mês", eur(prestacoesMes), S.creditos.length+" crédito(s) ativo(s)")+
-        kpi("Capital em dívida", eur(emDivida), "No fim de "+mesLabel(MES))+
-        kpi("Taxa de esforço", pct(esforco),
-            esforco > 40 ? "Acima do limiar prudente (40%)" : esforco > 33 ? "Zona de atenção" : "Dentro do razoável",
-            esforco > 40 ? "bad" : esforco > 33 ? "warnb" : "good")+
-      '</div></div>';
-  }
-  if (S.objetivos.length){
-    resumoExtra +=
-      '<div class="card"><div class="card-head"><div class="t"><h2>Objetivos de poupança</h2></div>'+
-      '<button class="btn sm no-print" data-act="ir" data-view="objetivos">Gerir</button></div>'+
-      S.objetivos.map(o => {
-        const alvo = parseNum(o.alvo), atual = parseNum(o.atual);
-        const p2 = alvo > 0 ? Math.min(100, atual/alvo*100) : 0;
-        return '<div style="margin-bottom:11px">'+
-          '<div class="barlbl"><span style="color:var(--text);font-weight:600">'+esc(o.nome)+'</span>'+
-          '<span class="num">'+esc(eur(atual))+' / '+esc(eur(alvo))+' · '+esc(pct(p2))+'</span></div>'+
-          '<div class="bar"><span style="width:'+p2.toFixed(1)+'%;background:'+esc(o.cor || "var(--pos)")+'"></span></div>'+
-        '</div>';
-      }).join("")+
-      '</div>';
-  }
 
   // Património líquido
   const bal = balanco();
@@ -4745,21 +4933,317 @@ function viewPainel(){
       '</div><div id="simOut">'+simuladorOut()+'</div></div>'
     : "";
 
-  const sankey = sankeyOrcamento(rend, g, usarReal);
-  const digest = resumoMensal();
-  const atencao = cartaoAtencao();
+  /* Cada cartão é produzido só quando está visível: o que está desligado
+     ou fechado não se constrói, tal como nas fichas de ativo. */
+  const produtores = {
+    atencao:     () => cartaoAtencao(),
+    digest:      () => resumoMensal(),
+    comparativo: () => comparativo,
+    grafico:     () => grafico,
+    sankey:      () => sankeyOrcamento(rend, g, usarReal),
+    tesouraria:  () => cartaoTesouraria(),
+    mapa:        () => mapaAnual(),
+    regra:       () => regra,
+    comparar:    () => cartaoComparar(),
+    podePagar:   () => cartaoPodePagar(),
+    evolucao:    () => evolucao,
+    creditos:    () => cartaoCreditosResumo(),
+    objetivos:   () => cartaoObjetivosResumo(),
+    patrimonio:  () => patrimonioCard,
+    simulador:   () => simulador,
+  };
+
   return dicaProximoPasso() + kpis + '<div style="height:16px"></div>' +
-    (atencao ? atencao + '<div style="height:16px"></div>' : "")+
-    (digest ? digest + '<div style="height:16px"></div>' : "")+
-    '<div class="grid g2">'+comparativo+grafico+'</div>'+
-    '<div style="height:16px"></div>'+
-    (sankey ? sankey + '<div style="height:16px"></div>' : "")+
-    (function(){ const t = cartaoTesouraria(); return t ? t + '<div style="height:16px"></div>' : ""; })()+
-    (function(){ const m = mapaAnual(); return m ? m + '<div style="height:16px"></div>' : ""; })()+
-    '<div class="grid g2">'+regra+evolucao+'</div>'+
-    (resumoExtra ? '<div style="height:16px"></div><div class="grid g2">'+resumoExtra+'</div>' : "")+
-    (patrimonioCard || simulador
-      ? '<div style="height:16px"></div><div class="grid g2">'+patrimonioCard+simulador+'</div>' : "");
+         montarPainel(produtores);
+}
+
+/**
+ * Quanto está poupado para um objetivo.
+ * Quando o objetivo está ligado a um ativo, o valor vem de lá e deixa de
+ * se escrever à mão — o progresso passa a acompanhar a conta que o
+ * financia. Sem ligação, vale o número introduzido.
+ */
+function poupadoObjetivo(o){
+  if (o && o.ativoId){
+    const a = S.ativos.find(x => x.id === o.ativoId);
+    if (a) return valorAtivo(a);
+  }
+  return parseNum(o && o.atual);
+}
+
+/**
+ * «Posso pagar isto?» — uma decisão pontual, respondida com o que a
+ * ferramenta já sabe: o que sobra em liquidez, o que isso faz aos
+ * objetivos, e o que ainda está marcado para sair este mês.
+ */
+function avaliarCompra(valor, prestacoes){
+  const v = Math.max(0, parseNum(valor));
+  const n = Math.max(1, Math.round(parseNum(prestacoes) || 1));
+  if (v <= 0) return null;
+  const mensal = v / n;
+
+  const liquidez = totalLiquidez();
+  const p = planoMes(MES), r = realMes(MES);
+  const desp = (r.rend > 0 || r.desp > 0) ? r.desp : p.desp;
+  const saldo = (r.rend > 0 || r.desp > 0) ? r.saldo : p.saldo;
+
+  const pontos = [];
+
+  // 1. Cabe na liquidez?
+  const sobra = liquidez - (n === 1 ? v : mensal);
+  const mesesCobertos = desp > 0 ? sobra / desp : Infinity;
+  if (sobra < 0){
+    pontos.push({grau:2, txt:"Não cabe na liquidez",
+      det:"Faltam "+eur(-sobra)+" — teria de vender ou financiar."});
+  } else if (mesesCobertos < 3){
+    pontos.push({grau:1, txt:"Cabe, mas deixa a reserva curta",
+      det:"Ficam "+eur(sobra)+" · "+mesesCobertos.toLocaleString("pt-PT",{maximumFractionDigits:1})+
+          " meses de despesa (a referência são 3 a 6)"});
+  } else {
+    pontos.push({grau:0, txt:"Cabe na liquidez",
+      det:"Ficam "+eur(sobra)+" · ainda "+mesesCobertos.toLocaleString("pt-PT",{maximumFractionDigits:1})+
+          " meses de despesa"});
+  }
+
+  // 2. Cabe no saldo do mês?
+  if (mensal > saldo){
+    pontos.push({grau:1, txt:(n > 1 ? "A prestação " : "O valor ")+"excede o saldo do mês",
+      det: eur(mensal)+(n > 1 ? "/mês" : "")+" contra um saldo de "+eur(saldo)});
+  }
+
+  // 3. O que faz aos objetivos com prazo
+  S.objetivos.forEach(o => {
+    const falta = Math.max(0, parseNum(o.alvo) - poupadoObjetivo(o));
+    if (falta <= 0 || !o.prazo) return;
+    const meses = mesDiff(MES, mesDoDia(o.prazo));
+    if (meses <= 0) return;
+    const esforco = falta / meses;
+    const novoEsforco = (falta + v) / meses;
+    if (saldo > 0 && esforco <= saldo && novoEsforco > saldo){
+      pontos.push({grau:1, txt:"Compromete «"+(o.nome || "objetivo")+"»",
+        det:"O esforço passaria de "+eur(esforco)+" para "+eur(novoEsforco)+"/mês"});
+    } else if (esforco > 0){
+      const atraso = Math.ceil(v / esforco);
+      if (atraso >= 1) pontos.push({grau:0, txt:"Atrasa «"+(o.nome || "objetivo")+"»",
+        det:"Cerca de "+atraso+" "+(atraso === 1 ? "mês" : "meses")+", ao ritmo atual"});
+    }
+  });
+
+  // 4. O que já está marcado para sair este mês
+  const porSair = S.recorrentes.filter(x => recAtiva(x, MES) && x.frequencia !== "mensal")
+    .reduce((s,x) => s + recMensal(x), 0);
+  if (porSair > 0){
+    pontos.push({grau:0, txt:"Este mês tem encargos não mensais",
+      det: eur(porSair)+" equivalentes a mês em rubricas anuais ou semestrais"});
+  }
+
+  return {valor: v, prestacoes: n, mensal, liquidez, sobra, pontos: pontos.sort((a,b) => b.grau - a.grau)};
+}
+
+function cartaoPodePagar(){
+  const valor = ui.compraValor != null ? ui.compraValor : 0;
+  const n = ui.compraPrest || 1;
+  const av = avaliarCompra(valor, n);
+  const cor = (g) => g === 2 ? "var(--neg)" : g === 1 ? "var(--warn)" : "var(--pos)";
+  const icone = (g) => g === 2 ? "✕" : g === 1 ? "⚠" : "✓";
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Posso pagar isto?</h2>'+
+    '<div class="sub">Escreva um valor e a ferramenta responde com o que sabe — liquidez, saldo do mês, '+
+    'objetivos e o que já está marcado para sair.</div></div></div>'+
+    '<div class="row no-print" style="margin-bottom:12px">'+
+      '<div style="flex:0 0 150px"><label class="field" for="cpValorCompra">Valor (€)</label>'+
+        '<input id="cpValorCompra" inputmode="decimal" placeholder="0,00" value="'+valEur(valor)+'" style="text-align:right"></div>'+
+      '<div style="flex:1 1 180px"><label class="field" for="cpPrestCompra">Pagamento</label>'+
+        '<select id="cpPrestCompra">'+[1,3,6,12,24].map(k =>
+          '<option value="'+k+'"'+(k === n ? " selected" : "")+'>'+
+          (k === 1 ? "De uma vez" : "Em "+k+" prestações")+'</option>').join("")+'</select></div>'+
+    '</div>'+
+    (av
+      ? '<div class="alertas">'+av.pontos.map(x =>
+          '<div class="alerta" style="cursor:default">'+
+          '<span class="ai" style="color:'+cor(x.grau)+'" aria-hidden="true">'+icone(x.grau)+'</span>'+
+          '<span class="at"><span class="t1">'+esc(x.txt)+'</span>'+
+          '<span class="t2">'+esc(x.det)+'</span></span></div>').join("")+'</div>'+
+        (av.prestacoes > 1
+          ? '<div class="note" style="margin-top:11px">Em '+av.prestacoes+' prestações são <strong>'+
+            esc(eur(av.mensal))+'/mês</strong>. Se for a crédito, acrescente-o em Créditos para ver o custo real dos juros.</div>'
+          : "")
+      : '<div class="empty">Escreva um valor para avaliar.</div>')+
+    '</div>';
+}
+
+/**
+ * Dois meses lado a lado, categoria a categoria. Ver o desvio de um mês
+ * face ao plano é uma coisa; ver junho ao lado de julho é outra, e é a
+ * que responde a «onde é que isto mudou?».
+ */
+function cartaoComparar(){
+  const a = ui.compararA || mesShift(MES, -1), b = ui.compararB || MES;
+  const fonte = (m) => { const r = realMes(m); return (r.rend > 0 || r.desp > 0) ? r : planoMes(m); };
+  const fa = fonte(a), fb = fonte(b);
+
+  const linhas = S.categorias.filter(c => c.tipo === "despesa")
+    .map(c => ({c, va: fa.porCat[c.id] || 0, vb: fb.porCat[c.id] || 0}))
+    .filter(x => x.va > 0 || x.vb > 0)
+    .map(x => Object.assign(x, {dif: x.vb - x.va}))
+    .sort((x, y) => Math.abs(y.dif) - Math.abs(x.dif));
+
+  const opc = (sel) => { const o = []; for (let i = -13; i <= 1; i++){ const m = mesShift(MES, i);
+    o.push('<option value="'+m+'"'+(m === sel ? " selected" : "")+'>'+esc(mesLabel(m))+'</option>'); } return o.join(""); };
+
+  const totalDif = fb.desp - fa.desp;
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Comparar dois meses</h2>'+
+    '<div class="sub">Onde é que a despesa mudou, categoria a categoria. Meses sem movimentos usam o plano.</div></div></div>'+
+    '<div class="row no-print" style="margin-bottom:12px">'+
+      '<div style="flex:1 1 150px"><label class="field" for="cmpA">De</label>'+
+        '<select id="cmpA">'+opc(a)+'</select></div>'+
+      '<div style="flex:1 1 150px"><label class="field" for="cmpB">Para</label>'+
+        '<select id="cmpB">'+opc(b)+'</select></div>'+
+    '</div>'+
+    (linhas.length
+      ? '<div class="tblwrap"><table><thead><tr><th>Categoria</th>'+
+        '<th class="r">'+esc(mesLabel(a, true))+'</th><th class="r">'+esc(mesLabel(b, true))+'</th>'+
+        '<th class="r">Diferença</th></tr></thead><tbody>'+
+        linhas.map(x =>
+          '<tr><td><span class="tag"><span class="dot" style="background:'+esc(x.c.cor)+'"></span>'+
+            esc(catRotulo(x.c.id))+'</span></td>'+
+          '<td class="r num">'+esc(eur(x.va))+'</td><td class="r num">'+esc(eur(x.vb))+'</td>'+
+          '<td class="r num '+(Math.abs(x.dif) < 0.005 ? "muted" : x.dif > 0 ? "neg" : "pos")+'">'+
+            (x.dif > 0 ? "+" : "")+esc(eur(x.dif))+'</td></tr>').join("")+
+        '</tbody><tfoot><tr><td>Total da despesa</td>'+
+        '<td class="r num">'+esc(eur(fa.desp))+'</td><td class="r num">'+esc(eur(fb.desp))+'</td>'+
+        '<td class="r num '+(totalDif > 0 ? "neg" : "pos")+'">'+(totalDif > 0 ? "+" : "")+esc(eur(totalDif))+
+        '</td></tr></tfoot></table></div>'
+      : '<div class="empty">Sem despesa nos dois meses escolhidos.</div>')+
+    '</div>';
+}
+
+/** Resumo dos créditos no painel: encargo, dívida e taxa de esforço. */
+function cartaoCreditosResumo(){
+  if (!S.creditos.length) return "";
+  const p = planoMes(MES), r = realMes(MES);
+  const rend = (r.rend > 0 || r.desp > 0) ? r.rend : p.rend;
+  const prestacoesMes = S.creditos.reduce((s,c) => s + encargoCredito(c, MES), 0);
+  const esforco = rend > 0 ? prestacoesMes / rend * 100 : 0;
+  const emDivida = S.creditos.reduce((s,c) => s + saldoDevedorMes(c, MES), 0);
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Créditos</h2>'+
+    '<div class="sub">Encargo mensal e taxa de esforço.</div></div>'+
+    '<button class="btn sm no-print" data-act="ir" data-view="creditos">Ver detalhe</button></div>'+
+    '<div class="grid g3">'+
+      kpi("Prestações/mês", eur(prestacoesMes), S.creditos.length+" crédito(s) ativo(s)")+
+      kpi("Capital em dívida", eur(emDivida), "No fim de "+mesLabel(MES))+
+      kpi("Taxa de esforço", pct(esforco),
+          esforco > 40 ? "Acima do limiar prudente (40%)" : esforco > 33 ? "Zona de atenção" : "Dentro do razoável",
+          esforco > 40 ? "bad" : esforco > 33 ? "warnb" : "good")+
+    '</div></div>';
+}
+
+/** Resumo dos objetivos no painel: barra de progresso de cada meta. */
+function cartaoObjetivosResumo(){
+  if (!S.objetivos.length) return "";
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Objetivos de poupança</h2></div>'+
+    '<button class="btn sm no-print" data-act="ir" data-view="objetivos">Gerir</button></div>'+
+    S.objetivos.map(o => {
+      const alvo = parseNum(o.alvo), atual = poupadoObjetivo(o);
+      const p2 = alvo > 0 ? Math.min(100, atual/alvo*100) : 0;
+      return '<div style="margin-bottom:11px">'+
+        '<div class="barlbl"><span style="color:var(--text);font-weight:600">'+esc(o.nome)+'</span>'+
+        '<span class="num">'+esc(eur(atual))+' / '+esc(eur(alvo))+' · '+esc(pct(p2))+'</span></div>'+
+        '<div class="bar"><span style="width:'+p2.toFixed(1)+'%;background:'+esc(o.cor || "var(--pos)")+'"></span></div>'+
+      '</div>';
+    }).join("")+
+    '</div>';
+}
+
+/* ---------------------------------------------------------------
+   Cartões do painel — o que se vê, e por que ordem
+
+   O painel cresceu por acumulação: cada funcionalidade nova trouxe o
+   seu cartão. Em vez de escolher por todos, escolhe-se um padrão curto
+   e deixa-se ligar o resto. `largo` diz quais ocupam a linha toda; os
+   estreitos emparelham dois a dois, sem perder a ordem escolhida.
+   --------------------------------------------------------------- */
+const CARTOES_PAINEL = {
+  atencao:     {lbl:"Precisa da sua atenção",   padrao:true,  largo:false},
+  digest:      {lbl:"Resumo do mês fechado",    padrao:true,  largo:false},
+  comparativo: {lbl:"Previsto vs. real",        padrao:true,  largo:false},
+  grafico:     {lbl:"Despesa por categoria",    padrao:true,  largo:false},
+  regra:       {lbl:"Regra 50 / 30 / 20",       padrao:true,  largo:false},
+  comparar:    {lbl:"Comparar dois meses",      padrao:false, largo:true},
+  podePagar:   {lbl:"Posso pagar isto?",        padrao:false, largo:false},
+  sankey:      {lbl:"Para onde vai o dinheiro", padrao:false, largo:true},
+  tesouraria:  {lbl:"Tesouraria a 12 meses",    padrao:false, largo:true},
+  mapa:        {lbl:"Mapa do ano",              padrao:false, largo:true},
+  evolucao:    {lbl:"Evolução",                 padrao:false, largo:false},
+  creditos:    {lbl:"Créditos",                 padrao:false, largo:false},
+  objetivos:   {lbl:"Objetivos de poupança",    padrao:false, largo:false},
+  patrimonio:  {lbl:"Património líquido",       padrao:false, largo:false},
+  simulador:   {lbl:"Simulador «e se…»",        padrao:false, largo:false},
+};
+/* No modo essencial mostra-se o indispensável, sem mexer na configuração. */
+const CARTOES_ESSENCIAIS = ["atencao", "comparativo"];
+
+/**
+ * Cartões ocultos. Enquanto ninguém configurar nada (`null`), valem os que
+ * não são de padrão — é isto que mantém o painel curto de origem.
+ */
+function painelOcultos(){
+  const cfg = S.painel || {};
+  return Array.isArray(cfg.ocultos) ? cfg.ocultos
+       : Object.keys(CARTOES_PAINEL).filter(k => !CARTOES_PAINEL[k].padrao);
+}
+
+/** As chaves visíveis, pela ordem escolhida. */
+function cartoesPainel(){
+  const cfg = S.painel || {};
+  if (ui.essencial) return CARTOES_ESSENCIAIS.filter(k => CARTOES_PAINEL[k]);
+  const ocultos = painelOcultos();
+  const todas = Object.keys(CARTOES_PAINEL);
+  const ordem = (Array.isArray(cfg.ordem) ? cfg.ordem : []).filter(k => CARTOES_PAINEL[k]);
+  const restantes = todas.filter(k => ordem.indexOf(k) < 0);
+  return ordem.concat(restantes).filter(k => ocultos.indexOf(k) < 0);
+}
+const cartaoFechado = (k) => ((S.painel || {}).fechados || []).indexOf(k) >= 0;
+
+/**
+ * Junta os cartões visíveis: os largos sozinhos, os estreitos aos pares.
+ * Um cartão fechado mostra só a barra de título — e não é construído.
+ */
+function montarPainel(produtores){
+  const chaves = cartoesPainel();
+  const partes = [];
+  let par = [];
+  const fecharPar = () => {
+    if (!par.length) return;
+    partes.push('<div class="grid g2">'+par.join("")+'</div>');
+    par = [];
+  };
+
+  chaves.forEach(k => {
+    const meta = CARTOES_PAINEL[k];
+    const fechado = cartaoFechado(k);
+    const html = fechado ? "" : (produtores[k] ? produtores[k]() : "");
+    if (!fechado && !html) return;             // sem conteúdo, sem cartão
+    const bloco = envolverCartao(k, meta, html, fechado);
+    if (meta.largo){ fecharPar(); partes.push(bloco); }
+    else {
+      par.push(bloco);
+      if (par.length === 2) fecharPar();
+    }
+  });
+  fecharPar();
+  return partes.join('<div style="height:16px"></div>');
+}
+
+/** Acrescenta a um cartão a barra de colapso, sem lhe tocar no conteúdo. */
+function envolverCartao(chave, meta, html, fechado){
+  const barra = '<div class="cabPainel no-print">'+
+    '<button data-act="painelColapsar" data-k="'+esc(chave)+'" aria-expanded="'+(!fechado)+'" '+
+      'aria-label="'+(fechado ? "Abrir" : "Fechar")+' '+esc(meta.lbl)+'">'+(fechado ? "▸" : "▾")+'</button>'+
+    (fechado ? '<span class="tt">'+esc(meta.lbl)+'</span>' : "")+
+    '</div>';
+  if (fechado) return '<div class="card cartaoFechado">'+barra+'</div>';
+  return '<div class="comCab">'+barra+html+'</div>';
 }
 
 /**
@@ -4829,6 +5313,35 @@ function serieMensal(fn, n){
 function valorMes(campo, mes){
   const r = realMes(mes);
   return (r.rend > 0 || r.desp > 0) ? r[campo] : planoMes(mes)[campo];
+}
+
+/** Despesa de uma categoria nos últimos n meses. */
+function serieCategoria(catId, n){
+  const out = [];
+  for (let i = n - 1; i >= 0; i--){
+    const m = mesShift(MES, -i);
+    const r = realMes(m), p = planoMes(m);
+    const f = (r.rend > 0 || r.desp > 0) ? r : p;
+    out.push(f.porCat[catId] || 0);
+  }
+  return out;
+}
+
+/**
+ * Minigráfico de barras para dentro de uma célula de tabela: a linha
+ * passa a dizer direção, não só o valor deste mês.
+ */
+function minigrafico(serie, cor){
+  if (!serie || !serie.length) return "";
+  const max = Math.max(...serie);
+  if (max <= 0) return '<span class="muted" style="font-size:11px">—</span>';
+  const W = 70, H = 20, lar = W / serie.length;
+  const barras = serie.map((v, i) =>
+    '<rect x="'+(i*lar+0.6).toFixed(1)+'" y="'+(H - Math.max(1.5, v/max*H)).toFixed(1)+
+    '" width="'+(lar-1.2).toFixed(1)+'" height="'+Math.max(1.5, v/max*H).toFixed(1)+
+    '" rx="1" fill="'+esc(cor || "var(--accent)")+'" opacity="'+(i === serie.length-1 ? .95 : .4)+'"/>').join("");
+  return '<svg class="mini" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Últimos '+serie.length+' meses">'+
+    barras+'</svg>';
 }
 
 /** Linha de tendência minimalista, para dentro de um KPI. */
@@ -4976,7 +5489,7 @@ function viewMovimentos(){
       '<td class="r num '+(isR ? "pos" : "neg")+'" data-lbl="Valor" data-edit="valor" data-id="'+esc(m.id)+'" '+
         'title="Clique duplo para editar">'+(isR ? "+" : "−")+esc(eur(v))+'</td>'+
       '<td class="r no-print" style="white-space:nowrap">'+
-        '<button class="btn sm ghost" data-act="movEditar" data-id="'+esc(m.id)+'" title="Editar">✎</button> '+
+        '<button class="btn sm ghost" data-act="movDuplicar" data-id="'+esc(m.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="movEditar" data-id="'+esc(m.id)+'" title="Editar">✎</button> '+
         '<button class="btn sm ghost" data-act="movApagar" data-id="'+esc(m.id)+'" title="Eliminar">✕</button></td>'+
     '</tr>';
   }).join("");
@@ -5007,8 +5520,10 @@ function viewMovimentos(){
 
   return '<div class="card"><div class="card-head"><div class="t"><h2>Movimentos — '+esc(mesLabel(MES))+'</h2>'+
     '<div class="sub">Registo do que entrou e saiu efetivamente.</div></div>'+
-    '<span class="no-print" style="white-space:nowrap">'+
-    '<button class="btn sm" data-act="csvAbrir" title="Importar movimentos de um extrato bancário em CSV">Importar extrato</button> '+
+    // Três botões não cabem numa linha em ecrã estreito: deixa-se quebrar.
+    '<span class="no-print acoesCabecalho">'+
+    '<button class="btn sm" data-act="csvAbrir" title="Importar movimentos de um extrato bancário em CSV">Importar extrato</button>'+
+    '<button class="btn sm" data-act="copiarMesAnterior" title="Repete os movimentos do mês anterior, sem duplicar os que já cá estão">Copiar mês anterior</button>'+
     '<button class="btn sm" data-act="gerarPlano" title="Cria movimentos a partir das rubricas mensais do plano">Lançar plano deste mês</button>'+
     '</span></div>'+form+cartaoRecorrencias()+calendarioCalor()+filtroBar+tabela+'</div>';
 }
@@ -5545,7 +6060,7 @@ function viewPlano(){
           '<td class="r num"><strong>'+esc(eur(recMensal(r)))+'</strong></td>'+
           '<td class="r no-print" style="white-space:nowrap">'+
             '<button class="btn sm ghost" data-act="recToggle" data-id="'+esc(r.id)+'" title="Ativar/desativar">'+(r.ativo === false ? "○" : "●")+'</button> '+
-            '<button class="btn sm ghost" data-act="recEditar" data-id="'+esc(r.id)+'" title="Editar">✎</button> '+
+            '<button class="btn sm ghost" data-act="recDuplicar" data-id="'+esc(r.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="recEditar" data-id="'+esc(r.id)+'" title="Editar">✎</button> '+
             '<button class="btn sm ghost" data-act="recApagar" data-id="'+esc(r.id)+'" title="Eliminar">✕</button></td>'+
         '</tr>';
       }).join("")+
@@ -5645,6 +6160,7 @@ function viewOrcamento(){
       '<td class="r num">'+esc(eur(gasto))+'</td>'+
       '<td class="r num '+(disp < 0 ? "neg" : "")+'">'+(efetivo > 0 ? esc(eur(disp)) : "—")+'</td>'+
       '<td style="width:170px">'+barraRitmo(gasto, efetivo, c.cor)+'</td>'+
+      '<td style="width:78px">'+minigrafico(serieCategoria(c.id, 6), c.cor)+'</td>'+
       '<td class="r" style="white-space:nowrap;font-size:12px">'+esc(textoRitmo(gasto, efetivo))+'</td>'+
     '</tr>';
   }).join("");
@@ -5654,18 +6170,34 @@ function viewOrcamento(){
 
   const semNada = !linhas.trim();
 
+  /* Mesada: o que resta nos limites, repartido pelos dias que faltam.
+     É a pergunta prática do meio do mês — «quanto posso gastar hoje?» */
+  const dias = diasQueFaltam();
+  const restaTotal = Math.max(0, totLim - totGasto);
+  const mesada = (MES === isoMes(hoje()) && dias > 0 && totLim > 0)
+    ? '<div class="grid g3" style="margin-bottom:16px">'+
+      kpi("Resta nos limites", eur(restaTotal), "De "+eur(totLim)+" definidos", restaTotal > 0 ? "good" : "bad")+
+      kpi("Mesada diária", eur(restaTotal / dias), dias+" dia(s) até ao fim do mês", "accent")+
+      kpi("Ritmo até agora", eur(totGasto / Math.max(1, new Date().getDate())),
+          "Por dia, desde o início do mês",
+          (totGasto / Math.max(1, new Date().getDate())) > (restaTotal / dias) ? "warnb" : "good")+
+      '</div>'
+    : "";
+
   return '<div class="card"><div class="card-head"><div class="t"><h2>Limites por categoria — '+esc(mesLabel(MES))+'</h2>'+
     '<div class="sub">Defina um teto mensal por categoria. Sem limite definido, usa-se o valor do plano.</div></div>'+
     '<button class="btn sm no-print" data-act="limDoPlano">Preencher com o plano</button></div>'+
+    mesada+
     (semNada
       ? '<div class="empty">Ainda não há categorias com plano, limite ou gastos. Comece pelo plano mensal.</div>'
       : '<div class="tblwrap"><table><thead><tr><th>Categoria</th><th>Grupo</th><th class="r">Limite/mês</th>'+
-        '<th class="r">Gasto</th><th class="r">Disponível</th><th>Utilização</th><th class="r">Ritmo</th></tr></thead>'+
+        '<th class="r">Gasto</th><th class="r">Disponível</th><th>Utilização</th><th>6 meses</th>'+
+        '<th class="r">Ritmo</th></tr></thead>'+
         '<tbody>'+linhas+'</tbody>'+
         '<tfoot><tr><td colspan="2">Total</td><td class="r num">'+esc(eur(totLim))+'</td>'+
         '<td class="r num">'+esc(eur(totGasto))+'</td>'+
         '<td class="r num '+(totLim - totGasto < 0 ? "neg" : "")+'">'+esc(eur(totLim - totGasto))+'</td>'+
-        '<td>'+barraRitmo(totGasto, totLim)+'</td>'+
+        '<td>'+barraRitmo(totGasto, totLim)+'</td><td></td>'+
         '<td class="r" style="font-size:12px">'+esc(textoRitmo(totGasto, totLim))+'</td></tr></tfoot></table></div>')+
     '<div class="note no-print" style="margin-top:12px">Os limites aplicam-se a todos os meses. '+
     'Escreva o valor e prima <kbd>Tab</kbd> ou clique fora para guardar.</div>'+
@@ -5731,7 +6263,7 @@ function festejar(){
 function celebrarConcluidos(){
   let novo = false;
   S.objetivos.forEach(o => {
-    const feito = parseNum(o.alvo) > 0 && parseNum(o.atual) >= parseNum(o.alvo);
+    const feito = parseNum(o.alvo) > 0 && poupadoObjetivo(o) >= parseNum(o.alvo);
     if (feito && !o.celebrado){ o.celebrado = true; novo = true; }
   });
   if (novo) festejar();
@@ -5748,8 +6280,15 @@ function viewObjetivos(){
         '<input id="obNome" placeholder="Ex.: Fundo de emergência" value="'+esc(f.nome || "")+'"></div>'+
       '<div style="flex:0 0 130px"><label class="field" for="obAlvo">Meta (€)</label>'+
         '<input id="obAlvo" inputmode="decimal" placeholder="0,00" value="'+valEur(f.alvo)+'"></div>'+
-      '<div style="flex:0 0 130px"><label class="field" for="obAtual">Já poupado (€)</label>'+
-        '<input id="obAtual" inputmode="decimal" placeholder="0,00" value="'+valEur(f.atual)+'"></div>'+
+      (f.ativoId
+        ? '<div style="flex:0 0 130px"><label class="field">Já poupado</label>'+
+          '<input value="'+valEur(poupadoObjetivo(f))+'" disabled title="Vem do ativo ligado"></div>'
+        : '<div style="flex:0 0 130px"><label class="field" for="obAtual">Já poupado (€)</label>'+
+          '<input id="obAtual" inputmode="decimal" placeholder="0,00" value="'+valEur(f.atual)+'"></div>')+
+      '<div style="flex:1 1 190px"><label class="field" for="obAtivo">Ativo que o financia <span class="muted">(opc.)</span></label>'+
+        '<select id="obAtivo"><option value="">— acompanho à mão —</option>'+
+        financeiros().map(a => '<option value="'+esc(a.id)+'"'+(f.ativoId === a.id ? " selected" : "")+'>'+
+          esc(a.nome)+' — '+esc(eur(valorAtivo(a)))+'</option>').join("")+'</select></div>'+
       '<div style="flex:0 0 155px"><label class="field" for="obPrazo">Prazo (mês)</label>'+
         '<input type="month" id="obPrazo" value="'+esc(mesDoDia(f.prazo) || "")+'"></div>'+
       '<div style="flex:0 0 80px"><label class="field" for="obCor">Cor</label>'+
@@ -5768,7 +6307,7 @@ function viewObjetivos(){
 
   const p = planoMes(MES);
   const cartoes = S.objetivos.map(o => {
-    const alvo = parseNum(o.alvo), atual = parseNum(o.atual);
+    const alvo = parseNum(o.alvo), atual = poupadoObjetivo(o);
     const falta = Math.max(0, alvo - atual);
     const prog = alvo > 0 ? Math.min(100, atual/alvo*100) : 0;
     const mesesRestantes = o.prazo ? Math.max(0, mesDiff(MES, mesDoDia(o.prazo))) : null;
@@ -6500,7 +7039,7 @@ function viewAtivos(){
         '<td class="r num '+(fx.liquido >= 0 ? "pos" : "neg")+'" data-lbl="Fluxo/mês">'+(fx.liquido >= 0 ? "+" : "")+esc(eur(fx.liquido))+'</td>'+
         '<td class="r no-print" style="white-space:nowrap">'+
           '<button class="btn sm ghost" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor">↻</button> '+
-          '<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
+          '<button class="btn sm ghost" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
           '<button class="btn sm ghost" data-act="patApagar" data-id="'+esc(a.id)+'">✕</button></td>'+
       '</tr>';
     }).join("");
@@ -6831,7 +7370,7 @@ function fichaAtivo(a){
       '</div></div>'+
       '<div class="no-print" style="white-space:nowrap">'+
         '<button class="btn sm ghost" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor">↻</button> '+
-        '<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
+        '<button class="btn sm ghost" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
         '<button class="btn sm ghost" data-act="patApagar" data-id="'+esc(a.id)+'">✕</button></div></div>'+
     '<div class="grid g4">'+
       kpi("Valor atual", eur(val), "Valor "+origemValor(a), "accent")+
@@ -7302,6 +7841,7 @@ function creditosOut(){
         (varia ? ' · revê a cada '+revisaoCredito(c)+' meses' : "")+
         (ativo ? ' · financia <strong>'+esc(ativo.nome)+'</strong>' : "")+'</div></div>'+
         '<div class="no-print" style="white-space:nowrap">'+
+          '<button class="btn sm ghost" data-act="crDuplicar" data-id="'+esc(c.id)+'" title="Duplicar">⧉</button> '+
           '<button class="btn sm ghost" data-act="crEditar" data-id="'+esc(c.id)+'">✎</button> '+
           '<button class="btn sm ghost" data-act="crApagar" data-id="'+esc(c.id)+'">✕</button></div></div>'+
       '<div class="grid g4" style="margin-bottom:13px">'+
@@ -7331,7 +7871,60 @@ function creditosOut(){
     '</div>';
   }).join('<div style="height:16px"></div>');
 
-  return resumo + cartoes;
+  return resumo + cartaoAmortizar() + cartoes;
+}
+
+/**
+ * Que dívida amortizar primeiro, e o que rende reforçá-la.
+ * A app já sabia a taxa, o capital em dívida e o mapa de amortização de
+ * cada crédito; faltava juntar as três coisas e responder à pergunta.
+ */
+function cartaoAmortizar(){
+  const metodo = ui.amortMetodo === "bola" ? "bola" : "avalanche";
+  const ordem = ordemAmortizacao(metodo);
+  if (ordem.length < 1) return "";
+
+  const extra = ui.amortExtra != null ? ui.amortExtra : 150;
+  const alvo = ordem[0];
+  const sim = simularReforco(alvo.cr, extra, MES);
+
+  const linhas = ordem.map((x, i) =>
+    '<tr'+(i === 0 ? ' style="background:color-mix(in srgb,var(--accent) 9%,transparent)"' : '')+'>'+
+    '<td style="width:34px"><span class="ordem'+(i === 0 ? " primeiro" : "")+'">'+(i+1)+'</span></td>'+
+    '<td>'+esc(x.cr.nome || "crédito")+(i === 0 ? ' <span class="tag">reforçar este</span>' : "")+'</td>'+
+    '<td class="r num">'+esc(pct(x.taxa))+'</td>'+
+    '<td class="r num">'+esc(eur(x.divida))+'</td>'+
+    '<td class="r num">'+esc(eur(x.prestacao))+'</td></tr>').join("");
+
+  const explicacao = metodo === "avalanche"
+    ? "Ataca primeiro a taxa mais alta: é o que poupa mais juros no total."
+    : "Ataca primeiro o saldo mais pequeno: um crédito desaparece mais cedo, e isso motiva.";
+
+  const efeito = sim && sim.mesesPoupados > 0
+    ? '<div class="note" style="margin-top:12px;border-left-color:var(--pos)">'+
+      'Com <strong>'+esc(eur(sim.reforco))+'/mês</strong> a mais em «'+esc(alvo.cr.nome || "crédito")+'»: '+
+      'fica pago <strong>'+sim.mesesPoupados+' '+(sim.mesesPoupados === 1 ? "mês" : "meses")+'</strong> antes '+
+      '('+esc(mesLabel(sim.fim, true))+' em vez de '+esc(mesLabel(mesShift(MES, sim.mesesAntes-1), true))+') '+
+      'e poupa <strong>'+esc(eur(sim.jurosPoupados))+'</strong> de juros.</div>'
+    : sim
+    ? '<div class="note" style="margin-top:12px">Com este reforço não há ganho de prazo apreciável.</div>'
+    : '<div class="note" style="margin-top:12px">Não é possível projetar este crédito com os dados atuais.</div>';
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Que dívida amortizar primeiro</h2>'+
+    '<div class="sub">'+esc(explicacao)+'</div></div>'+
+    '<div class="seg no-print">'+
+      '<button data-act="amortMetodo" data-v="avalanche" aria-pressed="'+(metodo === "avalanche")+'">Mais juros</button>'+
+      '<button data-act="amortMetodo" data-v="bola" aria-pressed="'+(metodo === "bola")+'">Menor saldo</button>'+
+    '</div></div>'+
+    '<div class="tblwrap"><table><thead><tr><th></th><th>Crédito</th><th class="r">Taxa</th>'+
+    '<th class="r">Em dívida</th><th class="r">Prestação</th></tr></thead><tbody>'+linhas+'</tbody></table></div>'+
+    '<div class="no-print" style="margin-top:14px">'+
+      slider("amortExtra", "Reforço mensal", extra, 0, 1000, 25, " €")+'</div>'+
+    efeito+
+    '<div class="note" style="margin-top:10px">A projeção usa a taxa corrente de cada crédito. Nos '+
+    'indexados a taxa há de mudar, pelo que isto é uma estimativa — e não substitui confirmar com o banco '+
+    'as condições de amortização antecipada, que podem ter comissão.</div>'+
+    '</div><div style="height:16px"></div>';
 }
 
 /* ------------------------------- Definições ------------------------------- */
@@ -7472,13 +8065,41 @@ function viewConfig(){
     '</div>'+
     '<div class="note" style="margin-top:12px">As cores com significado — verde de positivo, vermelho de negativo, '+
     'âmbar de aviso — mantêm-se em todas as paletas, para que os números se leiam sempre da mesma maneira.</div>'+
-    '</div>';
+    '</div>' + '<div style="height:16px"></div>' + cartaoPainelConfig();
 
   return aparencia + '<div style="height:16px"></div>' +
          cartaoSaude() + '<div style="height:16px"></div>' +
          membros + '<div style="height:16px"></div>' + cartaoFiscalidade() +
          '<div style="height:16px"></div>' + categorias + '<div style="height:16px"></div>' +
          cartaoRegras() + '<div style="height:16px"></div>' + dados;
+}
+
+/** Escolha e ordem dos cartões do painel. */
+function cartaoPainelConfig(){
+  const visiveis = cartoesPainel();
+  const ocultos = painelOcultos();
+  const ordenadas = visiveis.concat(Object.keys(CARTOES_PAINEL).filter(k => visiveis.indexOf(k) < 0));
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Cartões do painel</h2>'+
+    '<div class="sub">Ligue só o que quer ver, e arraste para ordenar. O painel começa com cinco — '+
+    'o resto ganha-se ao ligar.</div></div>'+
+    '<span class="tag">'+visiveis.length+' de '+Object.keys(CARTOES_PAINEL).length+'</span></div>'+
+    '<div class="tblwrap"><table><tbody>'+
+    ordenadas.map(k => {
+      const on = ocultos.indexOf(k) < 0;
+      return '<tr draggable="true" data-drag="painel" data-id="'+esc(k)+'"'+(on ? "" : ' style="opacity:.5"')+'>'+
+        '<td class="no-print pega" style="width:26px" title="Arrastar para ordenar">⠿</td>'+
+        '<td>'+esc(CARTOES_PAINEL[k].lbl)+
+          (CARTOES_PAINEL[k].largo ? ' <span class="tag">largo</span>' : "")+'</td>'+
+        '<td class="r no-print" style="width:90px">'+
+          '<button class="btn sm ghost" data-act="painelVisivel" data-k="'+esc(k)+'" '+
+          'aria-pressed="'+on+'">'+(on ? "👁 visível" : "🚫 oculto")+'</button></td></tr>';
+    }).join("")+
+    '</tbody></table></div>'+
+    '<div class="actions"><button class="btn ghost" data-act="painelReporPadrao">Repor o padrão</button></div>'+
+    '<div class="note" style="margin-top:11px">O botão <strong>◱</strong> do cabeçalho liga o <strong>modo essencial</strong>, '+
+    'que mostra só o indispensável sem mexer nesta configuração. E cada cartão do painel pode ser fechado '+
+    'no seu canto — fechado, nem chega a ser calculado.</div>'+
+    '</div>';
 }
 
 /* Regras de categorização — o que o importador aprendeu. */
@@ -7903,7 +8524,7 @@ function viewRelatorio(){
       ? '<div class="card"><h2>Objetivos</h2><div class="tblwrap"><table><thead><tr><th>Objetivo</th>'+
         '<th class="r">Poupado</th><th class="r">Meta</th><th class="r">Progresso</th></tr></thead><tbody>'+
         S.objetivos.map(o => {
-          const at = parseNum(o.atual), al = parseNum(o.alvo);
+          const at = poupadoObjetivo(o), al = parseNum(o.alvo);
           return '<tr><td>'+esc(o.nome)+'</td><td class="r num">'+esc(eur(at))+'</td>'+
             '<td class="r num">'+esc(eur(al))+'</td>'+
             '<td class="r num">'+esc(pct(al > 0 ? Math.min(100, at/al*100) : 0))+'</td></tr>';
@@ -7932,7 +8553,39 @@ function render(){
   $("#brandSub").textContent = mesLabel(MES) + " · saldo " + eur(saldo);
   pintarHistorico();
   pintarEstadoGuardado();
+  pintarFita();
   guardarSessaoAdiado();
+}
+
+/**
+ * Fita de meses: sete barras de saldo clicáveis, à volta do mês em
+ * análise. A altura é o saldo, a cor o sinal, e os meses ainda por
+ * acontecer ficam esbatidos. Substitui carregar cinco vezes na seta.
+ */
+function pintarFita(){
+  const host = $("#fitaMeses");
+  if (!host) return;
+  const hojeM = isoMes(hoje());
+  const meses = [];
+  for (let i = -4; i <= 2; i++) meses.push(mesShift(MES, i));
+
+  const dados = emPasse(() => meses.map(m => {
+    const r = realMes(m), p = planoMes(m);
+    const usa = (r.rend > 0 || r.desp > 0) ? r : p;
+    return {mes: m, saldo: usa.saldo, futuro: m > hojeM};
+  }));
+  const max = Math.max(1, ...dados.map(d => Math.abs(d.saldo)));
+
+  host.innerHTML = dados.map(d => {
+    const h = Math.max(3, Math.round(Math.abs(d.saldo) / max * 24));
+    const cor = d.saldo >= 0 ? "var(--pos)" : "var(--neg)";
+    const atual = d.mes === MES;
+    return '<button data-mes="'+esc(d.mes)+'"'+(atual ? ' aria-current="true"' : '')+
+      ' title="'+esc(mesLabel(d.mes))+' · saldo '+esc(eur(d.saldo))+(d.futuro ? " (previsto)" : "")+'">'+
+      '<span class="cx"><span class="bx" style="height:'+h+'px;background:'+cor+
+        ';opacity:'+(atual ? 1 : d.futuro ? .35 : .55)+'"></span></span>'+
+      '<span class="lx">'+esc(mesLabel(d.mes, true).split("/")[0])+'</span></button>';
+  }).join("");
 }
 
 /**
@@ -7971,13 +8624,45 @@ function irPara(v){
 /* ---------------------------------------------------------------
    Notificações e diálogos
    --------------------------------------------------------------- */
+/* Avisos em fila: com ações em lote, um aviso novo apagava o anterior
+   antes de dar tempo de o ler. Passam a esperar pela vez. */
 let toastT;
+let _filaToast = [];
+let _toastOcupado = false;
+
+const FILA_TOAST_MAX = 3;
 function toast(msg){
+  _filaToast.push({msg});
+  // Com tecto: uma enxurrada de avisos não deve virar apresentação de
+  // slides. Ficam os últimos, que são os que dizem respeito ao que se fez.
+  if (_filaToast.length > FILA_TOAST_MAX) _filaToast.splice(0, _filaToast.length - FILA_TOAST_MAX);
+  if (!_toastOcupado) _proximoToast();
+}
+function _proximoToast(){
   const t = $("#toast");
+  if (!_filaToast.length){ _toastOcupado = false; t.classList.remove("show"); return; }
+  _toastOcupado = true;
+  const {msg, botao} = _filaToast.shift();
   t.textContent = msg;
+  if (botao) t.appendChild(botao);
   t.classList.add("show");
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove("show"), 2600);
+  toastT = setTimeout(() => {
+    t.classList.remove("show");
+    // Deixa a saída acontecer antes de mostrar o seguinte
+    setTimeout(_proximoToast, 220);
+  }, botao ? 6000 : 2600);
+}
+/**
+ * Aviso com um botão de ação (a anulação). Mostra-se já, sem esperar pela
+ * fila: a janela para carregar em «Anular» é curta, e fazê-la começar
+ * 220 ms depois seria roubar tempo a quem se arrependeu.
+ */
+function toastComBotao(msg, botao){
+  _filaToast.unshift({msg, botao});
+  clearTimeout(toastT);
+  _toastOcupado = false;
+  _proximoToast();
 }
 
 /**
@@ -8010,19 +8695,22 @@ function invalido(id, msg){
 function apagarComAnulacao(msg, fn, rotulo){
   const antes = historico.atras.length;
   alterar(fn, rotulo || "eliminação");
-  const t = $("#toast");
-  t.textContent = msg;
   // Só oferece anular se a eliminação chegou mesmo ao histórico
+  let b = null;
   if (historico.atras.length > antes){
-    const b = document.createElement("button");
+    b = document.createElement("button");
     b.type = "button";
     b.textContent = "Anular";
-    b.onclick = () => desfazer();
-    t.appendChild(b);
+    // O botão consome-se ao ser usado: o aviso sai de cena já, sem esperar
+    // a vez na fila, para não continuar a oferecer o que já foi feito.
+    b.onclick = () => {
+      clearTimeout(toastT);
+      $("#toast").classList.remove("show");
+      _toastOcupado = false;
+      desfazer();
+    };
   }
-  t.classList.add("show");
-  clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove("show"), 6000);
+  toastComBotao(msg, b);
 }
 
 function confirmar(titulo, texto, onOk, labelOk){
@@ -8057,6 +8745,36 @@ function pedirValor(titulo, texto, onOk, valorInicial){
   host.querySelector(".overlay").onclick = (e) => { if (e.target === e.currentTarget) fechar(); };
   host.querySelector("#dlgIn").focus();
 }
+
+/**
+ * Campos de valor que fazem contas: escrever «43,20+18» ou «120*3» e o
+ * campo resolve ao sair. Só aritmética — a lista de carateres permitidos
+ * é branca, e nada além dela chega a ser avaliado.
+ */
+function avaliarExpressao(texto){
+  const s = String(texto || "").trim();
+  if (!s || !/[+\-*/]/.test(s)) return null;          // sem operador, não é conta
+  if (!/^[0-9 .,+\-*/()]+$/.test(s)) return null;     // qualquer outra coisa: não se toca
+  // Vírgula decimal para ponto; pontos de milhares desaparecem
+  const limpo = s.replace(/\.(?=\d{3}\b)/g, "").replace(/,/g, ".");
+  if (!/^[0-9 .+\-*/()]+$/.test(limpo)) return null;
+  try {
+    const v = Function('"use strict";return ('+limpo+')')();
+    return (typeof v === "number" && isFinite(v)) ? v : null;
+  } catch(e){ return null; }
+}
+
+/* Ao sair de um campo decimal, resolve-se a conta que lá estiver. */
+document.addEventListener("blur", (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== "INPUT") return;
+  if (el.inputMode !== "decimal" && el.getAttribute("inputmode") !== "decimal") return;
+  const v = avaliarExpressao(el.value);
+  if (v == null) return;
+  el.value = fmtNum.format(Math.round(v * 100) / 100);
+  el.dispatchEvent(new Event("input", {bubbles:true}));
+  el.dispatchEvent(new Event("change", {bubbles:true}));
+}, true);
 
 /** Como o `pedirValor`, mas devolve texto — para nomes e etiquetas. */
 function pedirTexto(titulo, texto, onOk, valorInicial){
@@ -8645,6 +9363,71 @@ const ACOES = {
     });
   },
 
+  /* --- duplicar --- */
+  movDuplicar(el){
+    const m = S.movimentos.find(x => x.id === el.dataset.id);
+    if (!m) return;
+    alterar(() => {
+      S.movimentos.push(Object.assign({}, m, {id: uid("mv"),
+        descricao: (m.descricao || "") + " (cópia)"}));
+    }, "duplicar movimento");
+    toast("Movimento duplicado — ajuste o que for preciso.");
+  },
+  patDuplicar(el){
+    const a = S.ativos.find(x => x.id === el.dataset.id);
+    if (!a) return;
+    alterar(() => {
+      S.ativos.push(Object.assign({}, JSON.parse(JSON.stringify(a)), {id: uid("pt"),
+        nome: (a.nome || "") + " (cópia)"}));
+    }, "duplicar ativo");
+    toast("Ativo duplicado.");
+  },
+  crDuplicar(el){
+    const c = S.creditos.find(x => x.id === el.dataset.id);
+    if (!c) return;
+    alterar(() => {
+      S.creditos.push(Object.assign({}, c, {id: uid("cr"), nome: (c.nome || "") + " (cópia)"}));
+    }, "duplicar crédito");
+    toast("Crédito duplicado.");
+  },
+  recDuplicar(el){
+    const r = S.recorrentes.find(x => x.id === el.dataset.id);
+    if (!r) return;
+    alterar(() => {
+      S.recorrentes.push(Object.assign({}, r, {id: uid("rec"), nome: (r.nome || "") + " (cópia)"}));
+    }, "duplicar rubrica");
+    toast("Rubrica duplicada.");
+  },
+
+  /* --- copiar os movimentos do mês anterior --- */
+  copiarMesAnterior(){
+    const origem = mesShift(MES, -1);
+    const doOutro = S.movimentos.filter(m => mesDoDia(m.data) === origem);
+    if (!doOutro.length){ toast("Sem movimentos em "+mesLabel(origem)+" para copiar."); return; }
+    // Não repetir o que já cá está: mesma descrição e valor
+    const existentes = new Set(S.movimentos.filter(m => mesDoDia(m.data) === MES)
+      .map(m => semAcento(m.descricao)+"|"+Math.abs(parseNum(m.valor)).toFixed(2)));
+    const novos = doOutro.filter(m =>
+      !existentes.has(semAcento(m.descricao)+"|"+Math.abs(parseNum(m.valor)).toFixed(2)));
+    if (!novos.length){ toast("Todos os movimentos de "+mesLabel(origem)+" já cá estão."); return; }
+
+    const [ano, mm] = MES.split("-").map(Number);
+    const ultimo = new Date(ano, mm, 0).getDate();
+    confirmar("Copiar de "+mesLabel(origem)+"?",
+      "Vai criar "+novos.length+" movimento(s) em "+mesLabel(MES)+", com o mesmo dia, descrição e valor. "+
+      "Os que já existem aqui ficam de fora.",
+      () => {
+        alterar(() => {
+          novos.forEach(m => {
+            const dia = Math.min(parseInt(m.data.slice(8), 10) || 1, ultimo);
+            S.movimentos.push(Object.assign({}, m, {id: uid("mv"),
+              data: MES+"-"+String(dia).padStart(2, "0")}));
+          });
+        }, "cópia do mês anterior");
+        toast(novos.length+" movimento(s) copiados de "+mesLabel(origem)+".");
+      }, "Copiar");
+  },
+
   /* --- seleção múltipla e ações em lote --- */
   movSel(el){
     if (!ui.movSel) ui.movSel = {};
@@ -8930,8 +9713,14 @@ const ACOES = {
     if (!nome){ invalido("obNome", "Indique o nome do objetivo."); return; }
     if (alvo <= 0){ invalido("obAlvo", "Indique a meta."); return; }
     const prazo = $("#obPrazo").value;
+    const ativoId = $("#obAtivo") ? $("#obAtivo").value : "";
+    const campoAtual = $("#obAtual");
     const dados = {
-      nome, alvo, atual: Math.max(0, parseNum($("#obAtual").value)),
+      nome, alvo,
+      // Ligado a um ativo, o «já poupado» deixa de se escrever: vem de lá.
+      atual: campoAtual ? Math.max(0, parseNum(campoAtual.value))
+             : (editando.obj ? parseNum((S.objetivos.find(o => o.id === editando.obj) || {}).atual) : 0),
+      ativoId,
       prazo: prazo ? prazo+"-01" : "", cor: $("#obCor").value,
     };
     alterar(() => {
@@ -8949,6 +9738,10 @@ const ACOES = {
   objContrib(el){
     const o = S.objetivos.find(x => x.id === el.dataset.id);
     if (!o) return;
+    if (o.ativoId){
+      toast("Este objetivo segue um ativo — reforce o ativo, e o progresso acompanha.");
+      return;
+    }
     pedirValor("Reforçar «"+o.nome+"»", "Valor a acrescentar ao já poupado (atualmente "+eur(parseNum(o.atual))+").", (v) => {
       if (!v) return;
       alterar(() => { o.atual = Math.max(0, parseNum(o.atual) + v); celebrarConcluidos(); });
@@ -8965,6 +9758,42 @@ const ACOES = {
   /* --- histórico --- */
   desfazer(){ desfazer(); },
   refazer(){ refazer(); },
+
+  amortMetodo(el){ ui.amortMetodo = el.dataset.v; render(); },
+
+  /* --- cartões do painel --- */
+  painelColapsar(el){
+    const k = el.dataset.k;
+    alterar(() => {
+      if (!S.painel.fechados) S.painel.fechados = [];
+      const i = S.painel.fechados.indexOf(k);
+      if (i >= 0) S.painel.fechados.splice(i, 1); else S.painel.fechados.push(k);
+    }, "cartão do painel");
+  },
+  painelVisivel(el){
+    const k = el.dataset.k;
+    alterar(() => {
+      // Parte-se do que está de facto oculto — não de uma lista vazia,
+      // que faria a primeira escolha revelar os treze de uma vez.
+      const ocultos = painelOcultos().slice();
+      const i = ocultos.indexOf(k);
+      if (i >= 0) ocultos.splice(i, 1); else ocultos.push(k);
+      S.painel.ocultos = ocultos;
+    }, "cartões do painel");
+  },
+  painelReporPadrao(){
+    alterar(() => {
+      S.painel = {ocultos: Object.keys(CARTOES_PAINEL).filter(k => !CARTOES_PAINEL[k].padrao),
+                  ordem: [], fechados: []};
+    }, "cartões do painel");
+    toast("Painel reposto no padrão.");
+  },
+  essencialAlternar(){
+    ui.essencial = !ui.essencial;
+    $$('[data-act="essencialAlternar"]').forEach(b => b.setAttribute("aria-pressed", String(ui.essencial)));
+    render();
+    toast(ui.essencial ? "Modo essencial — só o indispensável." : "Painel completo.");
+  },
 
   /* --- aparência --- */
   temaModo(el){
@@ -9447,7 +10276,7 @@ function comandosDados(t){
     out.push({icone:"🏠", lbl:c.nome+" — "+eur(saldoDevedorMes(c, MES))+" em dívida", tipo:"crédito",
       run: () => { irPara("creditos"); }}));
   S.objetivos.filter(o => bate(o.nome)).slice(0, 3).forEach(o =>
-    out.push({icone:"🎯", lbl:o.nome+" — "+eur(parseNum(o.atual))+" de "+eur(parseNum(o.alvo)), tipo:"objetivo",
+    out.push({icone:"🎯", lbl:o.nome+" — "+eur(poupadoObjetivo(o))+" de "+eur(parseNum(o.alvo)), tipo:"objetivo",
       run: () => { irPara("objetivos"); }}));
   S.rendimentos.filter(r => bate(r.nome)).slice(0, 3).forEach(r =>
     out.push({icone:"💶", lbl:r.nome, tipo:"fonte", run: () => { ui.abertos["rd-"+r.id] = true; irPara("rendimentos"); }}));
@@ -9663,6 +10492,19 @@ function categoriaSugerida(descricao){
    Arrastar para reordenar — categorias e rubricas do plano.
    O núcleo é uma função pura (testável); o arrasto só a invoca.
    --------------------------------------------------------------- */
+/** Reordena os cartões do painel, arrastando um para o lugar de outro. */
+function reordenarPainel(chaveArrastada, chaveAlvo){
+  if (!CARTOES_PAINEL[chaveArrastada] || !CARTOES_PAINEL[chaveAlvo]) return false;
+  if (chaveArrastada === chaveAlvo) return false;
+  const visiveis = cartoesPainel();
+  const atual = visiveis.concat(Object.keys(CARTOES_PAINEL).filter(k => visiveis.indexOf(k) < 0));
+  const de = atual.indexOf(chaveArrastada), para = atual.indexOf(chaveAlvo);
+  if (de < 0 || para < 0) return false;
+  atual.splice(para, 0, atual.splice(de, 1)[0]);
+  S.painel.ordem = atual;
+  return true;
+}
+
 function reordenarCategoria(idArrastada, idAlvo){
   const de = S.categorias.findIndex(c => c.id === idArrastada);
   const para = S.categorias.findIndex(c => c.id === idAlvo);
@@ -9741,6 +10583,58 @@ document.addEventListener("dblclick", (e) => {
   if (td) editarCelula(td);
 });
 
+/* ---------------------------------------------------------------
+   Arrastar sobre a evolução para ampliar um período.
+   As coordenadas vêm em unidades do viewBox, não em pixels do ecrã:
+   o SVG é responsivo, e converter à mão pelo rácio evita depender do
+   tamanho a que o gráfico calhou ser desenhado.
+   --------------------------------------------------------------- */
+let _brush = null;
+function _brushX(svg, ev){
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  return vb.x + (ev.clientX - r.left) / r.width * vb.width;
+}
+document.addEventListener("pointerdown", (e) => {
+  const area = e.target.closest && e.target.closest("[data-brush]");
+  if (!area) return;
+  const svg = area.ownerSVGElement;
+  _brush = {svg, area, x0: _brushX(svg, e)};
+  area.setPointerCapture && area.setPointerCapture(e.pointerId);
+});
+document.addEventListener("pointermove", (e) => {
+  if (!_brush) return;
+  const x = _brushX(_brush.svg, e);
+  const sel = _brush.svg.querySelector("#brushSel");
+  if (!sel) return;
+  sel.setAttribute("x", Math.min(_brush.x0, x).toFixed(1));
+  sel.setAttribute("width", Math.abs(x - _brush.x0).toFixed(1));
+});
+document.addEventListener("pointerup", (e) => {
+  if (!_brush) return;
+  const {svg, area, x0} = _brush;
+  _brush = null;
+  const sel = svg.querySelector("#brushSel");
+  if (sel){ sel.setAttribute("width", "0"); }
+  const x1 = _brushX(svg, e);
+  const padL = parseFloat(area.dataset.l), largura = parseFloat(area.dataset.w);
+  const n = parseInt(area.dataset.n, 10);
+  if (!n || Math.abs(x1 - x0) < largura / n * 0.8) return;   // clique, não arrasto
+
+  // Índices dos meses tocados, contando da esquerda
+  const idx = (x) => Math.max(0, Math.min(n - 1, Math.floor((x - padL) / largura * n)));
+  const de = Math.min(idx(x0), idx(x1)), ate = Math.max(idx(x0), idx(x1));
+  const quantos = ate - de + 1;
+  if (quantos < 2 || quantos >= n) return;
+
+  // A janela mostrada termina no mês em análise: recuar até ao fim da seleção
+  const recuar = (n - 1) - ate;
+  ui.evolucaoMeses = quantos;
+  MES = mesShift(MES, -recuar);
+  render();
+  toast("Ampliado: "+quantos+" meses até "+mesLabel(MES, true)+".");
+});
+
 /* Navegação das tabelas de movimentos pelo teclado: setas percorrem,
    Enter edita a descrição, Espaço seleciona, Delete elimina. */
 document.addEventListener("keydown", (e) => {
@@ -9784,10 +10678,18 @@ document.addEventListener("drop", (e) => {
   if (!tr || !_drag || tr.dataset.drag !== _drag.tipo) return;
   e.preventDefault();
   const {tipo, id} = _drag;
+  const alvo = tr.dataset.id;
   _drag = null;
-  const mudou = tipo === "cat" ? reordenarCategoria(id, tr.dataset.id)
-                               : reordenarRubrica(id, tr.dataset.id);
-  if (mudou){ alterar(() => {}); toast("Ordem atualizada."); }
+  // A reordenação corre *dentro* do `alterar`: mutar antes deixaria o
+  // histórico a comparar o estado já mudado consigo próprio, e o arrasto
+  // não seria desfazível.
+  let mudou = false;
+  alterar(() => {
+    mudou = tipo === "cat"    ? reordenarCategoria(id, alvo)
+          : tipo === "painel" ? reordenarPainel(id, alvo)
+                              : reordenarRubrica(id, alvo);
+  }, "ordem");
+  if (mudou) toast("Ordem atualizada.");
 });
 document.addEventListener("dragend", () => {
   _drag = null;
@@ -9885,6 +10787,10 @@ function tutorialFim(concluido){
 $("#mesSel").addEventListener("change", (e) => {
   if (e.target.value){ MES = e.target.value; render(); }
 });
+$("#fitaMeses").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-mes]");
+  if (b){ MES = b.dataset.mes; render(); }
+});
 $("#mesPrev").addEventListener("click", () => { MES = mesShift(MES, -1); render(); });
 $("#mesNext").addEventListener("click", () => { MES = mesShift(MES, 1); render(); });
 
@@ -9902,6 +10808,7 @@ const SLIDERS = {
   simExtra:  {get:() => ui.simExtra,                      set:(v) => ui.simExtra = v,            alvo:"#simOut",  out: simuladorOut},
   simAnos:   {get:() => ui.simAnos,                       set:(v) => ui.simAnos = v,             alvo:"#simOut",  out: simuladorOut},
   choqueTaxa:{get:() => parseNum(S.projecao.choqueTaxa),  set:(v) => S.projecao.choqueTaxa = v,  alvo:"#creditoOut", out: creditosOut, persiste:true},
+  amortExtra:{get:() => ui.amortExtra,                    set:(v) => ui.amortExtra = v,          alvo:"#creditoOut", out: creditosOut},
   simA_contrib: sliderAtivo("contrib"),
   simA_cresc:   sliderAtivo("cresc"),
   simA_taxa:    sliderAtivo("taxa"),
@@ -9966,6 +10873,15 @@ document.addEventListener("input", (e) => {
     render();
     const n = $("#fTexto");
     if (n){ n.focus(); n.setSelectionRange(pos, pos); }
+  }
+  // O valor da compra recalcula a cada tecla; repintar mata o campo, por
+  // isso devolve-se-lhe o foco e o cursor onde estavam.
+  else if (t.id === "cpValorCompra"){
+    ui.compraValor = parseNum(t.value);
+    const texto = t.value, pos = t.selectionStart;
+    render();
+    const n = $("#cpValorCompra");
+    if (n){ n.value = texto; n.focus(); n.setSelectionRange(pos, pos); }
   }
 });
 
@@ -10183,6 +11099,9 @@ document.addEventListener("change", (e) => {
     if (antes === "ppr" || t.value === "ppr"){ render(); return; }
     const alvo = $("#estOut"); if (alvo) alvo.innerHTML = emPasse(estrategiaOut);
   }
+  else if (t.id === "cpPrestCompra"){ ui.compraPrest = parseInt(t.value, 10); render(); }
+  else if (t.id === "cmpA"){ ui.compararA = t.value; render(); }
+  else if (t.id === "cmpB"){ ui.compararB = t.value; render(); }
   else if (t.id === "estJovem"){
     S.estrategia.jovemImt = t.checked;
     guardarAdiado();

@@ -17,6 +17,9 @@ Cada nível abre para dentro sem se perder de vista: uma fonte de rendimento dec
 ## 🎯 O que faz
 
 ### Painel
+
+O painel **começa curto — cinco cartões** — e o resto liga-se em *Definições → Aparência → Cartões do painel*, onde também se reordena por arrasto. Cada cartão pode ser fechado no seu canto (fechado, nem chega a ser calculado), e o botão **◱** do cabeçalho liga um **modo essencial** que mostra só o indispensável sem mexer na configuração.
+
 - **Precisa da sua atenção**: uma lista única, por urgência, do que os dados já dizem mas nunca foi dito num sítio só — limite ultrapassado ou perto, mês em défice, crédito com **revisão de taxa** à porta, taxa de esforço acima de 40%, objetivo fora de ritmo ou fora de prazo, liquidez abaixo de 3 meses, movimentos por categorizar, ativos com valor estimado há mais de um ano. Cada alerta leva ao sítio onde se resolve
 - **Indicadores do mês**: rendimento, despesa, saldo e taxa de poupança — cada um com a **variação face ao mês anterior** e um **traço de tendência** dos últimos 6 meses; o botão **⇄** compara com o mês homólogo do ano anterior. Os valores **interpolam** ao mudar de mês, em vez de saltarem
 - **Resumo narrado do mês fechado**: a maior despesa, a categoria que mais cresceu e a poupança face à média — gerado localmente
@@ -28,9 +31,17 @@ Cada nível abre para dentro sem se perder de vista: uma fonte de rendimento dec
 - **Para onde vai o dinheiro**: diagrama de fluxo (Sankey) do rendimento bruto aos impostos, necessidades, desejos, poupança e sobra
 - **Regra 50 / 30 / 20**: repartição do rendimento entre necessidades, desejos e poupança
 - **Evolução**: barras de rendimento e despesa com linha de saldo, horizonte comutável entre 6, 12, 24 e 36 meses — com **marcos** (🏦 aquisições, 💳 inícios de crédito, 🎯 prazos de objetivos) assinalados na linha do tempo
+- **Comparar dois meses** lado a lado, categoria a categoria, com a coluna de diferenças
+- **Posso pagar isto?** — escreve-se um valor e a ferramenta responde com o que sabe: se cabe na liquidez, o que faz ao saldo do mês, que objetivos atrasa e o que já está marcado para sair
 - **Património líquido** e **simulador «e se…»** com deslizadores que recalculam ao vivo
 
+Clicar num indicador (rendimento, despesa, saldo, património) abre **a conta por trás do número** — as parcelas com que foi feito, este mês. No cabeçalho, uma **fita de meses** mostra o saldo de cada um em barras clicáveis, e no gráfico de evolução **arrasta-se para ampliar** um período.
+
 Nos **Movimentos**, um **calendário-mapa de calor** mostra a despesa de cada dia em intensidade de cor — os padrões saltam à vista.
+
+Nos **Créditos**, o cartão **«que dívida amortizar primeiro»** ordena por taxa (poupa mais juros) ou por saldo (livra-se de um crédito mais cedo), e diz o efeito real de um reforço: quantos meses antes fica paga e quantos juros poupa.
+
+Nos **Limites**, a **mesada diária** reparte o que resta pelos dias que faltam, e cada categoria traz um **minigráfico** dos últimos seis meses.
 
 ### Interface
 - **Desfazer e refazer (Ctrl+Z / Ctrl+Shift+Z)** — cada alteração aos dados guarda uma fotografia do estado anterior, até 40 passos. Os botões ↶ ↷ do cabeçalho dizem o que está prestes a desfazer-se; dentro de um campo de texto o Ctrl+Z continua a ser o do navegador, para não roubar o que se está a escrever. O botão «Anular» dos toasts de eliminação é um atalho para o mesmo mecanismo
@@ -42,6 +53,10 @@ Nos **Movimentos**, um **calendário-mapa de calor** mostra a despesa de cada di
 - **Arrastar para reordenar** — categorias (Definições) e rubricas do plano têm pega ⠿; a primeira arrumação das rubricas fixa a ordem manual
 - **Ícones por categoria** — cada categoria pode ter um emoji (a semente já os traz: 🛒 Alimentação, 🏠 Habitação…), visível nas tabelas, seletores e no donut
 - **Importador de extratos (CSV)** — em Despesas → Movimentos: cola-se ou escolhe-se o ficheiro, a ferramenta deteta o separador e as colunas, converte datas e valores (rejeitando as impossíveis), **sugere a categoria** e ignora duplicados
+- **Copiar o mês anterior** — repete os movimentos habituais com as mesmas datas e valores, sem duplicar os que já cá estão
+- **Duplicar** movimento, rubrica, ativo ou crédito, com o botão ⧉
+- **Campos que fazem contas** — escrever `43,20+18` ou `120*3` num campo de valor e ele resolve ao sair
+- **Objetivos ligados a um ativo** — o «já poupado» deixa de se escrever à mão e passa a acompanhar a conta que financia a meta (a saúde dos dados assinala dois objetivos a seguir o mesmo ativo)
 - **Regras de categorização** — «descrições com CONTINENTE → Alimentação», guardadas em Definições ou propostas ao categorizar em lote. Ganham à sugestão por semelhança, e fazem a segunda importação ser quase toda automática
 - **Deteção de recorrências** — uma despesa que aparece em três ou mais meses com valor semelhante é proposta como rubrica do plano, com um clique para a criar
 - **Seleção múltipla e ações em lote** — marque vários movimentos e atribua-lhes a mesma categoria (ou elimine-os) de uma vez; ao aplicar, oferece guardar o termo comum como regra
@@ -438,7 +453,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 10 963 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 11 009 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -448,8 +463,8 @@ Três suites, 10 963 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3706 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, explicador, diálogo, exportação | 738 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3759 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, explicador, diálogo, exportação | 731 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.

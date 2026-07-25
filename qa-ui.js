@@ -96,6 +96,14 @@ function comExemplo(){
   render();
 }
 
+/* O painel passou a vir enxuto: os cartões que um teste queira ver
+   têm de ser ligados primeiro, como o utilizador faria. */
+function mostrarCartoes(chaves){
+  const ocultos = painelOcultos().filter(k => chaves.indexOf(k) < 0);
+  S.painel.ocultos = ocultos;
+  render();
+}
+
 comExemplo();
 
 /* ============================================================
@@ -1622,6 +1630,8 @@ G("visualizações do painel");
   comExemplo();
   irA("painel");
   // Sankey
+  // O Sankey deixou de vir ligado por omissão: liga-se para o testar
+  mostrarCartoes(["sankey", "evolucao"]);
   ok(q('svg[aria-label*="Sankey"]') != null, "há o diagrama de fluxo do dinheiro");
   ok(qq('svg[aria-label*="Sankey"] path').length >= 3, "com fitas para os destinos");
   // Drill-down do donut
@@ -1880,6 +1890,7 @@ G("ritmo, mapa anual e tesouraria");
 
   // Mapa anual
   irA("painel");
+  mostrarCartoes(["mapa", "tesouraria"]);
   ok(q(".mapa") != null, "há mapa anual");
   eq(qq(".mapa .mc").length % 12, 0, "com doze colunas por categoria");
 
