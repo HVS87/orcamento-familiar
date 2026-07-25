@@ -405,6 +405,10 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 #paleta li[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
 #paleta .tipo{margin-left:auto;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 
+/* Indicador de gravação */
+#estadoGuardado{font-size:11.5px;white-space:nowrap;min-width:0}
+@media (max-width:640px){ #estadoGuardado{display:none} }
+
 /* Relatório mensal */
 .relatorio .capa{border-bottom:2px solid var(--border);padding-bottom:14px;margin-bottom:4px}
 .relatorio .capa h1{font-size:22px;letter-spacing:-.02em}
@@ -623,6 +627,9 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
       <button class="btn icon" id="mesNext" title="Mês seguinte" aria-label="Mês seguinte">›</button>
     </div>
     <div class="grp">
+      <span id="estadoGuardado" class="muted" aria-live="polite"></span>
+      <button class="btn icon" data-act="desfazer" aria-label="Desfazer" disabled>↶</button>
+      <button class="btn icon" data-act="refazer" aria-label="Refazer" disabled>↷</button>
       <button class="btn icon" data-act="privAlternar" title="Modo privacidade — desfoca os valores" aria-label="Modo privacidade" aria-pressed="false">👁</button>
       <button class="btn icon" data-act="tutorialIniciar" title="Visita guiada" aria-label="Visita guiada">🎓</button>
       <button class="btn icon" id="ajudaBtn" aria-label="Explicadores" aria-pressed="true">?</button>
@@ -1885,6 +1892,8 @@ const AJUDAS_ACAO = {
   temaDensidade:["Densidade", "Compacta reduz tipos e espaçamentos para caberem mais linhas por ecrã; Confortável é a leitura por omissão.", ""],
   privAlternar:["Modo privacidade", "Desfoca todos os valores — para mostrar o ecrã ou tirar capturas sem expor números. Os gráficos mantêm as formas.", ""],
   compararAlternar:["Comparar com o ano passado", "As legendas dos indicadores passam a mostrar o mesmo mês do ano anterior e a variação face a ele.", ""],
+  desfazer:   ["Desfazer", "Anula a última alteração aos dados. Guarda até 40 passos — e o Ctrl+Z faz o mesmo, exceto dentro de um campo de texto, onde vale o desfazer do navegador.", ""],
+  refazer:    ["Refazer", "Repõe uma alteração que tinha desfeito. Fazer algo de novo apaga o que havia para refazer.", ""],
   temaTexto:  ["Tamanho do texto", "Aumenta o corpo de letra de toda a interface, incluindo tabelas e indicadores. Fica guardado com os dados.", ""],
   temaContraste:["Contraste", "Alto contraste reforça bordas e texto e retira as sombras, para leitura mais fácil.", ""],
   relatorio:  ["Relatório mensal", "Uma folha desenhada para imprimir ou guardar em PDF: indicadores do mês, fluxo do dinheiro, desvios, despesa por categoria, património e objetivos.", ""],
@@ -2042,13 +2051,39 @@ function ordenado(lista, tabela, cols, omissao){
 /* ---------------------------------------------------------------
    Persistência
    --------------------------------------------------------------- */
+/* Estado da última gravação, para o indicador do cabeçalho. */
+let _guardado = {em: null, erro: false};
+
 function guardar(){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify(S));
+    _guardado = {em: Date.now(), erro: false};
   }catch(e){
-    toast("Não foi possível guardar no navegador.");
+    // Só avisa à primeira: um armazenamento cheio falharia a cada tecla.
+    if (!_guardado.erro) toast("Não foi possível guardar — o armazenamento do navegador está cheio ou bloqueado.");
+    _guardado = {em: _guardado.em, erro: true};
   }
+  pintarEstadoGuardado();
 }
+
+/** Texto discreto no cabeçalho: guardado quando, ou que falhou. */
+function pintarEstadoGuardado(){
+  const el = $("#estadoGuardado");
+  if (!el) return;
+  if (_guardado.erro){
+    el.textContent = "⚠ por guardar";
+    el.title = "A última gravação falhou. Exporte uma cópia em Dados ▾ para não perder o trabalho.";
+    el.className = "neg";
+    return;
+  }
+  if (!_guardado.em){ el.textContent = ""; el.title = ""; el.className = "muted"; return; }
+  const seg = Math.round((Date.now() - _guardado.em) / 1000);
+  el.textContent = seg < 5 ? "guardado" : seg < 60 ? "guardado há "+seg+"s"
+    : "guardado há "+Math.round(seg/60)+" min";
+  el.title = "Tudo é guardado neste navegador, a cada alteração.";
+  el.className = "muted";
+}
+setInterval(pintarEstadoGuardado, 15000);
 function carregar(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -2062,6 +2097,116 @@ function carregar(){
     return true;
   }catch(e){ return false; }
 }
+/* ---------------------------------------------------------------
+   Sessão — onde se estava, e o que se estava a escrever
+
+   Os dados já se guardam a cada alteração; o que se perdia era o
+   contexto: a vista, o mês, os filtros, e sobretudo o formulário
+   por gravar. Isto vive à parte dos dados, porque não é orçamento
+   nenhum — é o sítio onde a pessoa estava sentada.
+   --------------------------------------------------------------- */
+const SESSAO_KEY = "orcamento-familiar-sessao";
+const SESSAO_VALIDADE = 24 * 3600 * 1000;   // um dia
+
+/** Valores em bruto dos campos de formulário em ecrã. */
+function camposValores(){
+  const out = {};
+  $$(".form input, .form select, .form textarea").forEach(el => {
+    if (!el.id) return;
+    out[el.id] = (el.type === "checkbox" || el.type === "radio") ? (el.checked ? "1" : "") : el.value;
+  });
+  return out;
+}
+
+/* Fotografia dos campos tal como o formulário os pinta, tirada a cada
+   repintura. É contra ela que se mede o que a pessoa escreveu — comparar
+   com valores «por omissão» adivinhados nunca acerta em todos os casos. */
+let _camposIniciais = {};
+
+/**
+ * Campos de formulário visíveis, e quantos foram mesmo mexidos.
+ * Uma cor sugerida ou a data de hoje não são trabalho de ninguém: só
+ * conta o que difere do que o formulário já trazia.
+ */
+function camposEmEdicao(){
+  const valores = camposValores();
+  let alterados = 0;
+  Object.keys(valores).forEach(id => {
+    if (valores[id] !== (_camposIniciais[id] || "")) alterados++;
+  });
+  return {valores, preenchidos: alterados};
+}
+
+function guardarSessao(){
+  try{
+    const campos = camposEmEdicao();
+    localStorage.setItem(SESSAO_KEY, JSON.stringify({
+      preenchidos: campos.preenchidos,
+      em: Date.now(), vista: VIEW, mes: MES,
+      secaoDespesa: ui.secaoDespesa, evolucaoMeses: ui.evolucaoMeses,
+      abertos: ui.abertos, filtros: filtros,
+      editando: {rd: editando.rd || null, pat: editando.pat || null, cr: editando.cr || null,
+                 obj: editando.obj || null, rec: editando.rec || null, mov: editando.mov || null,
+                 cat: editando.cat || null, comp: editando.comp || null},
+      campos: campos.preenchidos > 0 ? campos.valores : null,
+    }));
+  }catch(e){ /* sessão é conveniência: nunca deve estorvar */ }
+}
+let _sessaoT;
+function guardarSessaoAdiado(){
+  clearTimeout(_sessaoT);
+  _sessaoT = setTimeout(guardarSessao, 600);
+}
+
+function lerSessao(){
+  try{
+    const raw = localStorage.getItem(SESSAO_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || typeof s !== "object") return null;
+    if (!s.em || Date.now() - s.em > SESSAO_VALIDADE) return null;
+    return s;
+  }catch(e){ return null; }
+}
+
+/**
+ * Repõe o contexto da última visita: vista, mês, filtros e secções.
+ * O formulário por gravar não é reposto em silêncio — perguntar é mais
+ * honesto do que devolver texto que a pessoa já não espera ver.
+ */
+function restaurarSessao(){
+  const s = lerSessao();
+  if (!s) return;
+  if (s.mes && /^\d{4}-\d{2}$/.test(s.mes)) MES = s.mes;
+  if (s.vista && (VISTAS[s.vista] || ALIAS_VISTA[s.vista])) VIEW = VISTAS[s.vista] ? s.vista : VIEW;
+  if (s.secaoDespesa) ui.secaoDespesa = s.secaoDespesa;
+  if (s.evolucaoMeses) ui.evolucaoMeses = s.evolucaoMeses;
+  if (s.abertos && typeof s.abertos === "object") ui.abertos = s.abertos;
+  if (s.filtros && typeof s.filtros === "object") filtros = Object.assign(filtros, s.filtros);
+
+  // Formulário por gravar: reabre-o e oferece devolver o que lá estava
+  if (s.campos && s.editando){
+    Object.keys(s.editando).forEach(k => { if (s.editando[k]) editando[k] = s.editando[k]; });
+    render();
+    const n = s.preenchidos || Object.keys(s.campos).length;
+    confirmar("Recuperar o que estava a preencher?",
+      "Da última vez ficou um formulário por gravar, com "+n+" campo(s) preenchido(s). Quer recuperá-lo?",
+      () => { preencherCampos(s.campos); toast("Formulário recuperado — reveja e grave."); },
+      "Recuperar");
+  }
+}
+
+/** Devolve os valores guardados aos campos que ainda existirem em ecrã. */
+function preencherCampos(campos){
+  Object.keys(campos).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === "checkbox" || el.type === "radio") el.checked = campos[id] === "1";
+    else el.value = campos[id];
+    el.dispatchEvent(new Event("input", {bubbles:true}));
+  });
+}
+
 /* Classes que mudaram de nome quando a carteira passou a fazer parte dos ativos. */
 const MAPA_CLASSE_ANTIGA = {depositos:"deposito"};
 
@@ -2258,9 +2403,71 @@ function normalizar(d){
 
   return out;
 }
-function alterar(fn){
+/* ---------------------------------------------------------------
+   Histórico — desfazer e refazer
+
+   Cada alteração guarda uma fotografia do estado anterior. É deliberado
+   que seja o estado inteiro e não um diário de operações: o modelo é
+   pequeno o suficiente, e assim nenhuma ação precisa de saber desfazer-se
+   a si própria — o que seria uma fonte inesgotável de enganos.
+
+   O tamanho está limitado por número de passos e por memória: quem
+   importa um extrato grande não deve ficar com o navegador pesado.
+   --------------------------------------------------------------- */
+const HIST_MAX_PASSOS = 40;
+const HIST_MAX_BYTES = 8 * 1024 * 1024;
+let historico = {atras: [], frente: []};
+
+function _histBytes(pilha){ return pilha.reduce((s,x) => s + x.json.length, 0); }
+function _histAparar(){
+  while (historico.atras.length > HIST_MAX_PASSOS ||
+         (historico.atras.length > 1 && _histBytes(historico.atras) > HIST_MAX_BYTES)){
+    historico.atras.shift();
+  }
+}
+/** Repõe um estado guardado, com as caches limpas e o ecrã repintado. */
+function _histRepor(json){
+  S = normalizar(JSON.parse(json));
+  limparCacheCredito();
+  guardar();
+  render();
+}
+
+const podeDesfazer = () => historico.atras.length > 0;
+const podeRefazer  = () => historico.frente.length > 0;
+
+function desfazer(){
+  if (!podeDesfazer()){ toast("Nada para desfazer."); return false; }
+  const passo = historico.atras.pop();
+  historico.frente.push({json: JSON.stringify(S), rotulo: passo.rotulo});
+  _histRepor(passo.json);
+  toast("Desfeito: "+passo.rotulo+".");
+  return true;
+}
+function refazer(){
+  if (!podeRefazer()){ toast("Nada para refazer."); return false; }
+  const passo = historico.frente.pop();
+  historico.atras.push({json: JSON.stringify(S), rotulo: passo.rotulo});
+  _histRepor(passo.json);
+  toast("Refeito: "+passo.rotulo+".");
+  return true;
+}
+
+/**
+ * Aplica uma alteração ao estado, deixando-a desfazível.
+ * `rotulo` é o que aparece no aviso ao desfazer — se faltar, usa-se um
+ * genérico. Alterações que não mudam nada não sujam o histórico.
+ */
+function alterar(fn, rotulo){
+  const antes = JSON.stringify(S);
   fn();
   limparCacheCredito();
+  const depois = JSON.stringify(S);
+  if (antes !== depois){
+    historico.atras.push({json: antes, rotulo: rotulo || "última alteração"});
+    historico.frente.length = 0;   // um caminho novo apaga o futuro antigo
+    _histAparar();
+  }
   guardar();
   render();
 }
@@ -7711,9 +7918,34 @@ function render(){
   $("#app").innerHTML = emPasse(fn);
   marcarAjudas();
   animarValores();
+  _camposIniciais = camposValores();   // a régua para medir o que for escrito
   const p = planoMes(MES), r = realMes(MES);
   const saldo = (r.rend || r.desp) ? r.saldo : p.saldo;
   $("#brandSub").textContent = mesLabel(MES) + " · saldo " + eur(saldo);
+  pintarHistorico();
+  pintarEstadoGuardado();
+  guardarSessaoAdiado();
+}
+
+/**
+ * Os botões de desfazer e refazer sabem quando não têm nada que fazer.
+ * O que fica por desfazer vai para o `aria-label`, não para um `title`:
+ * estes botões já têm explicador, e dois balões sobrepostos é um a mais.
+ */
+function pintarHistorico(){
+  const d = $('[data-act="desfazer"]'), r = $('[data-act="refazer"]');
+  if (d){
+    d.disabled = !podeDesfazer();
+    d.setAttribute("aria-label", podeDesfazer()
+      ? "Desfazer "+historico.atras[historico.atras.length-1].rotulo
+      : "Desfazer — nada por desfazer");
+  }
+  if (r){
+    r.disabled = !podeRefazer();
+    r.setAttribute("aria-label", podeRefazer()
+      ? "Refazer "+historico.frente[historico.frente.length-1].rotulo
+      : "Refazer — nada por refazer");
+  }
 }
 
 function irPara(v){
@@ -7763,29 +7995,29 @@ function invalido(id, msg){
    Eliminar com anulação — em vez de perguntar antes, apaga já e
    dá seis segundos para mudar de ideias. Menos fricção, a mesma
    segurança. (O «Apagar tudo» mantém o diálogo de confirmação.)
+
+   Assenta no histórico geral: o botão «Anular» é só um atalho
+   descoberto para o mesmo Ctrl+Z, e não um mecanismo à parte.
    --------------------------------------------------------------- */
-let _anular = null;
-function apagarComAnulacao(msg, fn){
-  _anular = JSON.stringify(S);
-  alterar(fn);
+function apagarComAnulacao(msg, fn, rotulo){
+  const antes = historico.atras.length;
+  alterar(fn, rotulo || "eliminação");
   const t = $("#toast");
   t.textContent = msg;
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = "Anular";
-  b.onclick = anularEliminacao;
-  t.appendChild(b);
+  // Só oferece anular se a eliminação chegou mesmo ao histórico
+  if (historico.atras.length > antes){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "Anular";
+    b.onclick = () => desfazer();
+    t.appendChild(b);
+  }
   t.classList.add("show");
   clearTimeout(toastT);
-  toastT = setTimeout(() => { t.classList.remove("show"); _anular = null; }, 6000);
+  toastT = setTimeout(() => t.classList.remove("show"), 6000);
 }
-function anularEliminacao(){
-  if (!_anular) return;
-  const snap = _anular;
-  _anular = null;
-  alterar(() => { S = normalizar(JSON.parse(snap)); });
-  toast("Anulado — está tudo como estava.");
-}
+/* Nome antigo, mantido porque é o que o botão do toast significa. */
+function anularEliminacao(){ return desfazer(); }
 
 function confirmar(titulo, texto, onOk, labelOk){
   const host = $("#modalHost");
@@ -8152,7 +8384,7 @@ const ACOES = {
         S.rendimentos.push(novo);
         ui.abertos["rd-" + novo.id] = true;
       }
-    });
+    }, "fonte de rendimento");
     toast("Fonte de rendimento guardada.");
   },
   rdEditar(el){ editando.rd = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -8425,7 +8657,7 @@ const ACOES = {
     const ids = Object.keys(ui.movSel || {});
     if (!ids.length) return;
     const alvos = S.movimentos.filter(m => ids.indexOf(m.id) >= 0);
-    alterar(() => { alvos.forEach(m => { m.categoriaId = catId; }); });
+    alterar(() => { alvos.forEach(m => { m.categoriaId = catId; }); }, "categorização em lote");
     ui.movSel = {};
     toast(alvos.length+" movimento(s) em «"+catNome(catId)+"».");
     // Se as descrições partilham um termo, oferecer guardá-lo como regra
@@ -8573,7 +8805,7 @@ const ACOES = {
       toast("Nada para importar — "+duplicados+" duplicado(s), "+invalidas+" linha(s) inválida(s).");
       return;
     }
-    alterar(() => { novos.forEach(m => S.movimentos.push(m)); });
+    alterar(() => { novos.forEach(m => S.movimentos.push(m)); }, "importação de "+novos.length+" movimento(s)");
     // Saltar para o mês com mais movimentos importados, para os ver já.
     const porMes = {};
     novos.forEach(m => { const k = m.data.slice(0, 7); porMes[k] = (porMes[k] || 0) + 1; });
@@ -8656,7 +8888,7 @@ const ACOES = {
       } else {
         S.recorrentes.push(Object.assign({id:uid("rec"), ativo:true}, dados));
       }
-    });
+    }, "rubrica do plano");
     toast("Rubrica guardada.");
   },
   recEditar(el){ editando.rec = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -8704,7 +8936,7 @@ const ACOES = {
         S.objetivos.push(Object.assign({id:uid("ob")}, dados));
       }
       celebrarConcluidos();
-    });
+    }, "objetivo");
     toast("Objetivo guardado.");
   },
   objEditar(el){ editando.obj = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -8723,6 +8955,10 @@ const ACOES = {
       S.objetivos = S.objetivos.filter(x => x.id !== el.dataset.id);
     });
   },
+
+  /* --- histórico --- */
+  desfazer(){ desfazer(); },
+  refazer(){ refazer(); },
 
   /* --- aparência --- */
   temaModo(el){
@@ -8925,7 +9161,7 @@ const ACOES = {
       } else {
         S.creditos.push(Object.assign({id:uid("cr")}, dados));
       }
-    });
+    }, "crédito");
     toast("Crédito guardado.");
   },
   crEditar(el){ editando.cr = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -8992,7 +9228,7 @@ const ACOES = {
           : [];
         S.ativos.push(Object.assign({id:uid("pt"), encargos, rendimentos:[], aportes:[]}, dados));
       }
-    });
+    }, editando.pat ? "alteração do ativo" : "novo ativo");
     toast(sugerir && !editando.pat ? "Ativo criado com os encargos típicos — preencha os valores." : "Ativo guardado.");
   },
   patEditar(el){ editando.pat = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -9089,7 +9325,7 @@ const ACOES = {
       } else {
         S.categorias.push(Object.assign({id:uid("cat")}, dados));
       }
-    });
+    }, "categoria");
     toast("Categoria guardada.");
   },
   catEditar(el){ editando.cat = el.dataset.id; render(); window.scrollTo({top:0}); },
@@ -9163,6 +9399,8 @@ function comandosPaleta(){
     {icone:"💾", lbl:"Exportar cópia de segurança (JSON)", tipo:"ação", run: exportJSON},
     {icone:"🖨️", lbl:"Imprimir", tipo:"ação", run: () => window.print()},
     {icone:"🎓", lbl:"Visita guiada pela aplicação", tipo:"ação", run: () => ACOES.tutorialIniciar()},
+    {icone:"↶", lbl:"Desfazer a última alteração", tipo:"ação", run: desfazer},
+    {icone:"↷", lbl:"Refazer", tipo:"ação", run: refazer},
     {icone:"◐", lbl:"Alternar tema claro/escuro", tipo:"ação", run: () => $("#temaBtn").click()},
     {icone:"🎨", lbl:"Mudar a paleta de cor", tipo:"ação", run: () => { irPara("config"); window.scrollTo({top:0}); }},
   ];
@@ -9260,6 +9498,8 @@ function abrirAtalhos(){
     '<h3>Atalhos de teclado</h3>'+
     '<div class="tblwrap"><table><tbody>'+
     linha(k("Ctrl")+" + "+k("K"), "Paleta de comandos")+
+    linha(k("Ctrl")+" + "+k("Z"), "Desfazer a última alteração")+
+    linha(k("Ctrl")+" + "+k("Shift")+" + "+k("Z")+" ou "+k("Ctrl")+" + "+k("Y"), "Refazer")+
     linha(k("?"), "Esta folha de atalhos")+
     linha(k("g")+" depois "+k("p")+" "+k("r")+" "+k("d")+" "+k("a")+" "+k("c")+" "+k("o")+" "+k("e")+" "+k("f"),
       "Ir para: Painel, Rendimentos, Despesas, Ativos, Créditos, Objetivos, Estratégias, deFinições")+
@@ -9280,6 +9520,17 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (paletaAberta()) fecharPaleta(); else abrirPaleta();
     return;
+  }
+  /* Desfazer e refazer. Nos campos de texto não se toca: aí o Ctrl+Z é
+     o do navegador, e roubá-lo faria perder o que se está a escrever. */
+  if ((e.ctrlKey || e.metaKey) && !e.altKey){
+    const t = e.target;
+    const aEscrever = t && (/^(INPUT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable);
+    if (!aEscrever){
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey){ e.preventDefault(); desfazer(); return; }
+      if ((k === "z" && e.shiftKey) || k === "y"){ e.preventDefault(); refazer(); return; }
+    }
   }
   // Sequências g/n e a folha "?" — nunca enquanto se escreve num campo
   const alvoTexto = e.target && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable);
@@ -10107,8 +10358,15 @@ document.addEventListener("keydown", (e) => {
    --------------------------------------------------------------- */
 carregar();
 aplicarTema();
+restaurarSessao();
 render();
 aplicarAjudas();
+
+/* A sessão acompanha o que se vai fazendo, sem estorvar o que se escreve. */
+document.addEventListener("input", guardarSessaoAdiado);
+document.addEventListener("change", guardarSessaoAdiado);
+window.addEventListener("beforeunload", guardarSessao);
+document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSessao(); });
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
   // Registo opcional: só funciona se existir sw.js junto do ficheiro.

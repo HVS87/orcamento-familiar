@@ -33,6 +33,8 @@ Cada nível abre para dentro sem se perder de vista: uma fonte de rendimento dec
 Nos **Movimentos**, um **calendário-mapa de calor** mostra a despesa de cada dia em intensidade de cor — os padrões saltam à vista.
 
 ### Interface
+- **Desfazer e refazer (Ctrl+Z / Ctrl+Shift+Z)** — cada alteração aos dados guarda uma fotografia do estado anterior, até 40 passos. Os botões ↶ ↷ do cabeçalho dizem o que está prestes a desfazer-se; dentro de um campo de texto o Ctrl+Z continua a ser o do navegador, para não roubar o que se está a escrever. O botão «Anular» dos toasts de eliminação é um atalho para o mesmo mecanismo
+- **Autosave e restauro de sessão** — os dados gravam-se a cada alteração (com indicador discreto no cabeçalho e aviso se o armazenamento falhar), e o *contexto* é retomado ao voltar: a vista, o mês, os filtros, as secções e as fontes abertas. Se ficou um **formulário por gravar**, a aplicação pergunta se o quer recuperar — e só pergunta quando houve mesmo texto escrito, não por um seletor de cor ter valor
 - **Temas (Definições → Aparência)** — modo **automático/claro/escuro** e **oito paletas de cor**: Meia-noite (padrão), Oceano, Floresta, Pôr do sol, Ameixa, Grafite, **Areia** (bege quente, com superfícies e texto aquecidos) e **Pastel** (tons suaves rosados). Cada paleta redefine o acento e a temperatura das superfícies nos dois modos; as cores semânticas (verde positivo, vermelho negativo, âmbar de aviso) não mudam, para que os números se leiam sempre da mesma maneira. O botão ◐ do cabeçalho alterna o modo; a escolha persiste com os dados
 - **Densidade** — Confortável ou Compacta (mais linhas por ecrã), em Definições → Aparência
 - **Modo privacidade (👁)** — um clique no cabeçalho desfoca todos os valores, para mostrar o ecrã ou tirar capturas; os gráficos mantêm as formas
@@ -436,7 +438,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 10 896 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 10 957 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -446,8 +448,8 @@ Três suites, 10 896 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo, coerência do exemplo e do código | 3690 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, explicador, diálogo, exportação | 687 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo, coerência do exemplo e do código | 3700 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, explicador, diálogo, exportação | 738 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.

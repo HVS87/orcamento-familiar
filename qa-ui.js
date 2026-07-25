@@ -79,7 +79,14 @@ function hover(el){
 
 /* Guardar o estado do utilizador e trabalhar sobre o exemplo */
 var backup = localStorage.getItem(STORE_KEY);
+var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+
+/* A sessão é do utilizador, não da suite: sai de cena enquanto se testa.
+   E se ficou um diálogo aberto (recuperação de rascunho, por exemplo),
+   fecha-se — senão o primeiro grupo mede o diálogo em vez da aplicação. */
+localStorage.removeItem(SESSAO_KEY);
+if (q("#modalHost .overlay")) q("#modalHost").innerHTML = "";
 
 function comExemplo(){
   localStorage.removeItem(STORE_KEY);
@@ -2082,6 +2089,174 @@ G("acessibilidade e relatório");
   S.texto = textoAntes; S.contraste = contrasteAntes; aplicarTema(); guardar(); render();
 })();
 
+G("desfazer e refazer");
+(function(){
+  comExemplo();
+  historico = {atras: [], frente: []};
+  render();
+  ok(!podeDesfazer() && !podeRefazer(), "o histórico começa vazio");
+  ok(q('[data-act="desfazer"]').disabled, "o botão de desfazer começa desativado");
+  ok(q('[data-act="refazer"]').disabled, "e o de refazer também");
+
+  // Uma alteração entra no histórico e desfaz-se
+  var n0 = S.objetivos.length;
+  alterar(function(){
+    S.objetivos.push({id:"qa-h", nome:"Histórico QA", alvo:100, atual:0, prazo:"", cor:"#22a06b"});
+  }, "novo objetivo");
+  eq(S.objetivos.length, n0 + 1, "a alteração aplica-se");
+  eq(historico.atras.length, 1, "e fica no histórico");
+  ok(!q('[data-act="desfazer"]').disabled, "o botão de desfazer acorda");
+  desfazer();
+  eq(S.objetivos.length, n0, "desfazer repõe o estado anterior");
+  ok(podeRefazer(), "e passa a haver o que refazer");
+  refazer();
+  eq(S.objetivos.length, n0 + 1, "refazer volta a aplicar");
+  ok(!podeRefazer(), "e esgota o refazer");
+
+  // Uma ação nova apaga o futuro
+  desfazer();
+  ok(podeRefazer(), "depois de desfazer há futuro");
+  alterar(function(){ S.membros.push({id:"qa-hm", nome:"QA"}); }, "novo membro");
+  ok(!podeRefazer(), "uma ação nova apaga o que havia para refazer");
+
+  // Alterações que não mudam nada não sujam o histórico
+  var antes = historico.atras.length;
+  alterar(function(){ /* nada */ }, "sem efeito");
+  eq(historico.atras.length, antes, "uma alteração sem efeito não entra no histórico");
+
+  // O histórico tem tecto
+  historico = {atras: [], frente: []};
+  for (var i = 0; i < HIST_MAX_PASSOS + 12; i++){
+    (function(k){ alterar(function(){ S.fiscal.irsEfetivo = 10 + (k % 9); }, "passo "+k); })(i);
+  }
+  ok(historico.atras.length <= HIST_MAX_PASSOS, "o histórico não passa do tecto", historico.atras.length);
+
+  // Desfazer sem nada não rebenta
+  historico = {atras: [], frente: []};
+  ok(!desfazer(), "desfazer sem histórico devolve falso");
+  ok(!refazer(), "refazer sem histórico devolve falso");
+
+  // Atalhos de teclado
+  var n1 = S.objetivos.length;
+  alterar(function(){
+    S.objetivos.push({id:"qa-k", nome:"Teclado QA", alvo:50, atual:0, prazo:"", cor:"#22a06b"});
+  }, "objetivo por teclado");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"z", ctrlKey:true, bubbles:true}));
+  eq(S.objetivos.length, n1, "Ctrl+Z desfaz");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"z", ctrlKey:true, shiftKey:true, bubbles:true}));
+  eq(S.objetivos.length, n1 + 1, "Ctrl+Shift+Z refaz");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"z", ctrlKey:true, bubbles:true}));
+  eq(S.objetivos.length, n1, "e Ctrl+Z volta a desfazer");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"y", ctrlKey:true, bubbles:true}));
+  eq(S.objetivos.length, n1 + 1, "Ctrl+Y também refaz");
+
+  // Dentro de um campo de texto, o Ctrl+Z é do navegador
+  irA("rendimentos");
+  var campo = q("#rdNome");
+  campo.focus();
+  var passosAntes = historico.atras.length;
+  campo.dispatchEvent(new KeyboardEvent("keydown", {key:"z", ctrlKey:true, bubbles:true}));
+  eq(historico.atras.length, passosAntes, "Ctrl+Z num campo de texto não mexe no histórico da aplicação");
+
+  // Eliminar assenta no mesmo histórico
+  irA("objetivos");
+  historico = {atras: [], frente: []};
+  var n2 = S.objetivos.length;
+  clicar('[data-act="objApagar"]');
+  eq(S.objetivos.length, n2 - 1, "eliminar aplica-se logo");
+  eq(historico.atras.length, 1, "e passa pelo histórico");
+  ok(q("#toast button") != null, "o toast oferece anular");
+  clicar(q("#toast button"));
+  eq(S.objetivos.length, n2, "anular repõe, pelo mesmo mecanismo do Ctrl+Z");
+
+  // Limpeza
+  S.objetivos = S.objetivos.filter(function(o){ return !/QA$/.test(o.nome || ""); });
+  S.membros = S.membros.filter(function(m){ return m.id !== "qa-hm"; });
+  historico = {atras: [], frente: []};
+  guardar(); render();
+})();
+
+G("autosave e restauro de sessão");
+(function(){
+  comExemplo();
+  var sessaoAntes = localStorage.getItem(SESSAO_KEY);
+
+  // O contexto guarda-se
+  irA("estrategias");
+  MES = mesShift(isoMes(hoje()), -2);
+  ui.evolucaoMeses = 24;
+  filtros.texto = "teste";
+  render();
+  guardarSessao();
+  var s = JSON.parse(localStorage.getItem(SESSAO_KEY));
+  eq(s.vista, "estrategias", "guarda a vista");
+  eq(s.mes, MES, "guarda o mês");
+  eq(s.evolucaoMeses, 24, "guarda o horizonte da evolução");
+  eq(s.filtros.texto, "teste", "guarda os filtros");
+  ok(s.em > 0, "com a hora da gravação");
+
+  // E repõe-se
+  var vistaAntes = VIEW, mesAntes = MES;
+  VIEW = "painel"; MES = isoMes(hoje()); ui.evolucaoMeses = 12; filtros.texto = "";
+  restaurarSessao();
+  eq(VIEW, vistaAntes, "repõe a vista");
+  eq(MES, mesAntes, "repõe o mês");
+  eq(ui.evolucaoMeses, 24, "repõe o horizonte");
+  eq(filtros.texto, "teste", "repõe os filtros");
+  filtros.texto = ""; MES = isoMes(hoje()); render();
+
+  // Sessão velha é ignorada
+  localStorage.setItem(SESSAO_KEY, JSON.stringify({em: Date.now() - SESSAO_VALIDADE - 1000, vista:"config"}));
+  ok(lerSessao() == null, "uma sessão com mais de um dia é ignorada");
+  localStorage.setItem(SESSAO_KEY, "não é json");
+  ok(lerSessao() == null, "sessão ilegível não rebenta");
+  localStorage.removeItem(SESSAO_KEY);
+  ok(lerSessao() == null, "sem sessão, não há nada a repor");
+
+  // Só abrir um formulário não conta como trabalho por gravar
+  ["objetivos","movimentos","ativos","creditos","rendimentos"].forEach(function(v){
+    irA(v);
+    eq(camposEmEdicao().preenchidos, 0, "abrir "+v+" não deixa rascunho");
+  });
+
+  // Escrever conta, e recupera-se
+  irA("objetivos");
+  preencher("obNome", "Rascunho QA");
+  ok(camposEmEdicao().preenchidos >= 1, "escrever num campo conta como rascunho");
+  guardarSessao();
+  var sr = JSON.parse(localStorage.getItem(SESSAO_KEY));
+  ok(sr.campos != null, "o rascunho é guardado");
+  eq(sr.campos.obNome, "Rascunho QA", "com o que lá estava");
+
+  // Devolver os valores aos campos
+  render();
+  eq(q("#obNome").value, "", "depois de repintar, o campo está vazio");
+  preencherCampos(sr.campos);
+  eq(q("#obNome").value, "Rascunho QA", "e a recuperação devolve-o");
+
+  // Um campo que já não exista não rebenta a recuperação
+  var rebentou = false;
+  try { preencherCampos({naoExisteEsteCampo: "x"}); } catch(e){ rebentou = true; }
+  ok(!rebentou, "recuperar para um campo inexistente não rebenta");
+
+  render();
+  // A sessão da suite não deve sobreviver-lhe: senão o carregamento
+  // seguinte abriria o diálogo de recuperação por cima dos testes.
+  localStorage.removeItem(SESSAO_KEY);
+  if (sessaoAntes) localStorage.setItem(SESSAO_KEY, sessaoAntes);
+})();
+
+G("indicador de gravação");
+(function(){
+  comExemplo();
+  ok(q("#estadoGuardado") != null, "há indicador de gravação no cabeçalho");
+  guardar();
+  pintarEstadoGuardado();
+  ok(/guardado/.test(q("#estadoGuardado").textContent), "diz que guardou",
+     q("#estadoGuardado").textContent);
+  ok(!_guardado.erro, "sem erro de gravação");
+})();
+
 G("celebração de objetivo");
 (function(){
   var backupS = JSON.parse(JSON.stringify(S));
@@ -2111,6 +2286,8 @@ G("celebração de objetivo");
    ============================================================ */
 if (backup) localStorage.setItem(STORE_KEY, backup);
 else localStorage.removeItem(STORE_KEY);
+if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao);
+else localStorage.removeItem(SESSAO_KEY);
 S = backup ? normalizar(JSON.parse(backup)) : estadoVazio();
 limparCacheCredito();
 MES = mesInicial;
