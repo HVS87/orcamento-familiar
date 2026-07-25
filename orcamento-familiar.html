@@ -2944,6 +2944,7 @@ function regimeRenda(a){
    --------------------------------------------------------------- */
 let _emPasse = false;
 let _cachePlano = new Map();
+let _cacheReal = new Map();
 let _cacheValor = new WeakMap();
 let _cacheFiscal = new WeakMap();
 
@@ -2953,6 +2954,7 @@ function emPasse(fn){
   if (!jaEstava){
     _emPasse = true;
     _cachePlano.clear();
+    _cacheReal.clear();
     _cacheValor = new WeakMap();
     _cacheFiscal = new WeakMap();
   }
@@ -3057,6 +3059,10 @@ function calcularPlanoMes(mes){
 
 /** Totais reais (movimentos) de um mês. */
 function realMes(mes){
+  // Entra no passe como o plano: o painel pede o mesmo mês dezenas de
+  // vezes (tesouraria e mapa anual pedem doze cada um), e cada chamada
+  // sem cache varria a lista inteira de movimentos.
+  if (_emPasse && _cacheReal.has(mes)) return _cacheReal.get(mes);
   const movs = S.movimentos.filter(m => mesDoDia(m.data) === mes);
   let rend = 0, desp = 0;
   const porCat = {};
@@ -3065,7 +3071,9 @@ function realMes(mes){
     if (m.tipo === "rendimento") rend += v; else desp += v;
     porCat[m.categoriaId] = (porCat[m.categoriaId] || 0) + v;
   }
-  return {rend, desp, saldo: rend - desp, porCat, itens: movs};
+  const r = {rend, desp, saldo: rend - desp, porCat, itens: movs};
+  if (_emPasse) _cacheReal.set(mes, r);
+  return r;
 }
 
 /** Despesa real por grupo (necessidades/desejos/poupança) num mês. */
@@ -8016,8 +8024,6 @@ function apagarComAnulacao(msg, fn, rotulo){
   clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.remove("show"), 6000);
 }
-/* Nome antigo, mantido porque é o que o botão do toast significa. */
-function anularEliminacao(){ return desfazer(); }
 
 function confirmar(titulo, texto, onOk, labelOk){
   const host = $("#modalHost");

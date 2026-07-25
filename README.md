@@ -438,7 +438,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 10 957 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 10 963 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -448,7 +448,7 @@ Três suites, 10 957 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo, coerência do exemplo e do código | 3700 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização, TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3706 |
 | `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, explicador, diálogo, exportação | 738 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
@@ -484,7 +484,9 @@ Os valores dos gráficos têm prioridade sobre a prosa, e continuam a funcionar 
 
 Uma repintura chama `planoMes` uma vez por cada mês do gráfico de evolução — doze vezes — e cada uma dessas chamadas recalculava a fiscalidade de todas as fontes, que não depende do mês. No painel isso dava 42 cálculos fiscais idênticos por render; na vista de Ativos, 417 avaliações do valor dos ativos.
 
-A solução é uma cache com **âmbito de passagem**: `render()` e os produtores dos deslizadores abrem uma passagem, e dentro dela `planoMes`, `fiscalRendimento` e `valorAtivo` memorizam. Fora de uma passagem não há cache nenhuma — o estado pode ter mudado entretanto, e devolver um valor guardado seria mentir.
+A solução é uma cache com **âmbito de passagem**: `render()` e os produtores dos deslizadores abrem uma passagem, e dentro dela `planoMes`, `realMes`, `fiscalRendimento` e `valorAtivo` memorizam. Fora de uma passagem não há cache nenhuma — o estado pode ter mudado entretanto, e devolver um valor guardado seria mentir.
+
+O mesmo problema voltou quando o painel ganhou a tesouraria a 12 meses e o mapa do ano: `realMes` ficara de fora da passagem e varria a lista inteira de movimentos a cada chamada. O painel pede-o **59 vezes para 24 meses distintos** — 35 varreduras redundantes por repintura, que a cache eliminou (repintura 1,5× mais rápida com 5000 movimentos).
 
 É por isso que a passagem é aberta e fechada explicitamente, em vez de invalidada por eventos: durante uma repintura síncrona o estado não pode mudar, o que torna a correção demonstrável em vez de esperada. Resultado: 42 cálculos fiscais passam a 6, e 417 avaliações de valor a 4.
 

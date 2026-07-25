@@ -1744,6 +1744,39 @@ G("passe de cálculo");
   eq(comCache.saldo, semCache.saldo, "nem o saldo");
   calcularPlanoMes = orig;
 
+  /* O mesmo para os movimentos reais: o painel pede o mesmo mês dezenas
+     de vezes (tesouraria e mapa anual pedem doze cada), e sem cache cada
+     pedido varria a lista inteira de movimentos. */
+  var semCacheReal = (function(){
+    var r = null;
+    // Fora do passe não há cache — serve de referência
+    r = realMes(MES);
+    return {rend: r.rend, desp: r.desp, saldo: r.saldo, itens: r.itens.length};
+  })();
+  var comCacheReal = emPasse(function(){
+    realMes(MES); realMes(MES);            // segunda e terceira vêm da cache
+    var r = realMes(MES);
+    return {rend: r.rend, desp: r.desp, saldo: r.saldo, itens: r.itens.length};
+  });
+  eq(comCacheReal.rend, semCacheReal.rend, "a cache dos movimentos não altera o rendimento");
+  eq(comCacheReal.desp, semCacheReal.desp, "nem a despesa");
+  eq(comCacheReal.saldo, semCacheReal.saldo, "nem o saldo");
+  eq(comCacheReal.itens, semCacheReal.itens, "nem o número de movimentos");
+
+  // Meses diferentes não se confundem dentro do mesmo passe
+  emPasse(function(){
+    var a = realMes(MES), b = realMes(mesShift(MES, -1));
+    ok(a !== b, "meses diferentes têm resultados distintos na cache");
+  });
+
+  // A cache não sobrevive ao passe: um movimento novo é visto logo a seguir
+  emPasse(function(){ realMes(MES); });
+  var despAntes = realMes(MES).desp;
+  S.movimentos.push({id:"qa-cache", data: MES+"-01", tipo:"despesa", descricao:"Cache QA",
+    valor: 123.45, categoriaId:"", membroId:""});
+  eq(realMes(MES).desp, despAntes + 123.45, "fora do passe, a cache não esconde movimentos novos", 0.001);
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "qa-cache"; });
+
   // A passagem fecha-se mesmo quando o corpo lança
   var lancou = false;
   try { emPasse(function(){ throw new Error("teste"); }); } catch(e){ lancou = true; }
