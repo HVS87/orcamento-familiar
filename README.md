@@ -66,7 +66,7 @@ Nos **Limites**, a **mesada diária** reparte o que resta pelos dias que faltam,
 - **Saúde dos dados** (Definições) — o que está por preencher ou por ligar: movimentos sem categoria, imóveis sem VPT, veículos sem IUC, créditos sem ativo, categorias sem limite
 - **Limites com ritmo** — a barra ganha uma marca de onde se devia estar hoje, e a leitura em palavras: «no ritmo · 16,40 €/dia» ou «excedeu 38 €»
 - **Cenários guardados** (Estratégias) — fotografe os parâmetros com um nome e compare «mudar de casa» com «comprar carro» na mesma tabela
-- **Arranque por perfil** — no ecrã vazio: *vivo sozinho · casal · família com filhos · com casa própria*. Semeia membros, despesas fixas típicas e limites, para ajustar (e com anulação imediata)
+- **Arranque por perfil** — no ecrã vazio, duas escolhas independentes: quem vive em casa (*vivo sozinho · casal · família com filhos*) e a habitação (*a arrendar · com casa própria*, esta com *paga* ou *com empréstimo*). A prévia diz quantos membros e que despesas vão nascer; semeia membros, despesas fixas típicas e limites, para ajustar (e com anulação imediata)
 - **Estados vazios ilustrados** — cada vista vazia mostra um mini-diagrama do que ali vai: uma fonte a decompor-se em componentes, uma prestação a dividir-se em juros, capital e seguros
 - **Relatório mensal** (Dados ▾) — uma folha desenhada para imprimir ou guardar em PDF: capa, indicadores, fluxo do dinheiro, desvios, despesa por categoria, património e objetivos
 - **Acessibilidade** — três tamanhos de texto e um modo de **alto contraste** em Definições → Aparência
@@ -466,7 +466,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 11 044 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 11 075 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -476,8 +476,8 @@ Três suites, 11 044 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3769 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), explicador, diálogo, exportação | 756 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3784 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), explicador, diálogo, exportação | 772 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.

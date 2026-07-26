@@ -490,6 +490,8 @@ svg.mini{width:70px;height:20px;display:block}
   padding:12px 13px;transition:border-color .12s,background .12s}
 .perfil:hover{border-color:var(--accent);background:var(--surface-3)}
 .perfil:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.perfil[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.perfil[aria-pressed="true"] .pl{color:var(--accent)}
 .perfil .pi{font-size:22px}
 .perfil .pl{font-size:13.5px;font-weight:650}
 .perfil .pd{font-size:11.5px;color:var(--muted);line-height:1.4}
@@ -2041,7 +2043,10 @@ const AJUDAS_ACAO = {
   temaTexto:  ["Tamanho do texto", "Aumenta o corpo de letra de toda a interface, incluindo tabelas e indicadores. Fica guardado com os dados.", ""],
   temaContraste:["Contraste", "Alto contraste reforça bordas e texto e retira as sombras, para leitura mais fácil.", ""],
   relatorio:  ["Relatório mensal", "Uma folha desenhada para imprimir ou guardar em PDF: indicadores do mês, fluxo do dinheiro, desvios, despesa por categoria, património e objetivos.", ""],
-  perfilAplicar:["Ponto de partida", "Semeia membros, despesas fixas típicas e limites de um perfil. São valores de exemplo, para ajustar — e pode anular logo a seguir.", ""],
+  perfilAgregado:["Quem vive na casa", "Determina os membros e as despesas do dia a dia. A habitação escolhe-se à parte, porque é independente disto.", ""],
+  perfilHabitacao:["Onde vive", "Arrendar traz a renda; casa própria traz o condomínio, a manutenção e os seguros. Combina-se com qualquer agregado.", ""],
+  perfilRegime:["Casa paga ou com empréstimo", "Com empréstimo acrescenta-se a prestação e o seguro de vida. Para ver os juros separados do capital, acrescente depois o crédito no separador respetivo.", ""],
+  perfilAplicar:["Começar assim", "Semeia membros, despesas fixas típicas e limites. São valores de exemplo, para ajustar — e pode anular logo a seguir.", ""],
   movSel:     ["Selecionar movimento", "Marque vários para lhes atribuir a mesma categoria, ou eliminá-los de uma vez.", ""],
   movSelTodos:["Selecionar todos", "Marca ou desmarca todos os movimentos visíveis com os filtros atuais.", ""],
   loteAplicar:["Aplicar em lote", "Atribui a categoria escolhida a todos os movimentos selecionados. Se partilharem um termo, oferece guardá-lo como regra.", ""],
@@ -2164,6 +2169,7 @@ let ordem = {};              // tabela -> {col, dir}
 let ui = {
   evolucaoMeses:12, simExtra:0, simAnos:10, donutFoco:null, movSel:{}, essencial:false,
   amortMetodo:"avalanche", amortExtra:150,
+  perfil:{agregado:null, habitacao:"arrendada", regime:"credito"},
   secaoDespesa:"plano",      // plano | movimentos | limites
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
@@ -4348,46 +4354,79 @@ function cartaoTesouraria(){
    plausível que depois se ajusta. Semeia membros, rubricas e limites;
    nunca inventa rendimentos, que são de cada um.
    =============================================================== */
-const PERFIS = {
+/* Quem vive na casa. As despesas de habitação ficam de fora: a casa é
+   uma dimensão à parte, porque se pode viver sozinho e ter casa própria
+   tanto como ter família e arrendar. Cada agregado traz os valores de
+   habitação adequados ao seu tamanho, para a outra escolha os usar. */
+const PERFIS_AGREGADO = {
   sozinho: {lbl:"Vivo sozinho", icone:"🧍",
-    desc:"Uma pessoa, rubricas base de habitação e dia a dia.",
+    desc:"Uma pessoa.",
     membros:["Eu"],
-    rubricas:[["Renda ou prestação","Habitação",600],["Eletricidade e gás","Eletricidade e gás",55],
+    casa:{renda:600, prestacao:550, condominio:35, manutencao:30, seguros:25},
+    rubricas:[["Eletricidade e gás","Eletricidade e gás",55],
       ["Água","Água",22],["Telecom e internet","Telecom e internet",35],
       ["Supermercado","Alimentação",250],["Transportes","Transportes",50],
       ["Seguro de saúde","Seguros",30],["Subscrições","Subscrições",20]]},
   casal: {lbl:"Casal", icone:"🧑‍🤝‍🧑",
     desc:"Dois titulares, despesas partilhadas.",
     membros:["Titular 1","Titular 2"],
-    rubricas:[["Renda ou prestação","Habitação",800],["Condomínio","Condomínio",45],
-      ["Eletricidade e gás","Eletricidade e gás",85],["Água","Água",35],
+    casa:{renda:800, prestacao:700, condominio:45, manutencao:45, seguros:60},
+    rubricas:[["Eletricidade e gás","Eletricidade e gás",85],["Água","Água",35],
       ["Telecom e internet","Telecom e internet",45],["Supermercado","Alimentação",450],
-      ["Transportes","Transportes",120],["Seguros","Seguros",60],["Subscrições","Subscrições",30]]},
+      ["Transportes","Transportes",120],["Subscrições","Subscrições",30]]},
   familia: {lbl:"Família com filhos", icone:"👨‍👩‍👧",
     desc:"Acrescenta educação, saúde e as despesas das crianças.",
     membros:["Titular 1","Titular 2"],
-    rubricas:[["Renda ou prestação","Habitação",900],["Condomínio","Condomínio",50],
-      ["Eletricidade e gás","Eletricidade e gás",110],["Água","Água",45],
+    casa:{renda:900, prestacao:800, condominio:55, manutencao:60, seguros:75},
+    rubricas:[["Eletricidade e gás","Eletricidade e gás",110],["Água","Água",45],
       ["Telecom e internet","Telecom e internet",50],["Supermercado","Alimentação",650],
       ["Creche ou escola","Educação",280],["Saúde","Saúde",80],
-      ["Transportes","Transportes",150],["Seguros","Seguros",75],["Vestuário","Vestuário",80]]},
-  proprietario: {lbl:"Com casa própria", icone:"🏡",
-    desc:"Prestação, condomínio, IMI e manutenção — mais o imóvel nos ativos.",
-    membros:["Titular 1","Titular 2"],
-    rubricas:[["Prestação do crédito","Prestações de crédito",750],["Condomínio","Condomínio",60],
-      ["Eletricidade e gás","Eletricidade e gás",100],["Água","Água",40],
-      ["Telecom e internet","Telecom e internet",45],["Supermercado","Alimentação",500],
-      ["Seguro de vida e multirriscos","Seguros",70],["Manutenção da casa","Manutenção e reparações",60],
-      ["Transportes","Transportes",130]]},
+      ["Transportes","Transportes",150],["Vestuário","Vestuário",80]]},
 };
 
-function aplicarPerfil(chave){
-  const p = PERFIS[chave];
-  if (!p) return false;
-  p.membros.forEach(nome => {
+/* Onde se vive — combina-se com qualquer agregado. A casa própria abre
+   ainda a pergunta que muda tudo no orçamento: está paga ou tem crédito? */
+const PERFIS_HABITACAO = {
+  arrendada: {lbl:"A arrendar", icone:"🔑",
+    rubricas: (c) => [["Renda de casa","Habitação",c.renda]]},
+  propria: {lbl:"Com casa própria", icone:"🏡",
+    regimes: {
+      paga: {lbl:"Paga", desc:"Sem prestação: ficam o condomínio, a manutenção e os seguros.",
+        rubricas: (c) => [["Condomínio","Condomínio",c.condominio],
+          ["Manutenção da casa","Manutenção e reparações",c.manutencao],
+          ["Seguro multirriscos","Seguros",c.seguros]]},
+      credito: {lbl:"Com empréstimo", desc:"Acrescenta a prestação e o seguro de vida.",
+        rubricas: (c) => [["Prestação do crédito","Prestações de crédito",c.prestacao],
+          ["Condomínio","Condomínio",c.condominio],
+          ["Manutenção da casa","Manutenção e reparações",c.manutencao],
+          ["Seguro de vida e multirriscos","Seguros",c.seguros]]},
+    }},
+};
+
+/** As rubricas de habitação da combinação escolhida. */
+function rubricasHabitacao(agregado, habitacao, regime){
+  const a = PERFIS_AGREGADO[agregado], h = PERFIS_HABITACAO[habitacao];
+  if (!a || !h) return [];
+  if (!h.regimes) return h.rubricas(a.casa);
+  const r = h.regimes[regime] || h.regimes.credito;
+  return r.rubricas(a.casa);
+}
+
+/**
+ * Semeia o ponto de partida: membros, despesas fixas e limites.
+ * `habitacao` e `regime` são independentes do agregado — é essa a razão
+ * de existirem: a casa não define quem lá vive.
+ */
+function aplicarPerfil(agregado, habitacao, regime){
+  const a = PERFIS_AGREGADO[agregado];
+  if (!a) return false;
+  const hab = PERFIS_HABITACAO[habitacao] ? habitacao : "arrendada";
+
+  a.membros.forEach(nome => {
     if (!S.membros.some(m => m.nome === nome)) S.membros.push({id: uid("mb"), nome});
   });
-  p.rubricas.forEach(([nome, cat, valor]) => {
+  const todas = a.rubricas.concat(rubricasHabitacao(agregado, hab, regime));
+  todas.forEach(([nome, cat, valor]) => {
     if (S.recorrentes.some(r => r.nome === nome)) return;
     const catId = catPorNome(cat);
     S.recorrentes.push({id: uid("rec"), tipo:"despesa", nome, categoriaId: catId,
@@ -4397,14 +4436,49 @@ function aplicarPerfil(chave){
   return true;
 }
 
-/** Escolha de perfil, no ecrã de boas-vindas. */
+/** Escolha de ponto de partida, no ecrã de boas-vindas. */
 function escolhaPerfil(){
-  return '<div class="perfis no-print">'+Object.entries(PERFIS).map(([k,p]) =>
-    '<button class="perfil" data-act="perfilAplicar" data-k="'+k+'">'+
-      '<span class="pi" aria-hidden="true">'+p.icone+'</span>'+
-      '<span class="pl">'+esc(p.lbl)+'</span>'+
-      '<span class="pd">'+esc(p.desc)+'</span>'+
+  const p = ui.perfil || (ui.perfil = {agregado:null, habitacao:"arrendada", regime:"credito"});
+  const casaPropria = p.habitacao === "propria";
+
+  const agregados = '<div class="perfis no-print">'+Object.entries(PERFIS_AGREGADO).map(([k,a]) =>
+    '<button class="perfil" data-act="perfilAgregado" data-k="'+k+'" aria-pressed="'+(p.agregado === k)+'">'+
+      '<span class="pi" aria-hidden="true">'+a.icone+'</span>'+
+      '<span class="pl">'+esc(a.lbl)+'</span>'+
+      '<span class="pd">'+esc(a.desc)+'</span>'+
     '</button>').join("")+'</div>';
+
+  const habitacao = '<div class="seg no-print" style="margin-top:11px">'+
+    Object.entries(PERFIS_HABITACAO).map(([k,h]) =>
+      '<button data-act="perfilHabitacao" data-k="'+k+'" aria-pressed="'+(p.habitacao === k)+'">'+
+      h.icone+' '+esc(h.lbl)+'</button>').join("")+'</div>';
+
+  const regimes = casaPropria
+    ? '<div class="seg no-print" style="margin-top:8px">'+
+      Object.entries(PERFIS_HABITACAO.propria.regimes).map(([k,r]) =>
+        '<button data-act="perfilRegime" data-k="'+k+'" aria-pressed="'+(p.regime === k)+'">'+
+        esc(r.lbl)+'</button>').join("")+'</div>'+
+      '<div class="muted" style="font-size:12px;margin-top:5px">'+
+      esc(PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].desc)+
+      (p.regime !== "paga"
+        ? ' A prestação entra como rubrica; para ver os juros separados do capital, acrescente o empréstimo em <strong>Créditos</strong>.'
+        : "")+'</div>'
+    : "";
+
+  // Pré-visualização do que vai ser criado, para não ser uma caixa fechada
+  const previa = p.agregado
+    ? (function(){
+        const a = PERFIS_AGREGADO[p.agregado];
+        const rs = a.rubricas.concat(rubricasHabitacao(p.agregado, p.habitacao, p.regime));
+        const total = rs.reduce((s,r) => s + r[2], 0);
+        return '<div class="note" style="margin-top:11px">Vai criar <strong>'+a.membros.length+
+          ' membro(s)</strong> e <strong>'+rs.length+' despesa(s) fixa(s)</strong>, '+
+          eur(total)+'/mês no total — valores de exemplo, para ajustar.</div>'+
+          '<div class="actions"><button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
+      })()
+    : '<div class="muted" style="font-size:12px;margin-top:9px">Escolha o agregado para continuar.</div>';
+
+  return agregados + habitacao + regimes + previa;
 }
 
 /**
@@ -9985,16 +10059,20 @@ const ACOES = {
   tutorialSair(){ tutorialFim(false); },
 
   /* --- arranque por perfil --- */
-  perfilAplicar(el){
-    const p = PERFIS[el.dataset.k];
-    if (!p) return;
-    confirmar("Começar como «"+p.lbl+"»?",
-      "Vai criar "+p.membros.length+" membro(s) e "+p.rubricas.length+" despesa(s) fixa(s) com valores de exemplo, "+
-      "além dos limites correspondentes. Ajuste tudo depois — e pode anular já a seguir.",
-      () => {
-        apagarComAnulacao("Ponto de partida «"+p.lbl+"» aplicado.", () => { aplicarPerfil(el.dataset.k); });
-        irPara("despesas");
-      }, "Aplicar");
+  perfilAgregado(el){ ui.perfil.agregado = el.dataset.k; render(); },
+  perfilHabitacao(el){ ui.perfil.habitacao = el.dataset.k; render(); },
+  perfilRegime(el){ ui.perfil.regime = el.dataset.k; render(); },
+  perfilAplicar(){
+    const p = ui.perfil || {};
+    const a = PERFIS_AGREGADO[p.agregado];
+    if (!a){ toast("Escolha primeiro o agregado."); return; }
+    const h = PERFIS_HABITACAO[p.habitacao] || PERFIS_HABITACAO.arrendada;
+    const rotulo = a.lbl + ", " + h.lbl.toLowerCase() +
+      (p.habitacao === "propria" ? " ("+PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].lbl.toLowerCase()+")" : "");
+    apagarComAnulacao("Ponto de partida aplicado: "+rotulo+".", () => {
+      aplicarPerfil(p.agregado, p.habitacao, p.regime);
+    }, "ponto de partida");
+    irPara("despesas");
   },
 
   /* --- dica do próximo passo --- */

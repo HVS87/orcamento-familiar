@@ -2042,17 +2042,53 @@ G("arranque por perfil e estados vazios");
   localStorage.removeItem(STORE_KEY);
   S = estadoVazio(); MES = isoMes(hoje()); render();
 
+  ui.perfil = {agregado:null, habitacao:"arrendada", regime:"credito"};
   irA("painel");
-  eq(qq('[data-act="perfilAplicar"]').length, Object.keys(PERFIS).length, "o ecrã vazio oferece os perfis");
+  eq(qq('[data-act="perfilAgregado"]').length, Object.keys(PERFIS_AGREGADO).length,
+     "o ecrã vazio oferece os agregados");
+  eq(qq('[data-act="perfilHabitacao"]').length, Object.keys(PERFIS_HABITACAO).length,
+     "e a habitação à parte, porque é independente do agregado");
+  ok(q('[data-act="perfilAplicar"]') == null, "sem agregado escolhido não há botão de aplicar");
 
-  ok(aplicarPerfil("casal"), "aplicar um perfil funciona");
+  // A habitação é ortogonal: qualquer agregado combina com qualquer casa
+  clicar('[data-act="perfilAgregado"][data-k="sozinho"]');
+  eq(ui.perfil.agregado, "sozinho", "escolher o agregado guarda-o");
+  ok(q('[data-act="perfilAplicar"]') != null, "e faz aparecer o botão de começar");
+  eq(qq('[data-act="perfilRegime"]').length, 0, "a arrendar não há regime a escolher");
+  clicar('[data-act="perfilHabitacao"][data-k="propria"]');
+  eq(qq('[data-act="perfilRegime"]').length, 2, "casa própria abre paga ou com empréstimo");
+
+  // As rubricas de habitação dependem da casa, e o valor do agregado
+  var soCred = rubricasHabitacao("sozinho", "propria", "credito").map(function(r){ return r[0]; });
+  ok(soCred.indexOf("Prestação do crédito") >= 0, "com empréstimo traz a prestação");
+  var soPaga = rubricasHabitacao("sozinho", "propria", "paga").map(function(r){ return r[0]; });
+  ok(soPaga.indexOf("Prestação do crédito") < 0, "paga não traz prestação nenhuma");
+  ok(soPaga.indexOf("Condomínio") >= 0, "mas traz o condomínio");
+  var arrenda = rubricasHabitacao("familia", "arrendada").map(function(r){ return r[0]; });
+  eq(arrenda.length, 1, "a arrendar traz só a renda");
+  eq(arrenda[0], "Renda de casa", "com esse nome");
+  var pSo = rubricasHabitacao("sozinho","propria","credito").filter(function(r){ return /Prestação/.test(r[0]); })[0][2];
+  var pFam = rubricasHabitacao("familia","propria","credito").filter(function(r){ return /Prestação/.test(r[0]); })[0][2];
+  ok(pFam > pSo, "a prestação sugerida cresce com o agregado", pSo+" vs "+pFam);
+
+  // Aplicar a combinação escolhida
+  S = estadoVazio(); MES = isoMes(hoje());
+  ui.perfil = {agregado:"casal", habitacao:"propria", regime:"credito"};
+  ok(aplicarPerfil("casal", "propria", "credito"), "aplicar a combinação funciona");
   ok(S.membros.length >= 2, "cria os membros");
   ok(S.recorrentes.length >= 5, "e as despesas fixas", S.recorrentes.length);
   ok(Object.keys(S.limites).length >= 5, "com limites correspondentes");
+  var nomes = S.recorrentes.map(function(r){ return r.nome; });
+  ok(nomes.indexOf("Prestação do crédito") >= 0, "com a prestação da casa própria");
+  ok(nomes.indexOf("Renda de casa") < 0, "e sem renda nenhuma");
   var n = S.recorrentes.length;
-  aplicarPerfil("casal");
+  aplicarPerfil("casal", "propria", "credito");
   eq(S.recorrentes.length, n, "aplicar duas vezes não duplica");
-  ok(!aplicarPerfil("inexistente"), "perfil desconhecido não faz nada");
+  ok(!aplicarPerfil("inexistente", "arrendada"), "agregado desconhecido não faz nada");
+  // Habitação desconhecida cai no arrendamento, em vez de rebentar
+  S = estadoVazio();
+  ok(aplicarPerfil("sozinho", "castelo"), "habitação desconhecida não rebenta");
+  ok(S.recorrentes.some(function(r){ return r.nome === "Renda de casa"; }), "e cai no arrendamento");
 
   // Estados vazios ilustrados
   S = estadoVazio(); MES = isoMes(hoje()); render();
