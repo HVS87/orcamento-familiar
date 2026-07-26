@@ -405,6 +405,29 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 #paleta li[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
 #paleta .tipo{margin-left:auto;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 
+/* Botão de transbordo do cabeçalho: só existe em ecrã estreito */
+#btnMaisAcoes{display:none}
+/* Folha de ações secundárias */
+#folhaAcoes{position:fixed;left:8px;right:8px;top:60px;z-index:75;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:8px;display:none;max-width:420px;margin:0 auto}
+#folhaAcoes.aberta{display:block}
+#folhaAcoes button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  background:none;border:0;color:var(--text);border-radius:9px;padding:12px 12px;
+  font-size:14px;cursor:pointer;min-height:48px}
+#folhaAcoes button:hover{background:var(--surface-2)}
+#folhaAcoes button .ic{font-size:18px;width:24px;text-align:center;flex:0 0 auto}
+#folhaAcoes button .st{margin-left:auto;font-size:12px;color:var(--muted)}
+
+/* Ordenação das tabelas quando estão em modo cartão: o cabeçalho da
+   tabela desaparece aí, e com ele os cabeçalhos ordenáveis. */
+.ordenarCartoes{display:none}
+@media (max-width:480px){
+  .ordenarCartoes{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+  .ordenarCartoes select{flex:1 1 auto}
+  .ordenarCartoes .field{flex:0 0 auto}
+}
+
 /* Grupos de botões no cabeçalho de um cartão, que têm de poder quebrar */
 .acoesCabecalho{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;min-width:0}
 
@@ -427,7 +450,14 @@ svg.mini{width:70px;height:20px;display:block}
 #fitaMeses .bx{width:100%;border-radius:2px;display:block}
 #fitaMeses .lx{font-size:9.5px;color:var(--muted);line-height:1}
 #fitaMeses button[aria-current="true"] .lx{color:var(--accent);font-weight:650}
-@media (max-width:900px){ #fitaMeses{display:none} }
+/* Em ecrãs médios a fita passa para a sua própria linha, em vez de
+   desaparecer: é a forma mais rápida de saltar de mês em qualquer
+   largura, e escondê-la deixava uma faixa sem ela. */
+@media (max-width:900px){
+  .topbar .grp{flex-wrap:wrap}
+  #fitaMeses{order:9;flex:1 1 100%;justify-content:space-between}
+  #fitaMeses button{width:auto;flex:1 1 0}
+}
 
 /* Cartões do painel: barra de colapso discreta, no canto */
 .comCab{position:relative}
@@ -595,10 +625,71 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 .tutprog{height:4px;border-radius:99px;background:var(--surface-3);overflow:hidden}
 .tutprog > span{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .25s}
 
+/* ============================================================
+   Toque — ponteiro grosso
+
+   A regra é o ponteiro, não a largura: um tablet grande continua a
+   ser tocado com o dedo. Alvos de 44 px, que é a medida a que um
+   dedo acerta sem pensar.
+   ============================================================ */
+/* Com rato os botões de subir/descer são redundantes — há o arrasto.
+   Declarado antes da media query, para que esta possa revertê-lo. */
+.ordenar{display:none}
+
+/* A largura entra como rede: nem todos os navegadores reportam o
+   ponteiro com fiabilidade, e um ecrã de 640 px é um telemóvel. */
+@media (pointer:coarse), (max-width:640px){
+  .btn{min-height:44px;padding:10px 14px}
+  .btn.sm{min-height:40px;padding:8px 12px;font-size:13px}
+  .btn.icon{min-width:44px;min-height:44px;padding:10px}
+  input,select,textarea{min-height:44px}
+  input[type=checkbox],input[type=radio]{width:22px;height:22px}
+  .seg button{min-height:42px;padding:9px 14px}
+  th.sortable{padding-top:12px;padding-bottom:12px}
+  .alerta{padding:12px 10px}
+  .amostra{min-height:44px}
+  #paleta li{padding:13px 12px}
+  .perfil{min-height:76px}
+  /* A pega de arrasto dá lugar aos botões de subir e descer */
+  .pega{display:none}
+  .ordenar{display:inline-flex;gap:4px}
+  /* Uma célula editável mostra que o é, já que não há duplo toque */
+  td[data-edit]{position:relative}
+  td[data-edit]::after{content:"✎";position:absolute;right:4px;top:50%;transform:translateY(-50%);
+    font-size:11px;opacity:.35}
+}
+
 @media (max-width:640px){
   .topbar{padding:9px 12px;gap:8px}
   .brand h1{font-size:15px}
+  .brand small{display:none}
   main{padding:14px 11px 84px}
+  /* O cabeçalho tinha 17 botões e 151 px. Os secundários passam para
+     uma folha, e ficam à vista os que se usam a toda a hora. */
+  header .secundario{display:none}
+  #btnMaisAcoes{display:inline-flex}
+  #mesSel{width:132px}
+  /* Sem isto a fita não consegue passar para a linha de baixo, e o
+     seu flex-basis de 100% empurra o cabeçalho para fora do ecrã. */
+  .topbar .grp{flex-wrap:wrap}
+  /* As setas ‹ › tornam-se redundantes: há a fita e o deslizar. Sai
+     também o subtítulo. O cabeçalho é fixo — cada linha custa ecrã. */
+  #mesPrev,#mesNext{display:none}
+  .topbar{padding:7px 12px;gap:6px}
+  header .brand .logo{font-size:19px}
+  #fitaMeses{padding-top:0}
+  #fitaMeses button{min-height:40px}
+  #fitaMeses .cx{height:18px}
+  /* O cabeçalho ocupa 190 px de um ecrã de 812. Recolhe ao descer e
+     volta ao subir — o gesto de voltar atrás traz sempre o comando. */
+  header{transition:transform .22s ease}
+  header.recolhido{transform:translateY(-100%)}
+  /* A fita de meses é boa no telemóvel — é toque em vez de setas.
+     Passa para uma linha própria, com espaço para o dedo. */
+  #fitaMeses{display:flex;order:9;flex:1 1 100%;justify-content:space-between;
+    padding-top:2px;gap:2px}
+  #fitaMeses button{width:auto;flex:1 1 0;min-height:44px;padding:4px 0}
+  #fitaMeses .cx{height:22px}
   .card{padding:13px}
   .kpi .val{font-size:21px}
   th,td{padding:7px 8px;font-size:13.5px}
@@ -665,13 +756,14 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
     </div>
     <div class="grp">
       <span id="estadoGuardado" class="muted" aria-live="polite"></span>
-      <button class="btn icon" data-act="essencialAlternar" aria-label="Modo essencial" aria-pressed="false">◱</button>
+      <button class="btn icon secundario" data-act="essencialAlternar" aria-label="Modo essencial" aria-pressed="false">◱</button>
       <button class="btn icon" data-act="desfazer" aria-label="Desfazer" disabled>↶</button>
       <button class="btn icon" data-act="refazer" aria-label="Refazer" disabled>↷</button>
-      <button class="btn icon" data-act="privAlternar" title="Modo privacidade — desfoca os valores" aria-label="Modo privacidade" aria-pressed="false">👁</button>
-      <button class="btn icon" data-act="tutorialIniciar" title="Visita guiada" aria-label="Visita guiada">🎓</button>
-      <button class="btn icon" id="ajudaBtn" aria-label="Explicadores" aria-pressed="true">?</button>
-      <button class="btn icon" id="temaBtn" title="Alternar tema" aria-label="Alternar tema">◐</button>
+      <button class="btn icon secundario" data-act="privAlternar" title="Modo privacidade — desfoca os valores" aria-label="Modo privacidade" aria-pressed="false">👁</button>
+      <button class="btn icon secundario" data-act="tutorialIniciar" title="Visita guiada" aria-label="Visita guiada">🎓</button>
+      <button class="btn icon secundario" id="ajudaBtn" aria-label="Explicadores" aria-pressed="true">?</button>
+      <button class="btn icon secundario" id="temaBtn" title="Alternar tema" aria-label="Alternar tema">◐</button>
+      <button class="btn icon" id="btnMaisAcoes" aria-label="Mais ações" aria-expanded="false" aria-haspopup="true">⋯</button>
       <button class="btn" id="menuBtn" aria-haspopup="true">Dados ▾</button>
     </div>
   </div>
@@ -697,6 +789,8 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
   <button data-view="ativos" aria-selected="false"><span class="ticon" aria-hidden="true">🏦</span>Ativos</button>
   <button id="btnMais" aria-expanded="false"><span class="ticon" aria-hidden="true">⋯</span>Mais</button>
 </nav>
+<div id="folhaAcoes" class="no-print" role="menu" aria-label="Mais ações"></div>
+
 <div id="folhaMais" class="no-print" hidden>
   <button data-view="creditos">🏠 Créditos</button>
   <button data-view="objetivos">🎯 Objetivos</button>
@@ -1930,6 +2024,8 @@ const AJUDAS_ACAO = {
   temaDensidade:["Densidade", "Compacta reduz tipos e espaçamentos para caberem mais linhas por ecrã; Confortável é a leitura por omissão.", ""],
   privAlternar:["Modo privacidade", "Desfoca todos os valores — para mostrar o ecrã ou tirar capturas sem expor números. Os gráficos mantêm as formas.", ""],
   compararAlternar:["Comparar com o ano passado", "As legendas dos indicadores passam a mostrar o mesmo mês do ano anterior e a variação face a ele.", ""],
+  ordemMover: ["Subir ou descer", "Muda a ordem um lugar de cada vez. Com rato pode arrastar pela pega ⠿; ao toque, use estes botões.", ""],
+  ordMovDir:  ["Inverter a ordem", "Alterna entre crescente e decrescente na coluna escolhida.", ""],
   painelColapsar:["Fechar ou abrir o cartão", "Um cartão fechado deixa de ser calculado, não apenas de se ver. A escolha fica guardada.", ""],
   painelVisivel:["Mostrar ou esconder", "Escolha que cartões quer no painel. Começa com cinco; o resto liga-se aqui.", ""],
   painelReporPadrao:["Repor o padrão", "Devolve a escolha e a ordem dos cartões ao estado de origem.", ""],
@@ -5503,8 +5599,19 @@ function viewMovimentos(){
       '<button class="btn sm ghost" data-act="loteLimpar">Limpar seleção</button></div>'
     : "";
 
+  /* Em modo cartão o cabeçalho da tabela desaparece — e com ele a
+     ordenação. Este seletor devolve-a, sem estorvar no ecrã grande. */
+  const ordMov = ordem.mov || {col:"data", dir:-1};
+  const seletorOrdem =
+    '<div class="ordenarCartoes no-print"><label class="field" for="ordMov" style="margin:0">Ordenar</label>'+
+    '<select id="ordMov">'+
+      [["data","Data"],["descricao","Descrição"],["categoria","Categoria"],["valor","Valor"]]
+        .map(([c,l]) => '<option value="'+c+'"'+(ordMov.col === c ? " selected" : "")+'>'+esc(l)+'</option>').join("")+
+    '</select>'+
+    '<button class="btn sm" data-act="ordMovDir" aria-label="Inverter a ordem">'+(ordMov.dir > 0 ? "↑" : "↓")+'</button></div>';
+
   const tabela = lista.length
-    ? barraLote+'<div class="tblwrap tblcards"><table><thead><tr>'+
+    ? barraLote+seletorOrdem+'<div class="tblwrap tblcards"><table><thead><tr>'+
       '<th class="no-print" style="width:26px"><input type="checkbox" data-act="movSelTodos" '+
         (nSel === lista.length ? "checked" : "")+' aria-label="Selecionar todos"></th>'+
       th("mov","data","Data")+th("mov","descricao","Descrição")+th("mov","categoria","Categoria")+
@@ -6051,7 +6158,8 @@ function viewPlano(){
       itens.map(r => {
         const ativa = recAtiva(r, MES);
         return '<tr draggable="true" data-drag="rec" data-id="'+esc(r.id)+'" style="'+(ativa ? "" : "opacity:.45")+'">'+
-          '<td class="no-print pega" title="Arrastar para reordenar">⠿</td>'+
+          '<td class="no-print" style="white-space:nowrap"><span class="pega" title="Arrastar para reordenar">⠿</span>'+
+            botoesOrdenar("rec", r.id)+'</td>'+
           '<td>'+esc(r.nome || "—")+(ativa ? "" : ' <span class="tag">inativa</span>')+'</td>'+
           '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(r.categoriaId))+'"></span>'+esc(catRotulo(r.categoriaId))+'</span></td>'+
           '<td>'+esc(membroNome(r.membroId) || "—")+'</td>'+
@@ -7987,7 +8095,7 @@ function viewConfig(){
     '<th class="r">Utilizações</th><th class="no-print"></th></tr></thead><tbody>'+
     S.categorias.map(c =>
       '<tr draggable="true" data-drag="cat" data-id="'+esc(c.id)+'">'+
-      '<td class="no-print pega" title="Arrastar para reordenar">⠿</td>'+
+      '<td class="no-print" style="white-space:nowrap"><span class="pega" title="Arrastar para reordenar">⠿</span>'+botoesOrdenar("cat", c.id)+'</td>'+
       '<td><span class="tag"><span class="dot" style="background:'+esc(c.cor)+'"></span>'+
         esc((c.icone ? c.icone+" " : "")+c.nome)+'</span></td>'+
       '<td>'+(c.tipo === "rendimento" ? "Rendimento" : "Despesa")+'</td>'+
@@ -8087,7 +8195,7 @@ function cartaoPainelConfig(){
     ordenadas.map(k => {
       const on = ocultos.indexOf(k) < 0;
       return '<tr draggable="true" data-drag="painel" data-id="'+esc(k)+'"'+(on ? "" : ' style="opacity:.5"')+'>'+
-        '<td class="no-print pega" style="width:26px" title="Arrastar para ordenar">⠿</td>'+
+        '<td class="no-print" style="white-space:nowrap"><span class="pega" title="Arrastar para ordenar">⠿</span>'+botoesOrdenar("painel", k)+'</td>'+
         '<td>'+esc(CARTOES_PAINEL[k].lbl)+
           (CARTOES_PAINEL[k].largo ? ' <span class="tag">largo</span>' : "")+'</td>'+
         '<td class="r no-print" style="width:90px">'+
@@ -9760,6 +9868,40 @@ const ACOES = {
   refazer(){ refazer(); },
 
   amortMetodo(el){ ui.amortMetodo = el.dataset.v; render(); },
+  ordMovDir(){
+    const o = ordem.mov || {col:"data", dir:-1};
+    ordem.mov = {col: o.col, dir: -o.dir};
+    render();
+  },
+
+  /* Subir e descer — o equivalente ao arrasto, para quem usa o dedo. */
+  ordemMover(el){
+    const {tipo, id} = el.dataset;
+    const d = parseInt(el.dataset.d, 10);
+    let mudou = false;
+    alterar(() => {
+      if (tipo === "cat"){
+        const lista = S.categorias.map(c => c.id);
+        const alvo = _vizinho(lista, id, d);
+        if (alvo) mudou = reordenarCategoria(id, alvo);
+      } else if (tipo === "painel"){
+        const visiveis = cartoesPainel();
+        const lista = visiveis.concat(Object.keys(CARTOES_PAINEL).filter(k => visiveis.indexOf(k) < 0));
+        const alvo = _vizinho(lista, id, d);
+        if (alvo) mudou = reordenarPainel(id, alvo);
+      } else {
+        const temOrdem = S.recorrentes.some(r => r.tipo === "despesa" && r.ordem != null);
+        const lista = S.recorrentes.filter(r => r.tipo === "despesa")
+          .sort((a,b) => temOrdem
+            ? (a.ordem != null ? a.ordem : 1e9) - (b.ordem != null ? b.ordem : 1e9)
+            : recMensal(b) - recMensal(a))
+          .map(r => r.id);
+        const alvo = _vizinho(lista, id, d);
+        if (alvo) mudou = reordenarRubrica(id, alvo);
+      }
+    }, "ordem");
+    if (!mudou) toast(d < 0 ? "Já está no topo." : "Já está no fim.");
+  },
 
   /* --- cartões do painel --- */
   painelColapsar(el){
@@ -10192,6 +10334,121 @@ $("#tabs").addEventListener("click", (e) => {
   if (b) irPara(b.dataset.view);
 });
 
+/* ---------------------------------------------------------------
+   Toque — o que o rato fazia e o dedo não faz
+
+   Três interações dependiam de rato: o duplo clique (no telemóvel é
+   zoom), o hover dos explicadores (não existe) e o arrasto HTML5 (que
+   os navegadores móveis não disparam). Nenhuma se perde no desktop:
+   acrescentam-se caminhos, não se substituem.
+   --------------------------------------------------------------- */
+const aoToque = () => window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
+/* Folha de ações secundárias, para o cabeçalho não ter dezassete botões. */
+const ACOES_FOLHA = [
+  {ic:"◱",  lbl:"Modo essencial",  act:"essencialAlternar", estado: () => ui.essencial ? "ligado" : ""},
+  {ic:"👁", lbl:"Modo privacidade", act:"privAlternar",      estado: () => ui.privado ? "ligado" : ""},
+  {ic:"◐",  lbl:"Tema",             id:"temaBtn",             estado: () => S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático"},
+  {ic:"?",  lbl:"Explicadores",     id:"ajudaBtn",            estado: () => S.ajudas === false ? "desligados" : "ligados"},
+  {ic:"🎓", lbl:"Visita guiada",    act:"tutorialIniciar",    estado: () => ""},
+  {ic:"🖨", lbl:"Relatório mensal", act:"relatorio",          estado: () => ""},
+];
+
+function fecharFolhaAcoes(){
+  $("#folhaAcoes").classList.remove("aberta");
+  $("#btnMaisAcoes").setAttribute("aria-expanded", "false");
+}
+function abrirFolhaAcoes(){
+  const f = $("#folhaAcoes");
+  f.innerHTML = ACOES_FOLHA.map((a, i) =>
+    '<button data-folha="'+i+'" role="menuitem"><span class="ic" aria-hidden="true">'+a.ic+'</span>'+
+    esc(a.lbl)+'<span class="st">'+esc(a.estado())+'</span></button>').join("");
+  f.classList.add("aberta");
+  $("#btnMaisAcoes").setAttribute("aria-expanded", "true");
+}
+$("#btnMaisAcoes").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if ($("#folhaAcoes").classList.contains("aberta")) fecharFolhaAcoes(); else abrirFolhaAcoes();
+});
+$("#folhaAcoes").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-folha]");
+  if (!b) return;
+  const a = ACOES_FOLHA[parseInt(b.dataset.folha, 10)];
+  fecharFolhaAcoes();
+  if (!a) return;
+  if (a.act && ACOES[a.act]) ACOES[a.act](b);
+  else if (a.id && $("#"+a.id)) $("#"+a.id).click();
+});
+document.addEventListener("click", (e) => {
+  if (!$("#folhaAcoes").classList.contains("aberta")) return;
+  if (e.target.closest("#folhaAcoes, #btnMaisAcoes")) return;
+  fecharFolhaAcoes();
+});
+
+/* Ao toque, um toque simples abre a célula para edição: o duplo toque
+   está tomado pelo zoom do navegador. Com rato mantém-se o duplo clique. */
+document.addEventListener("click", (e) => {
+  if (!aoToque()) return;
+  const td = e.target.closest && e.target.closest("td[data-edit]");
+  if (!td || e.target.closest("button, a, input, select")) return;
+  editarCelula(td);
+});
+
+/* Ao toque, o explicador aparece ao tocar e sai ao tocar fora — o hover
+   não existe, e sem isto 87 explicadores ficariam inalcançáveis. */
+document.addEventListener("click", (e) => {
+  if (!aoToque() || S.ajudas === false) return;
+  if (e.target.closest("#tip")) return;
+  const alvo = e.target.closest(SEL_AJUDAVEL);
+  if (!alvo){ $("#tip").classList.remove("show"); return; }
+  const a = ajudaDe(e.target);
+  if (a){
+    const r = alvo.getBoundingClientRect();
+    mostrarAjuda(a, {clientX: r.left + r.width/2, clientY: r.bottom});
+  }
+});
+
+/* O cabeçalho recolhe ao descer e volta ao subir. Só em ecrã estreito,
+   onde os seus 190 px pesam de facto; e nunca com um diálogo aberto ou
+   com o cabeçalho no topo, para não esconder o que se está a usar. */
+let _ultimoScroll = 0;
+window.addEventListener("scroll", () => {
+  if (window.innerWidth > 640) return;
+  const h = document.querySelector("header");
+  const y = window.scrollY;
+  if (y < 90 || $("#modalHost").innerHTML || $("#folhaAcoes").classList.contains("aberta")){
+    h.classList.remove("recolhido");
+  } else if (y > _ultimoScroll + 6){
+    h.classList.add("recolhido");
+    fecharFolhaAcoes();
+  } else if (y < _ultimoScroll - 6){
+    h.classList.remove("recolhido");
+  }
+  _ultimoScroll = y;
+}, {passive:true});
+
+/* Deslizar na horizontal muda de mês — o gesto que se espera num
+   telemóvel. Ignora deslizes verticais, e o que acontece dentro de
+   algo que rola na horizontal (tabelas, gráficos, a fita). */
+let _gesto = null;
+document.addEventListener("touchstart", (e) => {
+  if (e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const rolavel = e.target.closest && e.target.closest(".tblwrap, .chart, #fitaMeses, .hmap, .mapa, input, select, textarea");
+  _gesto = rolavel ? null : {x: t.clientX, y: t.clientY, t: Date.now()};
+}, {passive:true});
+document.addEventListener("touchend", (e) => {
+  if (!_gesto || !e.changedTouches.length) return;
+  const g = _gesto; _gesto = null;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - g.x, dy = t.clientY - g.y;
+  if (Date.now() - g.t > 700) return;                    // devagar não é gesto
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return;
+  MES = mesShift(MES, dx < 0 ? 1 : -1);
+  render();
+  toast(mesLabel(MES));
+}, {passive:true});
+
 /* Navegação inferior (móvel): quatro vistas diretas e uma folha «Mais». */
 function fecharFolhaMais(){
   $("#folhaMais").hidden = true;
@@ -10492,6 +10749,27 @@ function categoriaSugerida(descricao){
    Arrastar para reordenar — categorias e rubricas do plano.
    O núcleo é uma função pura (testável); o arrasto só a invoca.
    --------------------------------------------------------------- */
+/**
+ * Botões de subir e descer, ao lado da pega de arrasto.
+ * Os navegadores móveis não disparam o arrasto HTML5, e sem isto a
+ * reordenação simplesmente não existiria no telemóvel. Com rato ficam
+ * escondidos, porque aí o arrasto é melhor.
+ */
+function botoesOrdenar(tipo, id){
+  return '<span class="ordenar no-print">'+
+    '<button class="btn sm ghost" data-act="ordemMover" data-tipo="'+esc(tipo)+'" data-id="'+esc(id)+'" '+
+      'data-d="-1" aria-label="Subir">↑</button>'+
+    '<button class="btn sm ghost" data-act="ordemMover" data-tipo="'+esc(tipo)+'" data-id="'+esc(id)+'" '+
+      'data-d="1" aria-label="Descer">↓</button></span>';
+}
+
+/** Vizinho de uma chave numa lista ordenada, na direção pedida. */
+function _vizinho(lista, id, d){
+  const i = lista.indexOf(id);
+  const j = i + d;
+  return (i >= 0 && j >= 0 && j < lista.length) ? lista[j] : null;
+}
+
 /** Reordena os cartões do painel, arrastando um para o lugar de outro. */
 function reordenarPainel(chaveArrastada, chaveAlvo){
   if (!CARTOES_PAINEL[chaveArrastada] || !CARTOES_PAINEL[chaveAlvo]) return false;
@@ -11100,6 +11378,10 @@ document.addEventListener("change", (e) => {
     const alvo = $("#estOut"); if (alvo) alvo.innerHTML = emPasse(estrategiaOut);
   }
   else if (t.id === "cpPrestCompra"){ ui.compraPrest = parseInt(t.value, 10); render(); }
+  else if (t.id === "ordMov"){
+    ordem.mov = {col: t.value, dir: (ordem.mov && ordem.mov.col === t.value) ? ordem.mov.dir : -1};
+    render();
+  }
   else if (t.id === "cmpA"){ ui.compararA = t.value; render(); }
   else if (t.id === "cmpB"){ ui.compararB = t.value; render(); }
   else if (t.id === "estJovem"){

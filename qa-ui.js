@@ -2268,6 +2268,91 @@ G("indicador de gravação");
   ok(!_guardado.erro, "sem erro de gravação");
 })();
 
+G("toque — o que o rato fazia e o dedo não faz");
+(function(){
+  comExemplo();
+
+  // Folha de ações: o cabeçalho tinha 17 botões
+  ok(q("#btnMaisAcoes") != null, "há botão de transbordo no cabeçalho");
+  q("#btnMaisAcoes").click();
+  ok(q("#folhaAcoes").classList.contains("aberta"), "abre a folha de ações");
+  eq(qq("#folhaAcoes button").length, ACOES_FOLHA.length, "com todas as ações secundárias");
+  var essencialAntes = ui.essencial;
+  qq("#folhaAcoes button")[0].click();
+  ok(ui.essencial !== essencialAntes, "acionar pela folha funciona");
+  ok(!q("#folhaAcoes").classList.contains("aberta"), "e a folha fecha depois de escolher");
+  ui.essencial = essencialAntes; render();
+
+  // Subir e descer: o arrasto HTML5 não existe em telemóvel
+  irA("config");
+  var bts = qq('[data-act="ordemMover"]');
+  ok(bts.length > 0, "há botões de subir e descer", bts.length);
+  var cats = S.categorias.map(function(c){ return c.id; });
+  var segundo = cats[1];
+  var subir = qq('[data-act="ordemMover"]').filter(function(b){
+    return b.dataset.id === segundo && b.dataset.d === "-1"; })[0];
+  historico = {atras: [], frente: []};
+  subir.click();
+  eq(S.categorias[0].id, segundo, "subir troca com o de cima");
+  ok(historico.atras.length === 1, "e é desfazível");
+  desfazer();
+  eq(S.categorias[1].id, segundo, "desfazer repõe a ordem");
+  // No topo não faz nada
+  var primeiro = S.categorias[0].id;
+  qq('[data-act="ordemMover"]').filter(function(b){
+    return b.dataset.id === primeiro && b.dataset.d === "-1"; })[0].click();
+  eq(S.categorias[0].id, primeiro, "no topo, subir não muda nada");
+
+  // Reordenar rubricas e cartões do painel pelos mesmos botões
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="plano"]');
+  ok(qq('[data-act="ordemMover"][data-tipo="rec"]').length > 0, "as rubricas também têm os botões");
+  irA("config");
+  ok(qq('[data-act="ordemMover"][data-tipo="painel"]').length > 0, "e os cartões do painel");
+
+  // Ordenação das tabelas quando viram cartões
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  ok(q("#ordMov") != null, "há seletor de ordenação para o modo cartão");
+  q("#ordMov").value = "valor";
+  q("#ordMov").dispatchEvent(new Event("change", {bubbles:true}));
+  eq(ordem.mov.col, "valor", "muda a coluna de ordenação");
+  var dirAntes = ordem.mov.dir;
+  clicar('[data-act="ordMovDir"]');
+  eq(ordem.mov.dir, -dirAntes, "e inverte o sentido");
+  ordem.mov = {col:"data", dir:-1}; render();
+
+  // O cabeçalho recolhe ao descer, mas só em ecrã estreito
+  var h = q("header");
+  h.classList.remove("recolhido");
+  window.scrollTo(0, 400);
+  window.dispatchEvent(new Event("scroll"));
+  ok(!h.classList.contains("recolhido") || window.innerWidth <= 640,
+     "em ecrã largo o cabeçalho não recolhe");
+  window.scrollTo(0, 0);
+  window.dispatchEvent(new Event("scroll"));
+  ok(!h.classList.contains("recolhido"), "no topo está sempre visível");
+})();
+
+G("desktop intacto");
+(function(){
+  comExemplo();
+  var vis = function(sel){ var e = q(sel); return e && getComputedStyle(e).display !== "none"; };
+  // Nada do que existia em ecrã grande se perdeu para o telemóvel
+  ok(vis("#mesSel"), "o seletor de mês continua lá");
+  ok(vis("nav.tabs") || window.innerWidth <= 640, "os separadores do topo continuam lá");
+  irA("config");   // é aqui que há linhas arrastáveis
+  ok(qq('[draggable="true"]').length > 0, "o arrasto continua disponível", qq('[draggable="true"]').length);
+  ok(q(".pega") != null, "e a pega ⠿ continua a existir");
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  ok(qq("th.sortable").length > 0, "os cabeçalhos ordenáveis continuam lá");
+  ok(qq("td[data-edit]").length > 0, "a edição em linha continua disponível");
+  // A fita deixou de estar escondida na faixa dos ecrãs médios
+  ok(q("#fitaMeses") != null, "a fita de meses existe em qualquer largura");
+  eq(qq("#fitaMeses button[data-mes]").length, 7, "com sete meses");
+})();
+
 G("celebração de objetivo");
 (function(){
   var backupS = JSON.parse(JSON.stringify(S));

@@ -75,8 +75,21 @@ Nos **Limites**, a **mesada diária** reparte o que resta pelos dias que faltam,
 - **Eliminar com anulação** — apagar é imediato e o toast dá seis segundos para **Anular**; só o «Apagar tudo» mantém o diálogo de confirmação
 - **Validação junto ao campo** — os erros aparecem por baixo do próprio campo, não num aviso genérico
 - **Formulários faseados** — o formulário de ativo mostra só o essencial; o resto vive em «Mais opções», e os campos contextuais (VPT, IUC, arrendamento, cotação) só aparecem nas classes que os usam
-- **Telemóvel** — navegação inferior fixa com as quatro vistas principais e uma folha «Mais»; as tabelas de movimentos e ativos transformam-se em cartões nos ecrãs estreitos
 - **Micro-movimento discreto** — barras que enchem, anéis que se desenham, confete único quando um objetivo chega aos 100% — tudo desligado com `prefers-reduced-motion`
+
+#### No telemóvel
+
+Tudo o que existe no computador existe no telemóvel: muda a forma de lá chegar, não o que se pode fazer. Três interações dependiam de rato — o duplo clique, o *hover* e o arrasto HTML5 — e cada uma ganhou um caminho paralelo, sem perder o original.
+
+- **Alvos de 44 px** em toda a interface quando o ponteiro é grosso, ou o ecrã estreito: botões, campos, caixas de seleção e cabeçalhos de tabela. Eram 123 de 132 abaixo de 40 px
+- **Cabeçalho que recolhe ao descer** e volta ao subir, devolvendo 190 px de um ecrã de 812. No topo, ou com um diálogo aberto, fica sempre visível
+- **Ações secundárias numa folha (⋯)** — tema, explicadores, privacidade, modo essencial, visita e relatório saem do cabeçalho, que passa de 17 botões visíveis a 6
+- **Navegação inferior fixa** com as quatro vistas principais e uma folha «Mais»
+- **Fita de meses em toda a largura**, tocável, no lugar das setas ‹ ›; e **deslizar na horizontal** muda de mês
+- **Toque simples edita** uma célula da tabela — o duplo toque está tomado pelo zoom do navegador; com rato mantém-se o duplo clique
+- **Toque mostra o explicador**: sem *hover*, 87 explicadores ficariam inalcançáveis
+- **Botões ↑ ↓ para reordenar** categorias, rubricas e cartões do painel, porque os navegadores móveis não disparam o arrasto HTML5. Com rato ficam escondidos, que aí a pega ⠿ é melhor
+- **Tabelas em cartões** nos ecrãs estreitos, com um **seletor de ordenação** que devolve o que o cabeçalho ordenável fazia
 
 ### Rendimentos
 
@@ -453,7 +466,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 11 009 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 11 044 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -463,8 +476,8 @@ Três suites, 11 009 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3759 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, explicador, diálogo, exportação | 731 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3769 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), explicador, diálogo, exportação | 756 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.
