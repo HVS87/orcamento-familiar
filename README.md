@@ -23,7 +23,7 @@ O painel **começa curto — cinco cartões** — e o resto liga-se em *Definiç
 - **Precisa da sua atenção**: uma lista única, por urgência, do que os dados já dizem mas nunca foi dito num sítio só — limite ultrapassado ou perto, mês em défice, crédito com **revisão de taxa** à porta, taxa de esforço acima de 40%, objetivo fora de ritmo ou fora de prazo, liquidez abaixo de 3 meses, movimentos por categorizar, ativos com valor estimado há mais de um ano. Cada alerta leva ao sítio onde se resolve
 - **Indicadores do mês**: rendimento, despesa, saldo e taxa de poupança — cada um com a **variação face ao mês anterior** e um **traço de tendência** dos últimos 6 meses; o botão **⇄** compara com o mês homólogo do ano anterior. Os valores **interpolam** ao mudar de mês, em vez de saltarem
 - **Resumo narrado do mês fechado**: a maior despesa, a categoria que mais cresceu e a poupança face à média — gerado localmente
-- **Tesouraria a 12 meses**: a liquidez de hoje mais o saldo de cada mês, com os encargos anuais e semestrais no mês em que caem — mostra *quando* o dinheiro aperta, e assinala o ponto mais baixo
+- **Tesouraria a 12 meses**: a liquidez de hoje mais o saldo de cada mês, com os encargos anuais e semestrais no mês em que caem — mostra *quando* o dinheiro aperta, e assinala o ponto mais baixo. As **compras planeadas** já marcadas aparecem como um losango no mês em que estão previstas
 - **Mapa do ano**: categorias em linhas, os 12 meses em colunas, a despesa em intensidade de cor. A sazonalidade — energia no inverno, férias no verão — é invisível na vista mensal e óbvia aqui
 - **Dica do próximo passo**: um cartão dispensável sugere o primeiro degrau do percurso ainda por dar (rendimentos → despesas fixas → ativos → limites → objetivos)
 - **Previsto vs. real**: compara o plano com os movimentos efetivos e mostra o desvio de cada linha
@@ -32,7 +32,7 @@ O painel **começa curto — cinco cartões** — e o resto liga-se em *Definiç
 - **Regra 50 / 30 / 20**: repartição do rendimento entre necessidades, desejos e poupança
 - **Evolução**: barras de rendimento e despesa com linha de saldo, horizonte comutável entre 6, 12, 24 e 36 meses — com **marcos** (🏦 aquisições, 💳 inícios de crédito, 🎯 prazos de objetivos) assinalados na linha do tempo
 - **Comparar dois meses** lado a lado, categoria a categoria, com a coluna de diferenças
-- **Posso pagar isto?** — escreve-se um valor e a ferramenta responde com o que sabe: se cabe na liquidez, o que faz ao saldo do mês, que objetivos atrasa e o que já está marcado para sair
+- **Posso pagar isto?** — escreve-se um valor e a ferramenta responde com o que sabe: se cabe na liquidez, o que faz ao saldo do mês, que objetivos atrasa e o que já está marcado para sair. Se a resposta for «agora não», leva o valor para **Planear despesa**, que responde à pergunta seguinte: *quando* cabe
 - **Património líquido** e **simulador «e se…»** com deslizadores que recalculam ao vivo
 
 Clicar num indicador (rendimento, despesa, saldo, património) abre **a conta por trás do número** — as parcelas com que foi feito, este mês. No cabeçalho, uma **fita de meses** mostra o saldo de cada um em barras clicáveis, e no gráfico de evolução **arrasta-se para ampliar** um período.
@@ -170,9 +170,30 @@ As calculadoras **preenchem o campo sem gravar** — quem decide se o número se
 
 ### Despesas
 
-Um separador com três secções: **Despesas fixas** (rubricas com qualquer periodicidade, convertidas para o equivalente mensal), **Movimentos** (o que entrou e saiu, com pesquisa e filtros) e **Limites** (teto por categoria com barra de utilização).
+Um separador com quatro secções: **Despesas fixas** (rubricas com qualquer periodicidade, convertidas para o equivalente mensal), **Movimentos** (o que entrou e saiu, com pesquisa e filtros), **Limites** (teto por categoria com barra de utilização) e **Planear** (as compras grandes que ainda podem escolher a data).
 
 O botão **Lançar plano deste mês** cria os movimentos já decompostos — juros, amortização, seguros, encargos de cada ativo.
+
+#### Planear despesa
+
+Um eletrodoméstico, um portátil, mobília, uma mota, um carro: despesas com peso que, ao contrário de uma avaria, **podem escolher quando acontecem**. A pergunta deixa de ser «posso pagar isto?» e passa a ser **«quando é que isto cabe melhor?»**.
+
+Indica-se a verba estimada — há exemplos com ordens de grandeza típicas, para ajustar — e um horizonte de **3, 6, 12 ou 24 meses**. A ferramenta simula a compra em cada mês desse horizonte e responde **por trimestre**:
+
+- A **folga** de um mês não é o saldo desse mês: é o **mínimo da tesouraria projetada desse mês em diante**, já com a compra feita. Um mês bom seguido de um dezembro apertado não é um mês bom.
+- Cada trimestre mostra o seu melhor mês, a folga que sobra e uma cor: **verde** (sobra mais de três meses de despesa), **âmbar** (cabe, mas deixa a reserva curta) e **vermelho** (não cabe).
+- O veredicto vem em palavras: *«Melhor altura: junho de 2027 — depois da compra ficam 8 191,80 € (3,3 meses de despesa)»*.
+- As compras já marcadas entram na base de cálculo das seguintes, para o mesmo dinheiro não ser gasto duas vezes.
+
+Depois da decisão, três atalhos, cada um a reaproveitar o que já existe em vez de duplicar:
+
+| Ação | O que faz |
+| --- | --- |
+| **Marcar o mês** | A compra passa a pesar na **tesouraria a 12 meses**, marcada com um losango, e no mês marcado surge um aviso no **painel de atenção** |
+| **Reservar verba** | Cria um **objetivo de poupança** com a verba e o prazo — o progresso, os reforços e o ritmo vivem nos Objetivos, como qualquer meta. Editar o valor da compra arrasta a meta; remarcar a data arrasta o prazo |
+| **Registar a compra** | Lança o movimento com a categoria e o valor, arruma o objetivo de reserva e passa a compra às realizadas (anulável com Ctrl+Z) |
+
+Para esperas de um ano ou mais, **«Onde guardar a reserva →»** abre as Estratégias já afinadas para esta meta — deixar a verba a render enquanto se espera paga parte da compra. E o cartão **«Posso pagar isto?»** do painel oferece o caminho inverso: se a resposta foi «agora não», leva o valor direto para aqui.
 
 ### Ativos
 
@@ -454,6 +475,7 @@ Organização do código dentro do `<script>`:
 | Estado inicial | categorias-semente e estrutura de dados |
 | Persistência | `guardar` / `carregar` / `normalizar` |
 | Consultas | `planoMes`, `realMes`, `porGrupo` |
+| Planeamento | `tesourariaProjetada`, `eventosPlaneados`, `analisarPlaneada`, `veredictoPlaneada`, `reservaMensalPlaneada` |
 | Fiscalidade | `fiscalRendimento`, `fiscalTotal`, `impostoAtivo`, `beneficioPPR`, `isencaoAlimentacao` |
 | Crédito | `tabelaCredito`, `parcelaMes`, `saldoDevedorMes`, `amortizacaoAnual`, `taxaCorrente` |
 | Retorno | `tir`, `vpl`, `fluxosCaixa`, `retornoObtido`, `retornoLiquido` |
@@ -466,7 +488,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 11 075 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Três suites, 11 388 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -476,9 +498,9 @@ Três suites, 11 075 asserções, executadas dentro da própria aplicação. Par
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), coerência do exemplo e do código | 3784 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), explicador, diálogo, exportação | 772 |
-| `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, volume, identidades contabilísticas | 6519 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), planeamento de compras grandes (folga por trimestre, melhor altura), coerência do exemplo e do código | 3932 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), planear despesa (analisar, marcar, reservar, realizar, anular), explicador, diálogo, exportação | 852 |
+| `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, compras planeadas com datas impossíveis, volume, identidades contabilísticas | 6604 |
 
 As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.
 

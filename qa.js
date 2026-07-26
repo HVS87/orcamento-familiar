@@ -1714,6 +1714,167 @@ G("normalização e migração");
   eq(m2.rendimentos.length, m.rendimentos.length, "normalizar é idempotente nos rendimentos");
 })();
 
+G("planear despesa — a melhor altura");
+(function(){
+  reporEstado();
+  // Um agregado simples e determinístico: 2000 € de rendimento, 1500 € de
+  // despesa fixa, 500 € de saldo por mês, e 1000 € de liquidez inicial.
+  var cat = S.categorias.filter(function(c){ return c.tipo === "despesa"; })[0].id;
+  var catRend = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  S.membros.push({id:"m1", nome:"Ana"});
+  S.rendimentos.push({id:"rd1", nome:"Vencimento", membroId:"m1", regime:"dependente", ativo:true,
+    componentes:[{id:"c1", nome:"Base", especie:"base", valor:2000, frequencia:"mensal", categoriaId:catRend}]});
+  S.fiscal.contarIRS = false;   // só bruto: a conta do teste fica à vista
+  S.recorrentes.push({id:"r1", tipo:"despesa", nome:"Fixas", valor:1500, frequencia:"mensal",
+    ativo:true, categoriaId:cat});
+  S.ativos.push({id:"a1", nome:"Conta", classe:"corrente", aquisicao:1000, atual:1000,
+    aportes:[], encargos:[], rendimentos:[]});
+
+  var liq = totalLiquidez();
+  var saldo = planoMes(MES).saldo;
+  ok(saldo > 0, "o cenário de teste tem saldo positivo", saldo);
+
+  // Sem valor não há análise
+  eq(analisarPlaneada(0, 12), null, "sem verba não há análise");
+  eq(analisarPlaneada(-50, 12), null, "verba negativa também não");
+
+  var an = analisarPlaneada(1000, 12);
+  eq(an.meses.length, 12, "analisa mês a mês o horizonte pedido");
+  eq(an.trimestres.length, 4, "agrupados em trimestres");
+  eq(an.horizonte, 12, "guarda o horizonte");
+  eq(analisarPlaneada(1000, 7).horizonte, 12, "horizonte fora da lista cai nos 12 meses");
+  eq(analisarPlaneada(1000, 24).trimestres.length, 8, "24 meses são oito trimestres");
+  eq(analisarPlaneada(1000, 3).trimestres.length, 1, "3 meses são um trimestre");
+
+  // A folga do mês i é o mínimo do acumulado de i em diante, menos a compra
+  var t = tesourariaProjetada(12, []);
+  var minSuf = t[t.length-1].acumulado;
+  for (var j = t.length-1; j >= 0; j--) minSuf = Math.min(minSuf, t[j].acumulado);
+  eq(an.meses[0].folga, Math.min.apply(null, t.map(function(s){ return s.acumulado; })) - 1000,
+     "a folga do primeiro mês é o mínimo de toda a projeção menos a compra", 0.01);
+  eq(an.meses[11].folga, t[11].acumulado - 1000, "a do último mês olha só para o último acumulado", 0.01);
+
+  // Com saldo positivo o acumulado cresce, e a folga com ele
+  var cresce = an.meses.every(function(m, i){ return i === 0 || m.folga >= an.meses[i-1].folga - 0.001; });
+  ok(cresce, "com saldo positivo a folga nunca decresce ao longo do horizonte");
+
+  // Cabe já: 1000 € contra 1000 € de liquidez e 500 €/mês de saldo
+  eq(an.meses[0].folga, liq + saldo - 1000, "o primeiro mês já inclui o saldo desse mês", 0.01);
+  ok(an.jaCabe === (an.meses[0].grau === 0), "«já cabe» é o primeiro mês estar verde");
+
+  // Uma compra impossível não tem melhor altura
+  var caro = analisarPlaneada(999999, 12);
+  eq(caro.melhor, null, "o que não cabe em nenhum mês não tem melhor altura");
+  ok(caro.trimestres.every(function(x){ return x.grau === 2; }), "e todos os trimestres ficam a vermelho");
+  eq(veredictoPlaneada(caro).grau, 2, "o veredicto diz que não cabe");
+  ok(/não cabe/i.test(veredictoPlaneada(caro).txt), "e diz-lo por palavras");
+
+  // Uma compra que só cabe lá para a frente: o melhor mês é o primeiro verde
+  var meio = analisarPlaneada(liq + saldo * 6, 24);
+  if (ok(meio.melhor != null, "uma compra grande encontra altura num horizonte largo")){
+    ok(!meio.jaCabe, "mas não cabe já");
+    var iMelhor = meio.meses.indexOf(meio.melhor);
+    ok(meio.meses.slice(0, iMelhor).every(function(m){ return m.grau > meio.melhor.grau; }),
+       "não há mês anterior tão bom como o escolhido");
+  }
+
+  // Os graus: vermelho não cabe, amarelo cabe mas deixa menos de 3 meses de despesa
+  var desp = planoMes(MES).desp;
+  meio.meses.forEach(function(m){
+    var esperado = m.folga < 0 ? 2 : (m.folga / desp) < 3 ? 1 : 0;
+    eq(m.grau, esperado, "o grau segue a folga e a cobertura");
+  });
+
+  // O trimestre herda o melhor dos seus meses
+  an.trimestres.forEach(function(tr){
+    eq(tr.grau, Math.min.apply(null, tr.meses.map(function(m){ return m.grau; })),
+       "o trimestre vale pelo seu melhor mês");
+    ok(tr.meses.indexOf(tr.melhor) >= 0, "e o melhor mês pertence-lhe");
+    eq(tr.de, tr.meses[0].mes, "com o primeiro mês do bloco");
+    eq(tr.ate, tr.meses[tr.meses.length-1].mes, "e o último");
+  });
+
+  // Compras já marcadas gastam o mesmo dinheiro uma só vez
+  S.planeadas.push({id:"pl1", nome:"Carro", valor:5000, categoriaId:cat, horizonte:12,
+    mes: mesShift(MES, 2), objetivoId:"", feitaEm:"", membroId:"", criadoEm:""});
+  eq(eventosPlaneados().length, 1, "uma compra marcada é um evento de tesouraria");
+  eq(eventosPlaneados("pl1").length, 0, "menos quando é ela própria a ser analisada");
+  var comCarro = tesourariaProjetada(12);
+  eq(comCarro[2].compras, 5000, "a compra pesa no mês em que está marcada");
+  eq(comCarro[2].saldo, comCarro[1].saldo - 5000, "e sai do saldo desse mês", 0.01);
+  eq(comCarro[11].acumulado, tesourariaProjetada(12, [])[11].acumulado - 5000,
+     "o acumulado final fica 5000 € abaixo", 0.01);
+  var outra = analisarPlaneada(1000, 12, null);
+  ok(outra.meses[11].folga < an.meses[11].folga - 4999,
+     "outra compra vê a primeira já descontada", outra.meses[11].folga+" vs "+an.meses[11].folga);
+
+  // Marcada mas já realizada deixa de contar
+  S.planeadas[0].feitaEm = isoDia(hoje());
+  eq(eventosPlaneados().length, 0, "uma compra realizada já não pesa no futuro");
+  S.planeadas[0].feitaEm = "";
+  // Sem mês marcado também não
+  S.planeadas[0].mes = "";
+  eq(eventosPlaneados().length, 0, "nem uma compra sem data");
+  S.planeadas[0].mes = mesShift(MES, 2);
+
+  // Reserva mensal: o que falta, dividido pelos meses até lá
+  var p = S.planeadas[0];
+  eq(reservaMensalPlaneada(p), 5000 / 2, "a reserva mensal divide pela distância ao mês marcado", 0.01);
+  eq(reservaMensalPlaneada(p, mesShift(MES, 10)), 500, "e acompanha outra data que se lhe dê", 0.01);
+  eq(reservaMensalPlaneada({valor:1000, mes:""}), 0, "sem data não há reserva mensal");
+  eq(reservaMensalPlaneada({valor:1000, mes:MES}), 1000, "marcada para este mês, é tudo de uma vez");
+  // Com objetivo ligado, só falta o que ainda não está lá
+  S.objetivos.push({id:"ob1", nome:"Reserva: Carro", alvo:5000, atual:3000, ativoId:"", prazo:"", cor:"#000"});
+  p.objetivoId = "ob1";
+  eq(reservaMensalPlaneada(p), 1000, "o já poupado desconta-se do esforço mensal", 0.01);
+  S.objetivos[0].atual = 9000;
+  eq(reservaMensalPlaneada(p), 0, "e nunca fica negativo");
+
+  // Um objetivo que desapareceu não deixa a compra a apontar para o vazio
+  var norm = normalizar(JSON.parse(JSON.stringify(Object.assign({}, S, {objetivos: []}))));
+  eq(norm.planeadas[0].objetivoId, "", "normalizar limpa a reserva órfã");
+  eq(norm.planeadas.length, 1, "sem perder a compra");
+
+  // Normalização das compras planeadas
+  var n2 = normalizar({planeadas:[
+    {id:"x", nome:"", valor:"1.234,50", horizonte:"6", mes:"2026-13", objetivoId:5},
+    {nome:"sem id"},
+    {id:"y", horizonte:99, mes:"2027-03"},
+  ]});
+  eq(n2.planeadas.length, 2, "uma compra sem id não sobrevive");
+  eq(n2.planeadas[0].valor, 1234.5, "o valor passa por parseNum");
+  eq(n2.planeadas[0].nome, "Compra planeada", "e um nome vazio ganha um nome");
+  eq(n2.planeadas[0].horizonte, 6, "o horizonte em texto é aceite");
+  eq(n2.planeadas[0].mes, "", "um mês impossível é descartado");
+  eq(n2.planeadas[1].horizonte, 12, "um horizonte fora da lista cai nos 12");
+  eq(n2.planeadas[1].mes, "2027-03", "e um mês válido mantém-se");
+  ok(mesValido("2026-01") && mesValido("2026-12"), "janeiro e dezembro são meses");
+  ok(!mesValido("2026-00") && !mesValido("2026-13") && !mesValido("2026-99"),
+     "zero, treze e noventa e nove não são");
+  ok(!mesValido("") && !mesValido(null) && !mesValido("2026") && !mesValido("2026-1"),
+     "nem o vazio, o nulo ou a forma truncada");
+  ok(normalizar({}).planeadas.length === 0, "sem compras a lista existe na mesma");
+  ok(Array.isArray(estadoVazio().planeadas), "e o estado vazio já a traz");
+
+  // O veredicto fala consoante o caso — de novo sem nada marcado, que a
+  // esta altura já há um carro de 5000 € a ocupar a tesouraria. E com
+  // liquidez a sério: com 1000 € na conta, nem 10 € «cabem» à vontade,
+  // porque a folga que interessa é a que sobra, não a que passa.
+  S.planeadas = [];
+  S.ativos[0].atual = 20000;
+  var pequena = analisarPlaneada(10, 12);
+  eq(veredictoPlaneada(pequena).grau, 0, "o que cabe hoje é verde");
+  ok(/cabe hoje/i.test(veredictoPlaneada(pequena).txt), "e diz que cabe hoje");
+  ok(pequena.jaCabe, "e é mesmo do caso «já cabe»");
+  // Com pouca liquidez, uma ninharia deixa de ser confortável: 1000 € na
+  // conta contra 1500 € de despesa mensal não dá os 3 meses de referência
+  S.ativos[0].atual = 1000;
+  eq(analisarPlaneada(10, 12).meses[0].grau, 1, "com reserva curta, até o barato fica a amarelo");
+  ok(!analisarPlaneada(10, 12).jaCabe, "e não conta como «já cabe»");
+
+  reporEstado();
+})();
+
 G("passe de cálculo");
 (function(){
   reporEstado();

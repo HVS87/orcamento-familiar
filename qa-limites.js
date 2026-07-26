@@ -33,6 +33,7 @@ var backup = localStorage.getItem(STORE_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
 function limpo(){ S = estadoVazio(); limparCacheCredito(); MES = isoMes(hoje()); }
 function q(s){ return document.querySelector(s); }
+function qq(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
 
 /* ============================================================
    1. Valores absurdos não produzem NaN nem Infinity
@@ -446,6 +447,82 @@ G("estabilidade");
   // A cache não cresce sem limite
   for (var i = 0; i < 200; i++) tabelaCredito(cr, i * 0.01);
   semErro(function(){ tabelaCredito(cr, 0); }, "a cache aguenta muitas variantes");
+})();
+
+G("compras planeadas adversas");
+(function(){
+  limpo();
+  var cat = S.categorias.filter(function(c){ return c.tipo === "despesa"; })[0].id;
+  var mk = function(o){ return Object.assign({id:"pl"+Math.random().toString(36).slice(2),
+    nome:"X", valor:100, categoriaId:cat, horizonte:12, mes:"", objetivoId:"", feitaEm:"",
+    membroId:"", criadoEm:""}, o); };
+
+  // Valores absurdos não produzem NaN nem paralisam a análise
+  [1e9, 0.001, 1e-9].forEach(function(v){
+    var an = analisarPlaneada(v, 12);
+    if (an){
+      an.meses.forEach(function(m){ finito(m.folga, "folga finita com verba "+v); });
+      ok([0,1,2].indexOf(an.melhor ? an.melhor.grau : 0) >= 0, "grau válido com verba "+v);
+    } else ok(v < 0.005, "só verbas nulas não têm análise", v);
+  });
+  // parseNum devolve 0 ao que não é número: infinitos e NaN morrem à porta,
+  // em vez de contaminarem a projeção toda com Infinity
+  eq(analisarPlaneada(Infinity, 12), null, "uma verba infinita não é verba");
+  eq(analisarPlaneada(NaN, 12), null, "NaN também não");
+  eq(analisarPlaneada("abc", 12), null, "nem texto");
+  eq(analisarPlaneada("1.234,50", 12).valor, 1234.5, "mas um valor em português é aceite");
+
+  // Uma cobertura sem despesa de referência não vira NaN
+  limpo();
+  var semDesp = analisarPlaneada(100, 12);
+  semDesp.meses.forEach(function(m){
+    ok(!isNaN(m.cobertura), "sem despesa a cobertura não é NaN", m.cobertura);
+    ok([0,2].indexOf(m.grau) >= 0, "e o grau decide-se só pela folga", m.grau);
+  });
+
+  // Referências quebradas
+  limpo();
+  S.planeadas = [mk({categoriaId:"nao-existe", mes:"nao-e-mes", objetivoId:"fantasma"})];
+  eq(catNome("nao-existe"), "Sem categoria", "a categoria órfã tem nome de recurso");
+  semErro(function(){ irPara("planear"); }, "a vista renderiza com tudo partido");
+  semErro(function(){ tesourariaProjetada(12); }, "e a tesouraria também");
+  eq(eventosPlaneados().length, 0, "um mês inválido não vira evento de tesouraria");
+  eq(reservaMensalPlaneada(S.planeadas[0]), 0, "nem produz reserva mensal");
+  var n = normalizar(JSON.parse(JSON.stringify(S)));
+  eq(n.planeadas[0].mes, "", "normalizar limpa o mês impossível");
+  eq(n.planeadas[0].objetivoId, "", "e a reserva fantasma");
+
+  // Um mês já passado continua legível
+  limpo();
+  S.planeadas = [mk({mes: mesShift(MES, -6)})];
+  semErro(function(){ irPara("planear"); }, "uma compra marcada para trás renderiza");
+  ok(/já passou/i.test(q("#app").innerText), "e diz que a data passou");
+  eq(tesourariaProjetada(12).filter(function(s){ return s.compras > 0; }).length, 0,
+     "sem pesar num futuro onde já não está");
+
+  // Marcada para lá do horizonte da análise
+  limpo();
+  S.planeadas = [mk({mes: mesShift(MES, 30), horizonte:3})];
+  semErro(function(){ irPara("planear"); }, "marcada para lá do horizonte renderiza");
+  eq(qq('.planTri [aria-pressed="true"]').length, 0, "sem trimestre assinalado, que está fora da faixa");
+  ok(/Marcada para/.test(q("#app").innerText), "mas a data continua à vista");
+
+  // Duas compras no mesmo mês somam-se
+  limpo();
+  S.planeadas = [mk({valor:1000, mes: mesShift(MES,1)}), mk({valor:500, mes: mesShift(MES,1)})];
+  eq(tesourariaProjetada(12)[1].compras, 1500, "duas compras no mesmo mês somam");
+  eq(eventosPlaneados().length, 2, "e são dois eventos");
+
+  // Volume: cinquenta compras não travam a vista
+  limpo();
+  for (var i = 0; i < 50; i++) S.planeadas.push(mk({nome:"Compra "+i, valor: 100*(i+1),
+    mes: mesShift(MES, i % 24), horizonte: [3,6,12,24][i % 4]}));
+  var t0 = performance.now();
+  semErro(function(){ irPara("planear"); }, "cinquenta compras planeadas renderizam");
+  var dt = performance.now() - t0;
+  ok(dt < 4000, "e em menos de 4 segundos: " + dt.toFixed(0) + " ms");
+  if (dt > 1500) avisos.push("render de 50 compras planeadas demorou " + dt.toFixed(0) + " ms");
+  finito(tesourariaProjetada(24)[23].acumulado, "a tesouraria continua finita com tudo marcado");
 })();
 
 G("volume");

@@ -1332,6 +1332,21 @@ G("injeção de HTML");
   clicar('[data-act="patApagar"][data-id="' + a.id + '"]');
   confirmarDialogo();
   ok(!window.__xss, "nem depois de eliminar");
+
+  // Compras planeadas: o nome atravessa cartão, faixa e tabela das realizadas
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="planear"]');
+  preencher("plNome", mau);
+  preencher("plValor", "900");
+  clicar('[data-act="planSalvar"]');
+  var pl = S.planeadas[S.planeadas.length-1];
+  ok(pl.nome === mau, "compra planeada: guarda tal e qual");
+  ok(!window.__xss, "compra planeada: não executa");
+  ok(q("#app img") == null, "compra planeada: não injeta elementos");
+  ok(texto().indexOf("<img") >= 0, "compra planeada: aparece como texto literal");
+  clicar('[data-act="planRealizar"][data-id="' + pl.id + '"]');
+  ok(!window.__xss, "nem ao passar para as realizadas");
+  ok(q("#app img") == null, "e a tabela das realizadas também escapa");
 })();
 
 G("persistência");
@@ -1902,6 +1917,174 @@ G("ritmo, mapa anual e tesouraria");
     eq(t[i].acumulado, t[i-1].acumulado + t[i].saldo, "cada mês acumula sobre o anterior", 0.01);
   }
   ok(/Tesouraria a 12 meses/.test(texto()), "e mostra-se no painel");
+})();
+
+G("planear despesa");
+(function(){
+  comExemplo();
+  S.planeadas = [];
+  irA("despesas");
+  var abas = qq('[data-act="secDespesa"]').map(function(b){ return b.textContent.trim(); });
+  ok(abas.indexOf("Planear") >= 0, "as despesas ganham a secção Planear", abas.join(" | "));
+  clicar('[data-act="secDespesa"][data-v="planear"]');
+  eq(ui.secaoDespesa, "planear", "e abre-se");
+  ok(q("#plNome") != null, "com o formulário da compra");
+  eq(qq('[data-act="planPreset"]').length, PRESETS_PLANEIO.length, "e os exemplos de compra");
+  ok(/Nada planeado ainda/.test(texto()), "o estado vazio explica-se");
+
+  // Um exemplo preenche sem gravar
+  clicar('[data-act="planPreset"]', 7);   // carro usado
+  eq(q("#plNome").value, PRESETS_PLANEIO[7].nome, "o exemplo preenche a designação");
+  eq(parseNum(q("#plValor").value), PRESETS_PLANEIO[7].valor, "e o valor típico");
+  ok(q("#plCat").value !== "", "e escolhe uma categoria");
+  eq(S.planeadas.length, 0, "sem gravar nada");
+
+  // Validação
+  preencher("plNome", "");
+  clicar('[data-act="planSalvar"]');
+  eq(S.planeadas.length, 0, "sem designação não guarda");
+  ok(q("#plNome").classList.contains("invalido"), "e assinala o campo");
+  ok(/comprar/i.test((q(".fielderr") || {}).textContent || ""), "com a razão à vista");
+  preencher("plNome", "Máquina de lavar");
+  preencher("plValor", "0");
+  clicar('[data-act="planSalvar"]');
+  eq(S.planeadas.length, 0, "sem verba também não");
+
+  // Guardar e analisar
+  preencher("plValor", "600");
+  escolher("plHorizonte", "12 meses");
+  clicar('[data-act="planSalvar"]');
+  eq(S.planeadas.length, 1, "com nome e verba, guarda");
+  var p = S.planeadas[0];
+  eq(p.nome, "Máquina de lavar", "com a designação escrita");
+  eq(p.valor, 600, "e a verba");
+  eq(p.horizonte, 12, "e o horizonte");
+  eq(p.mes, "", "por marcar");
+  eq(p.feitaEm, "", "e por realizar");
+  ok(q(".planTri") != null, "aparece a faixa de trimestres");
+  eq(qq(".planTri button").length, 4, "com um bloco por trimestre");
+  ok(/Máquina de lavar/.test(texto()), "e o cartão da compra");
+
+  // Horizonte: 24 meses dá oito trimestres
+  clicar('[data-act="planHorizonte"][data-v="24"]');
+  eq(S.planeadas[0].horizonte, 24, "o horizonte muda no cartão");
+  eq(qq(".planTri button").length, 8, "e a faixa acompanha");
+  clicar('[data-act="planHorizonte"][data-v="12"]');
+  eq(qq(".planTri button").length, 4, "e volta atrás");
+
+  // Marcar um mês
+  var alvo = qq('.planTri [data-act="planMarcar"]')[1];
+  var mesAlvo = alvo.dataset.mes;
+  alvo.click();
+  eq(S.planeadas[0].mes, mesAlvo, "tocar num trimestre marca o seu melhor mês");
+  eq(qq('.planTri [aria-pressed="true"]').length, 1, "e a célula fica assinalada");
+  ok(/Marcada para/.test(texto()), "o cartão di-lo por palavras");
+  var ev = eventosPlaneados();
+  eq(ev.length, 1, "a compra passa a contar na tesouraria");
+  eq(ev[0].mes, mesAlvo, "no mês marcado");
+  var comCompra = tesourariaProjetada(12).filter(function(s){ return s.compras > 0; });
+  eq(comCompra.length, 1, "e a projeção vê-a");
+  eq(comCompra[0].compras, 600, "com o valor certo");
+
+  // Desmarcar no mesmo sítio
+  qq('.planTri [aria-pressed="true"]')[0].click();
+  eq(S.planeadas[0].mes, "", "tocar de novo desmarca");
+  eq(eventosPlaneados().length, 0, "e sai da tesouraria");
+  alvo = qq('.planTri [data-act="planMarcar"]')[1];
+  mesAlvo = alvo.dataset.mes;
+  alvo.click();
+
+  // Reservar verba: nasce um objetivo ligado
+  var nObj = S.objetivos.length;
+  clicar('[data-act="planReservar"]');
+  eq(S.objetivos.length, nObj + 1, "reservar verba cria um objetivo");
+  var obj = S.objetivos.filter(function(o){ return o.id === S.planeadas[0].objetivoId; })[0];
+  ok(obj != null, "e a compra guarda a ligação");
+  eq(obj.alvo, 600, "com a verba por meta");
+  eq(obj.prazo, mesAlvo + "-01", "e o prazo do mês marcado");
+  ok(/Reserva/.test(obj.nome), "com um nome que se percebe", obj.nome);
+  eq(qq('[data-act="planReservar"]').length, 0, "e o botão desaparece, que já está feito");
+  ok(q("svg.anel") != null, "o progresso da reserva mostra-se num anel");
+
+  // Editar o valor arrasta a meta da reserva
+  clicar('[data-act="planEditar"]');
+  eq(editando.plan, S.planeadas[0].id, "editar abre a compra no formulário");
+  preencher("plValor", "800");
+  clicar('[data-act="planSalvar"]');
+  eq(S.planeadas[0].valor, 800, "o valor muda");
+  eq(S.objetivos.filter(function(o){ return o.id === S.planeadas[0].objetivoId; })[0].alvo, 800,
+     "e a meta da reserva acompanha-o");
+
+  // Remarcar arrasta o prazo
+  var outro = qq('.planTri [data-act="planMarcar"]')[3];
+  var mesOutro = outro.dataset.mes;
+  outro.click();
+  eq(S.planeadas[0].mes, mesOutro, "remarcar muda o mês");
+  eq(S.objetivos.filter(function(o){ return o.id === S.planeadas[0].objetivoId; })[0].prazo,
+     mesOutro + "-01", "e o prazo da reserva vai atrás");
+
+  // Alerta quando chega o mês marcado
+  S.planeadas[0].mes = MES;
+  var al = alertas().filter(function(a){ return a.vista === "planear"; });
+  eq(al.length, 1, "no mês marcado há um aviso no painel de atenção");
+  ok(/Máquina de lavar/.test(al[0].titulo), "com o nome da compra");
+
+  // Registar a compra
+  var nMov = S.movimentos.length, idObj = S.planeadas[0].objetivoId;
+  clicar('[data-act="planRealizar"]');
+  eq(S.movimentos.length, nMov + 1, "registar a compra lança um movimento");
+  var mv = S.movimentos[S.movimentos.length - 1];
+  eq(mv.descricao, "Máquina de lavar", "com a descrição da compra");
+  eq(mv.valor, 800, "e o valor");
+  eq(mv.tipo, "despesa", "como despesa");
+  eq(mv.categoriaId, S.planeadas[0].categoriaId, "na categoria escolhida");
+  eq(mv.data, isoDia(hoje()), "com a data de hoje");
+  ok(S.planeadas[0].feitaEm !== "", "a compra passa a realizada");
+  eq(S.objetivos.filter(function(o){ return o.id === idObj; }).length, 0, "e a reserva é arrumada");
+  eq(eventosPlaneados().length, 0, "uma compra feita já não pesa no futuro");
+  ok(/Já realizadas/.test(texto()), "e passa para a tabela das realizadas");
+  eq(qq('[data-act="planMarcar"]').length, 0, "sem faixa de trimestres, que já não há decisão");
+
+  // Desfazer devolve tudo
+  clicar('[data-act="desfazer"]');
+  eq(S.movimentos.length, nMov, "desfazer retira o movimento");
+  eq(S.planeadas[0].feitaEm, "", "e a compra volta a estar por fazer");
+  eq(S.objetivos.filter(function(o){ return o.id === idObj; }).length, 1, "com a reserva de volta");
+
+  // Ver o movimento da compra realizada
+  clicar('[data-act="planRealizar"]');
+  clicar('[data-act="planVerMov"]');
+  eq(ui.secaoDespesa, "movimentos", "«ver movimento» abre os movimentos");
+  eq(filtros.texto, "Máquina de lavar", "filtrados pela compra");
+  filtros.texto = "";
+
+  // Apagar, com anulação
+  ACOES.ir({dataset:{view:"planear"}});
+  var n = S.planeadas.length;
+  clicar('[data-act="planApagar"]');
+  eq(S.planeadas.length, n - 1, "apagar elimina a compra");
+  clicar('[data-act="desfazer"]');
+  eq(S.planeadas.length, n, "e a anulação devolve-a");
+
+  // A ponte a partir do «Posso pagar isto?»
+  irA("painel");
+  mostrarCartoes(["podePagar"]);
+  preencher("cpValorCompra", "2500");
+  ok(q('[data-act="planDaCompra"]') != null, "o «posso pagar isto?» oferece planear a compra");
+  clicar('[data-act="planDaCompra"]');
+  eq(VIEW, "despesas", "e leva às despesas");
+  eq(ui.secaoDespesa, "planear", "na secção Planear");
+  eq(parseNum(q("#plValor").value), 2500, "com o valor já lá");
+  render();
+  eq(q("#plValor").value, "", "e não o repete na repintura seguinte");
+
+  // A procura encontra compras planeadas
+  var achados = filtrarComandos("lavar").filter(function(c){ return c.tipo === "compra planeada"; });
+  ok(achados.length >= 1, "a paleta encontra a compra pelo nome");
+
+  // Um estado sem compras não estorva o resto
+  S.planeadas = [];
+  semErro(function(){ render(); tesourariaProjetada(12); alertas(); }, "sem compras planeadas nada rebenta");
 })();
 
 G("cenários guardados");

@@ -494,6 +494,17 @@ svg.mini{width:70px;height:20px;display:block}
 .perfil[aria-pressed="true"] .pl{color:var(--accent)}
 .perfil .pi{font-size:22px}
 .perfil .pl{font-size:13.5px;font-weight:650}
+/* Planear despesa: a faixa de trimestres, cada célula com o melhor mês */
+.planTri{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin-top:11px}
+.planTri button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;cursor:pointer;
+  background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--planCor,var(--border));
+  border-radius:var(--radius);padding:8px 10px;transition:border-color .12s,background .12s;text-align:left}
+.planTri button:hover{background:var(--surface-3);border-color:var(--planCor,var(--accent))}
+.planTri button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.planTri button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);border-left-color:var(--accent)}
+.planTri .pq{font-size:10.5px;color:var(--muted)}
+.planTri .pm{font-size:13px;font-weight:650}
+.planTri .pf{font-size:11.5px;color:var(--planCor,var(--muted))}
 .perfil .pd{font-size:11.5px;color:var(--muted);line-height:1.4}
 
 /* Estados vazios ilustrados */
@@ -870,6 +881,15 @@ const isoDia = (d) => {
 };
 const isoMes = (d) => isoDia(d).slice(0,7);
 const mesDoDia = (dia) => String(dia || "").slice(0,7);
+
+/* «YYYY-MM» com mês mesmo existente. A forma sozinha não chega: um
+   «2026-13» passa no molde e depois atravessa a aplicação inteira como
+   um mês que nunca chega — invisível em qualquer vista mensal. */
+function mesValido(m){
+  if (!/^\d{4}-\d{2}$/.test(String(m || ""))) return false;
+  const mm = Number(String(m).slice(5, 7));
+  return mm >= 1 && mm <= 12;
+}
 
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho",
                "julho","agosto","setembro","outubro","novembro","dezembro"];
@@ -1867,6 +1887,9 @@ const AJUDAS_COL = {
 };
 
 const AJUDAS_CAMPO = {
+  /* Planear despesa */
+  plValor:  ["Verba estimada", "O custo total previsto da compra, com instalação ou transporte se os houver. Pode afinar depois.", ""],
+  plHorizonte:["Horizonte", "Até onde procurar a melhor altura. Compras maiores merecem horizontes maiores — há mais meses a acumular saldo.", ""],
   /* Movimentos */
   mvValor:  ["Valor", "Sempre em positivo — o tipo (despesa ou rendimento) é que define o sinal.", ""],
   /* Plano */
@@ -2014,7 +2037,16 @@ const AJUDAS_ACAO = {
   imprimir:   ["Imprimir", "Folha de estilos própria, sem botões nem controlos.", ""],
   limpar:     ["Apagar tudo", "Elimina todos os dados deste navegador. Não se pode anular.", ""],
   evolMeses:  ["Horizonte do gráfico", "Quantos meses mostrar. Meses sem movimentos registados usam os valores do plano.", ""],
-  secDespesa: ["Secções das despesas", "Despesas fixas é o que se prevê; Movimentos é o que aconteceu; Limites são os tetos por categoria.", ""],
+  secDespesa: ["Secções das despesas", "Despesas fixas é o que se prevê; Movimentos é o que aconteceu; Limites são os tetos por categoria; Planear é para as compras grandes que podem escolher a data.", ""],
+  planPreset: ["Exemplo de compra", "Preenche o formulário com uma ordem de grandeza típica — ajuste ao caso concreto antes de analisar.", ""],
+  planSalvar: ["Analisar a melhor altura", "Guarda a compra e simula-a em cada mês do horizonte: a folga é o mínimo da tesouraria desse mês em diante, já com a compra feita.", ""],
+  planHorizonte:["Horizonte da análise", "Até onde procurar a melhor altura: 3, 6, 12 ou 24 meses, sempre agrupados por trimestre.", ""],
+  planMarcar: ["Marcar o mês", "A compra passa a contar na tesouraria projetada nesse mês. Tocar de novo desmarca.", ""],
+  planReservar:["Reservar verba", "Cria um objetivo de poupança com a verba e o prazo desta compra — o progresso, os reforços e o ritmo vivem nos Objetivos, como qualquer meta.", ""],
+  planRealizar:["Registar a compra", "Lança o movimento de hoje com esta categoria e valor, arruma o objetivo de reserva e move a compra para as realizadas.", ""],
+  planEstrategia:["Onde guardar a reserva", "Abre as Estratégias com esta meta: para esperas longas, deixar a reserva a render (aforro, depósitos) paga parte da compra.", ""],
+  planDaCompra:["Planear esta compra", "Leva o valor para a secção Planear, que responde à pergunta seguinte: não «cabe agora?», mas «quando cabe melhor?».", ""],
+  planVerMov: ["Ver movimento", "Abre os movimentos do mês da compra, filtrados pela descrição.", ""],
   alternar:   ["Abrir e fechar", "Mostra ou esconde as componentes desta fonte de rendimento.", ""],
   rdToggle:   ["Ativar ou desativar", "Uma fonte desativada deixa de contar nos totais, mas mantém-se registada.", ""],
   recToggle:  ["Ativar ou desativar", "Uma rubrica desativada deixa de contar no plano, sem se perder o histórico.", ""],
@@ -2144,6 +2176,7 @@ function estadoVazio(){
     estrategia: {objetivo:"reforma", instrumento:"ppr", mensal:200, inicial:0, anos:25,
       crescAnual:0, inflacao:2, idade:40, precoCasa:250000, ltv:90, jovemImt:false,
       precoAuto:20000, mesesEmerg:6},
+    planeadas: [],     // compras grandes com data pensada (Planear despesa)
     dicasOcultas: [],   // sugestões de próximo passo já dispensadas
     tutorialVisto: false,
     paleta: "meianoite",   // paleta de cor da interface
@@ -2170,7 +2203,8 @@ let ui = {
   evolucaoMeses:12, simExtra:0, simAnos:10, donutFoco:null, movSel:{}, essencial:false,
   amortMetodo:"avalanche", amortExtra:150,
   perfil:{agregado:null, habitacao:"arrendada", regime:"credito"},
-  secaoDespesa:"plano",      // plano | movimentos | limites
+  secaoDespesa:"plano",      // plano | movimentos | limites | planear
+  planPrefill: null,         // valor trazido do «Posso pagar isto?»
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
 };
@@ -2301,7 +2335,7 @@ function guardarSessao(){
       abertos: ui.abertos, filtros: filtros,
       editando: {rd: editando.rd || null, pat: editando.pat || null, cr: editando.cr || null,
                  obj: editando.obj || null, rec: editando.rec || null, mov: editando.mov || null,
-                 cat: editando.cat || null, comp: editando.comp || null},
+                 cat: editando.cat || null, comp: editando.comp || null, plan: editando.plan || null},
       campos: campos.preenchidos > 0 ? campos.valores : null,
     }));
   }catch(e){ /* sessão é conveniência: nunca deve estorvar */ }
@@ -2331,7 +2365,7 @@ function lerSessao(){
 function restaurarSessao(){
   const s = lerSessao();
   if (!s) return;
-  if (s.mes && /^\d{4}-\d{2}$/.test(s.mes)) MES = s.mes;
+  if (mesValido(s.mes)) MES = s.mes;
   if (s.vista && (VISTAS[s.vista] || ALIAS_VISTA[s.vista])) VIEW = VISTAS[s.vista] ? s.vista : VIEW;
   if (s.secaoDespesa) ui.secaoDespesa = s.secaoDespesa;
   if (s.evolucaoMeses) ui.evolucaoMeses = s.evolucaoMeses;
@@ -2404,6 +2438,21 @@ function normalizar(d){
   out.limites     = (d.limites && typeof d.limites === "object") ? d.limites : {};
   out.projecao    = Object.assign({}, base.projecao, (d.projecao && typeof d.projecao === "object") ? d.projecao : {});
   out.estrategia  = Object.assign({}, base.estrategia, (d.estrategia && typeof d.estrategia === "object") ? d.estrategia : {});
+  out.planeadas = (Array.isArray(d.planeadas) ? d.planeadas : [])
+    .filter(p => p && p.id)
+    .map(p => ({
+      id: String(p.id), nome: String(p.nome || "Compra planeada"),
+      categoriaId: String(p.categoriaId || ""), membroId: String(p.membroId || ""),
+      valor: parseNum(p.valor),
+      horizonte: [3,6,12,24].indexOf(parseInt(p.horizonte, 10)) >= 0 ? parseInt(p.horizonte, 10) : 12,
+      mes: mesValido(p.mes) ? p.mes : "",
+      objetivoId: String(p.objetivoId || ""), feitaEm: String(p.feitaEm || ""),
+      criadoEm: String(p.criadoEm || ""),
+    }));
+  // Uma reserva cujo objetivo desapareceu volta a estar por reservar.
+  out.planeadas.forEach(p => {
+    if (p.objetivoId && !out.objetivos.some(o => o.id === p.objetivoId)) p.objetivoId = "";
+  });
   out.dicasOcultas = Array.isArray(d.dicasOcultas) ? d.dicasOcultas : [];
   out.tutorialVisto = !!d.tutorialVisto;
   out.paleta = PALETAS[d.paleta] ? d.paleta : "meianoite";
@@ -4270,8 +4319,11 @@ function mapaAnual(){
  * os encargos anuais e semestrais no mês em que caem. Mostra *quando* o
  * dinheiro aperta, não apenas se aperta.
  */
-function tesourariaProjetada(meses){
+function tesourariaProjetada(meses, eventos){
   const n = meses || 12;
+  // Sem lista explícita, entram as compras planeadas já marcadas: uma
+  // máquina de lavar agendada para outubro é dinheiro que sai em outubro.
+  const evs = eventos || eventosPlaneados();
   const serie = [];
   let acumulado = totalLiquidez();
   for (let i = 0; i < n; i++){
@@ -4279,8 +4331,9 @@ function tesourariaProjetada(meses){
     const p = planoMes(m);
     const r = realMes(m);
     const usa = (r.rend > 0 || r.desp > 0) ? r : p;
-    acumulado += usa.saldo;
-    serie.push({mes: m, saldo: usa.saldo, acumulado});
+    const compras = evs.filter(e => e.mes === m).reduce((s,e) => s + e.valor, 0);
+    acumulado += usa.saldo - compras;
+    serie.push({mes: m, saldo: usa.saldo - compras, compras, acumulado});
   }
   return serie;
 }
@@ -4320,9 +4373,15 @@ function cartaoTesouraria(){
   let zonas = "", eixo = "";
   const passo = Math.ceil(serie.length / 8) || 1;
   serie.forEach((s,i) => {
+    const linhasTip = [["Saldo do mês", eur(s.saldo)], ["Acumulado", eur(s.acumulado)]];
+    if (s.compras > 0) linhasTip.push(["Compra planeada", eur(s.compras)]);
     zonas += '<rect class="hit" x="'+(x(i) - iw/serie.length/2).toFixed(1)+'" y="'+padT+'" width="'+
       (iw/serie.length).toFixed(1)+'" height="'+ih+'"'+
-      tipData(mesLabel(s.mes), [["Saldo do mês", eur(s.saldo)], ["Acumulado", eur(s.acumulado)]])+'/>';
+      tipData(mesLabel(s.mes), linhasTip)+'/>';
+    // Losango no mês de uma compra planeada: o degrau tem nome
+    if (s.compras > 0) zonas += '<rect x="'+(x(i)-4).toFixed(1)+'" y="'+(y(s.acumulado)-4).toFixed(1)+
+      '" width="8" height="8" transform="rotate(45 '+x(i).toFixed(1)+' '+y(s.acumulado).toFixed(1)+
+      ')" fill="var(--warn)" stroke="var(--surface)" stroke-width="1.5"/>';
     if (i % passo === 0) eixo += '<text x="'+x(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">'+
       esc(mesLabel(s.mes, true))+'</text>';
   });
@@ -4336,6 +4395,13 @@ function cartaoTesouraria(){
     : '<div class="note" style="margin-top:12px">A tesouraria mantém-se positiva nos 12 meses, com o mínimo de '+
       esc(eur(minimo.acumulado))+' em '+esc(mesLabel(minimo.mes))+'.</div>';
 
+  const agendadas = serie.filter(s => s.compras > 0);
+  const notaCompras = agendadas.length
+    ? '<div class="note no-print" style="margin-top:10px">◆ Inclui '+
+      (agendadas.length === 1 ? 'a compra planeada' : 'as compras planeadas')+' de '+
+      esc(agendadas.map(s => mesLabel(s.mes)+' ('+eur(s.compras)+')').join(", "))+
+      ' — geridas em <button class="btn sm ghost" data-act="ir" data-view="planear">Planear despesa</button>.</div>' : "";
+
   return '<div class="card"><div class="card-head"><div class="t"><h2>Tesouraria a 12 meses</h2>'+
     '<div class="sub">Liquidez de hoje mais o saldo de cada mês, com os encargos anuais e semestrais '+
     'no mês em que caem. Meses sem movimentos usam o plano.</div></div></div>'+
@@ -4346,7 +4412,7 @@ function cartaoTesouraria(){
           minimo.acumulado < 0 ? "bad" : "good")+
     '</div>'+
     '<div class="tblwrap"><svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Projeção de tesouraria">'+
-    grelha + area + linha + linhaZero + marcaMin + eixo + zonas + '</svg></div>'+ aviso + '</div>';
+    grelha + area + linha + linhaZero + marcaMin + eixo + zonas + '</svg></div>'+ aviso + notaCompras + '</div>';
 }
 
 /* ===============================================================
@@ -4590,6 +4656,13 @@ function alertas(){
     out.push({grau:2, icone:"⚠", titulo:"O mês fecha em défice",
       detalhe:"Faltam "+eur(-saldo)+" para cobrir as despesas de "+mesLabel(MES), vista:"despesas"});
   }
+
+  // Compras planeadas: chegou o mês marcado
+  S.planeadas.filter(p => !p.feitaEm && mesValido(p.mes) && p.mes === MES).forEach(p => {
+    out.push({grau:1, icone:"🛒", titulo:'Mês marcado para «'+p.nome+'»',
+      detalhe: eur(parseNum(p.valor))+" — registe a compra quando a fizer, ou remarque",
+      vista:"planear"});
+  });
 
   // Créditos com revisão de taxa próxima
   S.creditos.filter(c => creditoAtivo(c, MES)).forEach(c => {
@@ -5237,7 +5310,10 @@ function cartaoPodePagar(){
         (av.prestacoes > 1
           ? '<div class="note" style="margin-top:11px">Em '+av.prestacoes+' prestações são <strong>'+
             esc(eur(av.mensal))+'/mês</strong>. Se for a crédito, acrescente-o em Créditos para ver o custo real dos juros.</div>'
-          : "")
+          : "")+
+        '<div class="note no-print" style="margin-top:11px">A resposta foi «agora não»? '+
+          '<button class="btn sm ghost" data-act="planDaCompra">Planear esta compra →</button> '+
+          'e a ferramenta diz em que trimestre ela cabe melhor.</div>'
       : '<div class="empty">Escreva um valor para avaliar.</div>')+
     '</div>';
 }
@@ -6388,18 +6464,263 @@ function viewOrcamento(){
 
 /* ------------------------------- Despesas ------------------------------- */
 /** Reúne plano, movimentos e limites num único separador. */
+/* ===============================================================
+   Planear despesa — compras grandes com a data pensada
+
+   Um frigorífico que morre escolhe a data; um sofá, um portátil ou
+   um carro não têm de escolher. A pergunta certa não é «posso pagar
+   isto?» (essa já existe) mas «QUANDO é que isto cabe melhor?» — e
+   a resposta vem da projeção de tesouraria que a ferramenta já faz:
+   para cada mês do horizonte, simula-se a compra nesse mês e mede-se
+   a folga mínima daí até ao fim. Meses de subsídio ajudam, meses de
+   seguros anuais pesam, e tudo isso já está na projeção.
+   =============================================================== */
+const HORIZONTES_PLANEIO = [3, 6, 12, 24];
+
+/* Ordens de grandeza típicas em Portugal (2026) — pontos de partida
+   para ajustar, não tabelas de preços. */
+const PRESETS_PLANEIO = [
+  {icone:"🧊", nome:"Frigorífico",       valor:700,   cat:"Manutenção e reparações"},
+  {icone:"🫧", nome:"Máquina de lavar",  valor:500,   cat:"Manutenção e reparações"},
+  {icone:"💻", nome:"Portátil",          valor:900,   cat:"Telecom e internet"},
+  {icone:"📱", nome:"Telemóvel",         valor:400,   cat:"Telecom e internet"},
+  {icone:"🛋️", nome:"Sofá",              valor:800,   cat:"Manutenção e reparações"},
+  {icone:"🛏️", nome:"Mobília de quarto", valor:1200,  cat:"Manutenção e reparações"},
+  {icone:"🏍️", nome:"Mota",              valor:3500,  cat:"Transportes"},
+  {icone:"🚗", nome:"Carro usado",       valor:15000, cat:"Transportes"},
+];
+
+/** Compras marcadas e ainda por realizar, como eventos de tesouraria. */
+function eventosPlaneados(exceto){
+  return (S.planeadas || [])
+    .filter(p => !p.feitaEm && mesValido(p.mes) && p.id !== exceto && parseNum(p.valor) > 0)
+    .map(p => ({mes: p.mes, valor: parseNum(p.valor), nome: p.nome}));
+}
+
+/**
+ * A melhor altura para uma compra, mês a mês e por trimestre.
+ * Comprar no mês i deixa o acumulado de i em diante com −valor: a folga
+ * que interessa é o mínimo desse troço, não a do próprio mês — um mês
+ * bom seguido de um dezembro apertado não é um mês bom. As outras
+ * compras já marcadas entram na base, para não gastarem o mesmo dinheiro
+ * duas vezes.
+ */
+function analisarPlaneada(valor, horizonte, exceto){
+  const v = Math.max(0, parseNum(valor));
+  const H = HORIZONTES_PLANEIO.indexOf(parseInt(horizonte, 10)) >= 0 ? parseInt(horizonte, 10) : 12;
+  if (v <= 0) return null;
+
+  const serie = tesourariaProjetada(H, eventosPlaneados(exceto));
+  // A mesma referência do «Posso pagar isto?»: meses de despesa cobertos.
+  const p = planoMes(MES), r = realMes(MES);
+  const desp = (r.rend > 0 || r.desp > 0) ? r.desp : p.desp;
+
+  const minSufixo = new Array(serie.length);
+  let mn = Infinity;
+  for (let j = serie.length - 1; j >= 0; j--){
+    mn = Math.min(mn, serie[j].acumulado);
+    minSufixo[j] = mn;
+  }
+
+  const meses = serie.map((s, i) => {
+    const folga = minSufixo[i] - v;
+    const cobertura = desp > 0 ? folga / desp : (folga >= 0 ? Infinity : -Infinity);
+    const grau = folga < 0 ? 2 : cobertura < 3 ? 1 : 0;
+    return {mes: s.mes, folga, cobertura, grau};
+  });
+
+  // O melhor mês é o primeiro verde — esperar mais não acrescenta nada.
+  // Sem verdes, o primeiro amarelo; sem amarelos, não há melhor altura.
+  const melhor = meses.find(x => x.grau === 0) || meses.find(x => x.grau === 1) || null;
+
+  const trimestres = [];
+  for (let i = 0; i < meses.length; i += 3){
+    const bloco = meses.slice(i, i + 3);
+    const top = bloco.reduce((a, b) => b.grau < a.grau ? b : a, bloco[0]);
+    trimestres.push({de: bloco[0].mes, ate: bloco[bloco.length - 1].mes, meses: bloco, melhor: top, grau: top.grau});
+  }
+
+  return {valor: v, horizonte: H, desp, meses, trimestres, melhor,
+          jaCabe: meses[0].grau === 0};
+}
+
+/** Reserva mensal implícita: o valor a dividir pelos meses até à data. */
+function reservaMensalPlaneada(p, mesAlvo){
+  const alvo = mesAlvo || p.mes;
+  // Sem data — ou com uma data que não é mês nenhum — não há esforço a
+  // repartir. Sem esta guarda, mesDiff devolvia NaN e ele chegava ao ecrã.
+  if (!mesValido(alvo)) return 0;
+  const n = Math.max(1, mesDiff(MES, alvo));
+  const obj = p.objetivoId ? S.objetivos.find(o => o.id === p.objetivoId) : null;
+  const falta = Math.max(0, parseNum(p.valor) - (obj ? poupadoObjetivo(obj) : 0));
+  return falta / n;
+}
+
+/** A frase que responde: quando, e com que folga. */
+function veredictoPlaneada(an){
+  const cob = (x) => Number.isFinite(x.cobertura)
+    ? x.cobertura.toLocaleString("pt-PT", {maximumFractionDigits: 1}) + " meses de despesa"
+    : "sem despesa de referência";
+  if (an.jaCabe)
+    return {grau: 0, txt: "Já cabe hoje — depois da compra ficam " + eur(an.meses[0].folga) +
+      " de folga (" + cob(an.meses[0]) + ")."};
+  if (an.melhor && an.melhor.grau === 0)
+    return {grau: 0, txt: "Melhor altura: " + mesLabel(an.melhor.mes) + " — o saldo acumulado chega lá, e depois da compra ficam " +
+      eur(an.melhor.folga) + " (" + cob(an.melhor) + ")."};
+  if (an.melhor)
+    return {grau: 1, txt: "Possível a partir de " + mesLabel(an.melhor.mes) + ", mas deixa a reserva curta: " +
+      eur(an.melhor.folga) + " (" + cob(an.melhor) + "; a referência são 3)."};
+  return {grau: 2, txt: "Não cabe nos próximos " + an.horizonte + " meses sem mexer no plano — reserve verba mensal, reduza o valor ou alargue o horizonte."};
+}
+
+function viewPlanear(){
+  const ed = editando.plan ? S.planeadas.find(p => p.id === editando.plan) : null;
+  const pre = ui.planPrefill || {};
+  ui.planPrefill = null;   // consome-se: vale para a chegada, não para sempre
+  const f = ed || {valor: pre.valor, horizonte: 12};
+
+  const chips = ed ? "" :
+    '<div class="chips no-print" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px">'+
+      PRESETS_PLANEIO.map((pr, i) =>
+        '<button class="btn sm ghost" data-act="planPreset" data-i="'+i+'">'+pr.icone+' '+esc(pr.nome)+
+        ' <span class="muted">'+esc(eur0(pr.valor))+'</span></button>').join("")+
+    '</div>';
+
+  const form =
+    '<div class="form no-print"><h3>'+(ed ? "Editar compra planeada" : "Planear uma compra")+'</h3>'+
+    chips+
+    '<div class="row">'+
+      '<div style="flex:2 1 200px"><label class="field" for="plNome">O quê</label>'+
+        '<input id="plNome" placeholder="Ex.: Máquina de lavar" value="'+esc(f.nome || "")+'"></div>'+
+      '<div style="flex:1 1 170px"><label class="field" for="plCat">Categoria</label>'+
+        selectCategorias("plCat", f.categoriaId, "despesa")+'</div>'+
+      '<div style="flex:0 0 130px"><label class="field" for="plValor">Verba estimada (€)</label>'+
+        '<input id="plValor" inputmode="decimal" placeholder="0,00" value="'+valEur(f.valor)+'"></div>'+
+      '<div style="flex:0 0 190px"><label class="field" for="plHorizonte">Analisar os próximos</label>'+
+        '<select id="plHorizonte">'+HORIZONTES_PLANEIO.map(h =>
+          '<option value="'+h+'"'+(h === (f.horizonte || 12) ? " selected" : "")+'>'+h+' meses</option>').join("")+'</select></div>'+
+    '</div>'+
+    '<div class="actions">'+
+      '<button class="btn primary" data-act="planSalvar">'+(ed ? "Guardar alterações" : "Analisar a melhor altura")+'</button>'+
+      (ed ? '<button class="btn ghost" data-act="cancelarEd" data-k="plan">Cancelar</button>' : "")+
+    '</div></div>';
+
+  const pendentes = S.planeadas.filter(p => !p.feitaEm);
+  const feitas = S.planeadas.filter(p => p.feitaEm);
+
+  const cartoes = pendentes.map(p => {
+    // Uma data que não seja mês nenhum lê-se como «por marcar», em vez de
+    // pintar «Marcada para —» e uma reserva mensal impossível de calcular.
+    const mesP = mesValido(p.mes) ? p.mes : "";
+    const an = analisarPlaneada(p.valor, p.horizonte, p.id);
+    const obj = p.objetivoId ? S.objetivos.find(o => o.id === p.objetivoId) : null;
+    const ver = an ? veredictoPlaneada(an) : null;
+    const corG = (g) => g === 2 ? "var(--neg)" : g === 1 ? "var(--warn)" : "var(--pos)";
+
+    // Faixa de trimestres: cada célula é o melhor mês desse trimestre,
+    // clicável para marcar a compra para lá.
+    const faixa = an ? '<div class="planTri no-print">'+an.trimestres.map(t => {
+      const marcado = !!mesP && mesP >= t.de && mesP <= t.ate;
+      return '<button data-act="planMarcar" data-id="'+esc(p.id)+'" data-mes="'+esc(marcado ? mesP : t.melhor.mes)+'"'+
+        ' aria-pressed="'+marcado+'" style="--planCor:'+corG(t.grau)+'"'+
+        tipData(mesLabel(t.de, true)+" – "+mesLabel(t.ate, true), [
+          ["Melhor mês", mesLabel(t.melhor.mes)],
+          ["Folga depois da compra", eur(t.melhor.folga)],
+          [marcado ? "Marcada para" : "Tocar para marcar", marcado ? mesLabel(mesP) : mesLabel(t.melhor.mes)],
+        ])+'>'+
+        '<span class="pq">'+esc(mesLabel(t.de, true))+' – '+esc(mesLabel(t.ate, true))+'</span>'+
+        '<span class="pm">'+(marcado ? "★ " : "")+esc(mesLabel(t.melhor.mes, true))+'</span>'+
+        '<span class="pf num">'+esc(eur0(t.melhor.folga))+'</span>'+
+      '</button>';
+    }).join("")+'</div>' : "";
+
+    // O mês marcado pode ter deixado de caber, se o plano mudou entretanto
+    const mesMarcado = mesP && an ? an.meses.find(x => x.mes === mesP) : null;
+    const avisoMarcado = mesMarcado && mesMarcado.grau === 2
+      ? '<div class="note" style="margin-top:9px;border-left-color:var(--neg)">O mês marcado ('+esc(mesLabel(mesP))+
+        ') deixou de ter folga — reveja a data ou o valor.</div>'
+      : mesP && !mesMarcado && mesP < MES
+      ? '<div class="note" style="margin-top:9px;border-left-color:var(--warn)">O mês marcado ('+esc(mesLabel(mesP))+
+        ') já passou — remarque, ou registe a compra se a fez.</div>'
+      : "";
+
+    const reserva = reservaMensalPlaneada(p);
+    const linhaMarcada = mesP
+      ? '<div style="font-size:13px;margin-top:8px">Marcada para <strong>'+esc(mesLabel(mesP))+'</strong>'+
+        (reserva > 0.005 ? ' · pôr de parte '+esc(eur(reserva))+'/mês até lá' : '')+
+        ' <button class="btn sm ghost no-print" data-act="planMarcar" data-id="'+esc(p.id)+'" data-mes="'+esc(mesP)+'">Desmarcar</button></div>'
+      : "";
+
+    // Reserva: ou o convite a criá-la, ou o progresso do objetivo ligado
+    const blocoReserva = obj
+      ? '<div style="display:flex;align-items:center;gap:10px;margin-top:9px">'+
+          anelProgresso(parseNum(p.valor) > 0 ? Math.min(100, poupadoObjetivo(obj) / parseNum(p.valor) * 100) : 0, obj.cor || "var(--accent)", 46)+
+          '<div style="font-size:12.5px">Reserva: <strong class="num">'+esc(eur(poupadoObjetivo(obj)))+'</strong> de '+esc(eur(parseNum(obj.alvo)))+
+          ' — vive nos <button class="btn sm ghost no-print" data-act="ir" data-view="objetivos">Objetivos</button></div></div>'
+      : "";
+
+    // A reserva só vale a pena render se a espera for de um ano ou mais
+    const podeEstrategia = mesDiff(MES, mesP || (an && an.melhor ? an.melhor.mes : MES)) >= 12 && parseNum(p.valor) >= 1000;
+    const acoes = '<div class="actions no-print" style="margin-top:10px">'+
+      (obj ? "" : '<button class="btn sm" data-act="planReservar" data-id="'+esc(p.id)+'">Reservar verba</button> ')+
+      '<button class="btn sm" data-act="planRealizar" data-id="'+esc(p.id)+'">Registar a compra</button> '+
+      (podeEstrategia ? '<button class="btn sm ghost" data-act="planEstrategia" data-id="'+esc(p.id)+'">Onde guardar a reserva →</button> ' : "")+
+      '</div>';
+
+    return '<div class="card">'+
+      '<div class="card-head"><div class="t"><h2>'+esc(p.nome)+' — '+esc(eur(parseNum(p.valor)))+'</h2>'+
+        '<div class="sub"><span class="tag"><span class="dot" style="background:'+esc(catCor(p.categoriaId))+'"></span>'+
+        esc(catRotulo(p.categoriaId))+'</span></div></div>'+
+        '<div class="no-print" style="white-space:nowrap">'+
+          '<span class="seg" style="margin-right:6px">'+HORIZONTES_PLANEIO.map(h =>
+            '<button data-act="planHorizonte" data-id="'+esc(p.id)+'" data-v="'+h+'" aria-pressed="'+(h === p.horizonte)+'">'+h+'m</button>').join("")+'</span>'+
+          '<button class="btn sm ghost" data-act="planEditar" data-id="'+esc(p.id)+'" title="Editar">✎</button> '+
+          '<button class="btn sm ghost" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar">✕</button>'+
+        '</div></div>'+
+      (ver ? '<div style="font-size:13px;color:'+corG(ver.grau)+'">'+esc(ver.txt)+'</div>' : "")+
+      faixa + avisoMarcado + linhaMarcada + blocoReserva + acoes +
+    '</div>';
+  }).join('<div style="height:14px"></div>');
+
+  const tabelaFeitas = feitas.length
+    ? '<div style="height:16px"></div><div class="card"><div class="card-head"><div class="t"><h2>Já realizadas</h2>'+
+      '<div class="sub">Compras planeadas que passaram aos movimentos.</div></div></div>'+
+      '<div class="tblwrap"><table><thead><tr><th>O quê</th><th>Categoria</th><th class="r">Valor</th>'+
+      '<th>Realizada em</th><th class="no-print"></th></tr></thead><tbody>'+
+      feitas.map(p => '<tr><td>'+esc(p.nome)+'</td>'+
+        '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(p.categoriaId))+'"></span>'+esc(catRotulo(p.categoriaId))+'</span></td>'+
+        '<td class="r num">'+esc(eur(parseNum(p.valor)))+'</td>'+
+        '<td>'+esc((p.feitaEm || "").split("-").reverse().join("/"))+'</td>'+
+        '<td class="r no-print"><button class="btn sm ghost" data-act="planVerMov" data-id="'+esc(p.id)+'">Ver movimento</button> '+
+        '<button class="btn sm ghost" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar">✕</button></td></tr>').join("")+
+      '</tbody></table></div></div>' : "";
+
+  const vazio = !pendentes.length && !feitas.length
+    ? '<div class="empty">Nada planeado ainda. Escolha um exemplo acima ou descreva a compra — a ferramenta '+
+      'diz-lhe em que trimestre ela cabe melhor, olhando à tesouraria dos próximos meses.</div>' : "";
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Planear despesa</h2>'+
+    '<div class="sub">Compras grandes que podem escolher a data — eletrodomésticos, informática, mobília, veículos. '+
+    'A análise usa a projeção de tesouraria: meses de subsídio ajudam, meses de encargos anuais pesam.</div></div></div>'+
+    form + vazio +'</div>'+
+    (pendentes.length ? '<div style="height:16px"></div>'+cartoes : "")+
+    tabelaFeitas;
+}
+
 function viewDespesas(){
   const sec = ui.secaoDespesa || "plano";
   const abas = [
     ["plano", "Despesas fixas"],
     ["movimentos", "Movimentos"],
     ["limites", "Limites"],
+    ["planear", "Planear"],
   ];
   const nav = '<div class="seg no-print" style="margin-bottom:16px">'+
     abas.map(([k,l]) => '<button data-act="secDespesa" data-v="'+k+'" aria-pressed="'+(sec===k)+'">'+esc(l)+'</button>').join("")+
     '</div>';
   const corpo = sec === "movimentos" ? viewMovimentos()
               : sec === "limites"    ? viewOrcamento()
+              : sec === "planear"    ? viewPlanear()
               : viewPlano();
   return nav + corpo;
 }
@@ -8591,6 +8912,7 @@ const ALIAS_VISTA = {
   movimentos:   {vista:"despesas", sec:"movimentos"},
   plano:        {vista:"despesas", sec:"plano"},
   orcamento:    {vista:"despesas", sec:"limites"},
+  planear:      {vista:"despesas", sec:"planear"},
   investimentos:{vista:"ativos"},
   patrimonio:   {vista:"ativos"},
 };
@@ -9543,6 +9865,136 @@ const ACOES = {
     apagarComAnulacao((m && m.descricao ? 'Movimento "'+m.descricao+'"' : "Movimento") + " eliminado.", () => {
       S.movimentos = S.movimentos.filter(x => x.id !== el.dataset.id);
     });
+  },
+
+  /* --- planear despesa --- */
+  planPreset(el){
+    const pr = PRESETS_PLANEIO[parseInt(el.dataset.i, 10)];
+    if (!pr) return;
+    // Preenche sem gravar: quem decide o valor certo é quem conhece a compra.
+    $("#plNome").value = pr.nome;
+    $("#plValor").value = fmtNum.format(pr.valor);
+    const catId = catPorNome(pr.cat);   // devolve o id, com recurso à primeira despesa
+    if (catId) $("#plCat").value = catId;
+    $("#plValor").focus();
+  },
+  planSalvar(){
+    const nome = $("#plNome").value.trim();
+    const valor = parseNum($("#plValor").value);
+    if (!nome){ invalido("plNome", "Diga o que quer comprar."); return; }
+    if (valor <= 0){ invalido("plValor", "Indique a verba estimada."); return; }
+    const dados = {nome, valor, categoriaId: $("#plCat").value,
+      horizonte: parseInt($("#plHorizonte").value, 10) || 12};
+    alterar(() => {
+      if (editando.plan){
+        const p = S.planeadas.find(x => x.id === editando.plan);
+        Object.assign(p, dados);
+        // O objetivo de reserva acompanha o novo valor da compra
+        const obj = p.objetivoId ? S.objetivos.find(o => o.id === p.objetivoId) : null;
+        if (obj) obj.alvo = valor;
+        editando.plan = null;
+      } else {
+        S.planeadas.push(Object.assign({id: uid("pl"), mes:"", objetivoId:"", feitaEm:"",
+          membroId:"", criadoEm: isoDia(hoje())}, dados));
+      }
+    }, "compra planeada");
+    toast("Analisada — veja em que trimestre cabe melhor.");
+  },
+  planEditar(el){ editando.plan = el.dataset.id; render(); window.scrollTo({top:0}); },
+  planApagar(el){
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    if (!p) return;
+    const tinhaObj = p.objetivoId && S.objetivos.some(o => o.id === p.objetivoId);
+    apagarComAnulacao('Compra "'+p.nome+'" eliminada.'+
+      (tinhaObj ? " O objetivo de reserva manteve-se — apague-o em Objetivos se já não fizer sentido." : ""), () => {
+      S.planeadas = S.planeadas.filter(x => x.id !== el.dataset.id);
+    });
+  },
+  planHorizonte(el){
+    alterar(() => {
+      const p = S.planeadas.find(x => x.id === el.dataset.id);
+      if (p) p.horizonte = parseInt(el.dataset.v, 10) || 12;
+    }, "horizonte da compra");
+  },
+  planMarcar(el){
+    alterar(() => {
+      const p = S.planeadas.find(x => x.id === el.dataset.id);
+      if (!p) return;
+      p.mes = p.mes === el.dataset.mes ? "" : el.dataset.mes;
+      // O objetivo de reserva persegue a mesma data
+      const obj = p.objetivoId ? S.objetivos.find(o => o.id === p.objetivoId) : null;
+      if (obj) obj.prazo = p.mes ? p.mes + "-01" : "";
+    }, "data da compra");
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    toast(p && p.mes ? "Marcada para "+mesLabel(p.mes)+" — já conta na tesouraria projetada."
+                     : "Desmarcada — deixa de contar na tesouraria projetada.");
+  },
+  planReservar(el){
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    if (!p) return;
+    const an = analisarPlaneada(p.valor, p.horizonte, p.id);
+    const mesAlvo = mesValido(p.mes) ? p.mes : (an && an.melhor ? an.melhor.mes : "");
+    alterar(() => {
+      if (mesAlvo) p.mes = mesAlvo;   // reservar sem data não diz quanto pôr de lado
+      const obj = {id: uid("ob"), nome: "Reserva: " + p.nome, alvo: parseNum(p.valor), atual: 0,
+        ativoId: "", prazo: p.mes ? p.mes + "-01" : "", cor: catCor(p.categoriaId), celebrado: false};
+      S.objetivos.push(obj);
+      p.objetivoId = obj.id;
+    }, "reserva de compra");
+    toast(mesAlvo
+      ? "Objetivo criado: "+eur(reservaMensalPlaneada(p))+"/mês até "+mesLabel(p.mes)+". Reforce-o nos Objetivos."
+      : "Objetivo criado. Marque um mês para saber quanto pôr de parte.");
+  },
+  planRealizar(el){
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    if (!p) return;
+    const tinhaObj = p.objetivoId ? S.objetivos.find(o => o.id === p.objetivoId) : null;
+    alterar(() => {
+      S.movimentos.push({id: uid("mv"), tipo: "despesa", data: isoDia(hoje()),
+        descricao: p.nome, categoriaId: p.categoriaId, membroId: p.membroId || "", valor: parseNum(p.valor)});
+      p.feitaEm = isoDia(hoje());
+      // A reserva cumpriu o papel: o dinheiro saiu, o objetivo sai de cena.
+      if (p.objetivoId){
+        S.objetivos = S.objetivos.filter(o => o.id !== p.objetivoId);
+        p.objetivoId = "";
+      }
+      MES = isoMes(hoje());
+    }, "compra realizada");
+    toast('"'+p.nome+'" registada nos movimentos de hoje.'+
+      (tinhaObj && tinhaObj.ativoId ? " A reserva vivia num ativo — atualize lá o valor." :
+       tinhaObj ? " O objetivo de reserva foi arrumado." : "")+" (Ctrl+Z anula.)");
+  },
+  planVerMov(el){
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    if (!p) return;
+    if (p.feitaEm) MES = mesDoDia(p.feitaEm) || MES;
+    filtros.texto = p.nome || "";
+    irPara("movimentos");
+  },
+  planEstrategia(el){
+    const p = S.planeadas.find(x => x.id === el.dataset.id);
+    if (!p) return;
+    const an = analisarPlaneada(p.valor, p.horizonte, p.id);
+    const mesAlvo = mesValido(p.mes) ? p.mes : (an && an.melhor ? an.melhor.mes : "");
+    const meses = mesAlvo ? Math.max(1, mesDiff(MES, mesAlvo)) : p.horizonte;
+    const cat = S.categorias.find(c => c.id === p.categoriaId);
+    alterar(() => {
+      if (cat && cat.nome === "Transportes"){
+        S.estrategia.objetivo = "automovel";
+        S.estrategia.precoAuto = parseNum(p.valor);
+      } else {
+        S.estrategia.objetivo = "investir";
+        S.estrategia.mensal = Math.max(0, Math.round(reservaMensalPlaneada(p, mesAlvo)));
+      }
+      S.estrategia.anos = Math.max(1, Math.round(meses / 12));
+    }, "estratégia da reserva");
+    irPara("estrategias");
+    toast("Estratégias afinadas para esta reserva — compare onde a guardar.");
+  },
+  planDaCompra(){
+    ui.planPrefill = {valor: ui.compraValor};
+    ui.secaoDespesa = "planear";
+    irPara("despesas");
   },
 
   /* --- duplicar --- */
@@ -10566,6 +11018,7 @@ function comandosPaleta(){
     {icone:"➕", lbl:"Novo ativo", tipo:"ação", run: () => { irPara("ativos"); focar("ptNome"); }},
     {icone:"➕", lbl:"Novo crédito", tipo:"ação", run: () => { irPara("creditos"); focar("crNome"); }},
     {icone:"➕", lbl:"Novo objetivo", tipo:"ação", run: () => { irPara("objetivos"); focar("obNome"); }},
+    {icone:"🛒", lbl:"Planear uma compra grande", tipo:"ação", run: () => { irPara("planear"); focar("plNome"); }},
     {icone:"💾", lbl:"Exportar cópia de segurança (JSON)", tipo:"ação", run: exportJSON},
     {icone:"🖨️", lbl:"Imprimir", tipo:"ação", run: () => window.print()},
     {icone:"🎓", lbl:"Visita guiada pela aplicação", tipo:"ação", run: () => ACOES.tutorialIniciar()},
@@ -10613,6 +11066,10 @@ function comandosDados(t){
   S.objetivos.filter(o => bate(o.nome)).slice(0, 3).forEach(o =>
     out.push({icone:"🎯", lbl:o.nome+" — "+eur(poupadoObjetivo(o))+" de "+eur(parseNum(o.alvo)), tipo:"objetivo",
       run: () => { irPara("objetivos"); }}));
+  S.planeadas.filter(p => bate(p.nome)).slice(0, 3).forEach(p =>
+    out.push({icone:"🛒", lbl:p.nome+" — "+eur(parseNum(p.valor))+
+      (p.feitaEm ? " · realizada" : p.mes ? " · marcada para "+mesLabel(p.mes) : " · por marcar"),
+      tipo:"compra planeada", run: () => { irPara("planear"); }}));
   S.rendimentos.filter(r => bate(r.nome)).slice(0, 3).forEach(r =>
     out.push({icone:"💶", lbl:r.nome, tipo:"fonte", run: () => { ui.abertos["rd-"+r.id] = true; irPara("rendimentos"); }}));
   S.categorias.filter(c => bate(c.nome)).slice(0, 3).forEach(c =>
@@ -11074,6 +11531,8 @@ const TUTORIAL_PASSOS = [
    texto:"O que <strong>realmente aconteceu</strong>, dia a dia. O botão <strong>«Lançar plano deste mês»</strong> cria os movimentos a partir das rubricas mensais, das prestações de crédito e dos fluxos dos ativos — depois é só ajustar ao real. Há filtros por texto, categoria, membro e tipo."},
   {vista:"orcamento", sel:null, titulo:"Despesas — limites por categoria",
    texto:"Defina um <strong>teto mensal</strong> por categoria e acompanhe as barras: verde dentro do limite, âmbar perto, vermelho ultrapassado. <strong>«Preencher com o plano»</strong> usa os valores das despesas fixas como ponto de partida."},
+  {vista:"planear", sel:"#app .form", titulo:"Despesas — planear as compras grandes",
+   texto:"Um eletrodoméstico, um portátil, mobília, um carro — compras que <strong>podem escolher a data</strong>. Indique a verba estimada e a ferramenta simula a compra em cada mês do horizonte (3, 6, 12 ou 24 meses) e responde <strong>por trimestre</strong>: onde há folga, onde aperta, e qual a melhor altura. Depois, <strong>marque o mês</strong> (entra na tesouraria projetada), <strong>reserve verba</strong> (vira um objetivo de poupança) e, chegada a hora, <strong>registe a compra</strong> nos movimentos com um toque."},
   {vista:"ativos", sel:"#app .form", titulo:"Ativos — tudo o que tem valor",
    texto:"Contas, poupanças, certificados, PPR, ETFs, imóveis, veículos — no mesmo sítio. O valor vem de <strong>unidades × cotação</strong>, do valor que indicar, ou da estimativa pela taxa da classe. Cada ativo pode ter <strong>encargos e rendimentos</strong> (IMI, condomínio, rendas…), que entram no orçamento, um <strong>simulador próprio</strong> e aportes datados para calcular o retorno por <strong>TIR</strong>. Em baixo, a projeção da carteira com cenários e teste de correção."},
   {vista:"creditos", sel:null, titulo:"Créditos — fixa ou indexada",
