@@ -1908,7 +1908,6 @@ const AJUDAS_CAMPO = {
   cpMenos36:    ["Criança com menos de 36 meses", "Conta para a majoração dos agregados com duas ou mais crianças nessa idade. A partir da segunda, cada uma recebe um acréscimo que varia com o escalão.", ""],
   cpDeficiencia:["Criança com deficiência", "Acresce uma bonificação mensal por deficiência: 74,19 € até aos 14 anos, 108,06 € dos 14 aos 18, 144,63 € dos 18 aos 24.", ""],
   fxias:    ["IAS", "Indexante dos Apoios Sociais. É a base dos mínimos das prestações sociais e dos escalões do abono de família.", ""],
-  fxmonoparental:["Família monoparental", "Majora o abono de família em 50%. Pode ser sobreposto em cada componente de abono.", ""],
   cpIRS:    ["Retenção de IRS", "Se esta componente entra na base de retenção na fonte.", ""],
   /* Ativos */
   ptTipo:      ["Classe do ativo", "Escolha determina retorno típico, comportamento numa correção e regime fiscal. As poupanças são ativos como os outros.", ""],
@@ -1960,7 +1959,6 @@ const AJUDAS_CAMPO = {
   fximiTaxa:        ["Taxa de IMI", "Fixada anualmente por cada município, entre 0,3% e 0,45% para prédios urbanos. Aplica-se ao VPT da caderneta predial, não ao valor de mercado.", "0,3% a 0,45%"],
   fxpprBeneficio:   ["Dedução do PPR", "Percentagem das entregas dedutível à coleta do IRS, até um limite que depende da idade.", "20% — EBF art.º 21.º"],
   fxpprIdade:       ["Idade do titular", "Determina o limite anual da dedução: 400 € até aos 35 anos, 350 € dos 35 aos 50, 300 € acima disso.", ""],
-  fxpprLimiteAno:   ["Limite anual", "Teto da dedução à coleta. Deriva da idade do titular e não se edita diretamente.", ""],
   fxpprSaida:       ["Taxa à saída", "Sobre o rendimento gerado, no resgate feito nas condições legais — reforma, 60 anos, desemprego de longa duração, doença grave.", "8%"],
   fxpprSaidaFora:   ["Resgate fora das condições", "Taxa aplicável a um resgate antecipado sem enquadramento legal, acrescida da devolução das deduções obtidas e de penalização.", "21,5%"],
   /* Filtros */
@@ -2366,8 +2364,15 @@ function restaurarSessao(){
   const s = lerSessao();
   if (!s) return;
   if (mesValido(s.mes)) MES = s.mes;
-  if (s.vista && (VISTAS[s.vista] || ALIAS_VISTA[s.vista])) VIEW = VISTAS[s.vista] ? s.vista : VIEW;
-  if (s.secaoDespesa) ui.secaoDespesa = s.secaoDespesa;
+  // Uma sessão gravada por uma versão anterior pode nomear uma vista que
+  // hoje é secção («movimentos», «patrimonio»): resolve-se o alias, em vez
+  // de o reconhecer e ficar na mesma.
+  const alias = ALIAS_VISTA[s.vista];
+  if (alias){
+    VIEW = alias.vista;
+    if (alias.sec) ui.secaoDespesa = alias.sec;
+  } else if (VISTAS[s.vista]) VIEW = s.vista;
+  if (s.secaoDespesa && !(alias && alias.sec)) ui.secaoDespesa = s.secaoDespesa;
   if (s.evolucaoMeses) ui.evolucaoMeses = s.evolucaoMeses;
   if (s.abertos && typeof s.abertos === "object") ui.abertos = s.abertos;
   if (s.filtros && typeof s.filtros === "object") filtros = Object.assign(filtros, s.filtros);
@@ -9197,11 +9202,15 @@ function invalido(id, msg){
    descoberto para o mesmo Ctrl+Z, e não um mecanismo à parte.
    --------------------------------------------------------------- */
 function apagarComAnulacao(msg, fn, rotulo){
-  const antes = historico.atras.length;
+  // Compara-se o topo da pilha, não o seu tamanho: com o histórico cheio,
+  // cada passo novo faz cair o mais antigo e o tamanho fica igual — o que
+  // fazia o «Anular» desaparecer exatamente para quem mais mexe nos dados,
+  // embora o Ctrl+Z continuasse a funcionar.
+  const topoAntes = historico.atras[historico.atras.length - 1];
   alterar(fn, rotulo || "eliminação");
   // Só oferece anular se a eliminação chegou mesmo ao histórico
   let b = null;
-  if (historico.atras.length > antes){
+  if (historico.atras[historico.atras.length - 1] !== topoAntes){
     b = document.createElement("button");
     b.type = "button";
     b.textContent = "Anular";

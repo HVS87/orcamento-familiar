@@ -30,7 +30,16 @@ function semErro(fn, nome){
 }
 
 var backup = localStorage.getItem(STORE_KEY);
+var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+
+/* A sessão é do utilizador, não da suite. Sai de cena enquanto se testa —
+   uma sessão com rascunho faz a aplicação abrir o diálogo de recuperação
+   por cima dos testes, e o que falha a seguir não tem nada que ver com o
+   que se estava a medir. */
+localStorage.removeItem(SESSAO_KEY);
+if (document.querySelector("#modalHost .overlay")) document.getElementById("modalHost").innerHTML = "";
+
 function limpo(){ S = estadoVazio(); limparCacheCredito(); MES = isoMes(hoje()); }
 function q(s){ return document.querySelector(s); }
 function qq(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
@@ -764,6 +773,8 @@ G("importação defensiva");
    ============================================================ */
 if (backup) localStorage.setItem(STORE_KEY, backup);
 else localStorage.removeItem(STORE_KEY);
+if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao);
+else localStorage.removeItem(SESSAO_KEY);
 S = backup ? normalizar(JSON.parse(backup)) : estadoVazio();
 limparCacheCredito();
 MES = mesInicial;
@@ -771,6 +782,12 @@ ui.donutFoco = null; ui.simAtivo = null; ui.abertos = {}; ordem = {};
 filtros = {texto:"", categoria:"", membro:"", tipo:""};
 editando = {};
 irPara(vistaInicial);
+/* Cancelar as gravações adiadas que a repintura acima agendou, senão
+   escrevem no disco depois desta limpeza. */
+if (typeof guardarT !== "undefined") clearTimeout(guardarT);
+if (typeof _sessaoT !== "undefined") clearTimeout(_sessaoT);
+if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao);
+else localStorage.removeItem(SESSAO_KEY);
 
 window.__QALIM = {
   total: passes + falhas.length, passes: passes, falhas: falhas.length,

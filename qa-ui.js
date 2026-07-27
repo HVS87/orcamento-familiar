@@ -2361,6 +2361,28 @@ G("desfazer e refazer");
   }
   ok(historico.atras.length <= HIST_MAX_PASSOS, "o histórico não passa do tecto", historico.atras.length);
 
+  // Com o histórico no tecto, o «Anular» tem de continuar a aparecer: cada
+  // passo novo faz cair o mais antigo, e o tamanho da pilha deixa de crescer.
+  // Quem decidisse pelo tamanho perdia a afordância justamente para quem mais
+  // mexe nos dados — e o Ctrl+Z continuava a funcionar, o que tornava a
+  // ausência do botão ainda mais difícil de explicar.
+  eq(historico.atras.length, HIST_MAX_PASSOS, "o histórico está mesmo cheio para este teste");
+  comExemplo();
+  historico = {atras: [], frente: []};
+  for (i = 0; i < HIST_MAX_PASSOS + 3; i++){
+    (function(k){ alterar(function(){ S.projecao.anos = 10 + (k % 7); }, "ruído "+k); })(i);
+  }
+  eq(historico.atras.length, HIST_MAX_PASSOS, "e continua no tecto depois do ruído");
+  var rdC = S.rendimentos[0];
+  ui.abertos["rd-" + rdC.id] = true;
+  irA("rendimentos");
+  var compAntes = rdC.componentes.length;
+  clicar('[data-act="compApagar"][data-rd="' + rdC.id + '"]');
+  eq(S.rendimentos[0].componentes.length, compAntes - 1, "com o histórico cheio, a eliminação acontece");
+  ok(q("#toast button") != null, "e o «Anular» continua a ser oferecido");
+  clicar(q("#toast button"));
+  eq(S.rendimentos[0].componentes.length, compAntes, "e ainda repõe o que foi eliminado");
+
   // Desfazer sem nada não rebenta
   historico = {atras: [], frente: []};
   ok(!desfazer(), "desfazer sem histórico devolve falso");
@@ -2434,6 +2456,28 @@ G("autosave e restauro de sessão");
   eq(ui.evolucaoMeses, 24, "repõe o horizonte");
   eq(filtros.texto, "teste", "repõe os filtros");
   filtros.texto = ""; MES = isoMes(hoje()); render();
+
+  // Uma sessão gravada por uma versão anterior pode nomear uma vista que
+  // entretanto passou a secção: o alias resolve-se, em vez de se ficar
+  // onde se estava a fingir que se percebeu.
+  [["movimentos","despesas","movimentos"], ["orcamento","despesas","limites"],
+   ["plano","despesas","plano"], ["patrimonio","ativos",null], ["investimentos","ativos",null]]
+  .forEach(function(caso){
+    localStorage.setItem(SESSAO_KEY, JSON.stringify({vista:caso[0], em:Date.now(), secaoDespesa:"plano"}));
+    VIEW = "painel"; ui.secaoDespesa = "plano";
+    restaurarSessao();
+    eq(VIEW, caso[1], "sessão com a vista antiga «"+caso[0]+"» aterra em "+caso[1]);
+    if (caso[2]) eq(ui.secaoDespesa, caso[2], "e na secção "+caso[2]);
+  });
+  localStorage.setItem(SESSAO_KEY, JSON.stringify({vista:"vistaQueNuncaExistiu", em:Date.now()}));
+  VIEW = "painel"; restaurarSessao();
+  eq(VIEW, "painel", "uma vista desconhecida não move ninguém");
+  // E um mês impossível numa sessão não desloca o mês em análise
+  var mAntes = MES;
+  localStorage.setItem(SESSAO_KEY, JSON.stringify({vista:"painel", mes:"2026-13", em:Date.now()}));
+  restaurarSessao();
+  eq(MES, mAntes, "um mês impossível na sessão é ignorado");
+  VIEW = "painel"; ui.secaoDespesa = "plano"; render();
 
   // Sessão velha é ignorada
   localStorage.setItem(SESSAO_KEY, JSON.stringify({em: Date.now() - SESSAO_VALIDADE - 1000, vista:"config"}));
@@ -2609,6 +2653,13 @@ MES = mesInicial;
 ui.donutFoco = null; ui.simAtivo = null; ordem = {}; filtros = {texto:"", categoria:"", membro:"", tipo:""};
 editando = {};
 irPara(vistaInicial);
+/* A repintura agenda gravações adiadas (400 ms nos dados, 600 ms na
+   sessão). Sem as cancelar, disparavam depois desta limpeza e voltavam a
+   escrever no disco o que se acabou de arrumar. */
+if (typeof guardarT !== "undefined") clearTimeout(guardarT);
+if (typeof _sessaoT !== "undefined") clearTimeout(_sessaoT);
+if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao);
+else localStorage.removeItem(SESSAO_KEY);
 window.onerror = onerrorAntigo;
 
 window.__QAUI = {

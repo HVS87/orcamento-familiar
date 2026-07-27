@@ -488,21 +488,24 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Três suites, 11 388 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Quatro suites, 15 004 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
-["/qa.js","/qa-ui.js","/qa-limites.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
+["/qa.js","/qa-ui.js","/qa-limites.js","/qa-fuzz.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
   const s=document.createElement("script"); s.src=src+"?"+Date.now(); s.onload=r; document.head.appendChild(s);
-})), Promise.resolve()).then(()=>console.log(__QA,__QAUI,__QALIM));
+})), Promise.resolve()).then(()=>console.log(__QA,__QAUI,__QALIM,__QAFUZZ));
 ```
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), planeamento de compras grandes (folga por trimestre, melhor altura), coerência do exemplo e do código | 3932 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), planear despesa (analisar, marcar, reservar, realizar, anular), explicador, diálogo, exportação | 852 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), planeamento de compras grandes (folga por trimestre, melhor altura), coerência do exemplo e do código | 3924 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), planear despesa (analisar, marcar, reservar, realizar, anular), explicador, diálogo, exportação | 867 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, compras planeadas com datas impossíveis, volume, identidades contabilísticas | 6604 |
+| `qa-fuzz.js` | estados aleatórios: 58 agregados inteiros gerados ao acaso (membros, rendimentos, rubricas, movimentos, ativos, créditos, objetivos e compras planeadas, com valores hostis à mistura) mais um **macaco** que dá 45 cliques ao acaso sobre 8 desses agregados, verificando as invariantes a cada passo | 3609 |
 
-As suites repõem o estado do utilizador no fim e não deixam rasto. Cada uma reporta em `window.__QA`, `window.__QAUI` e `window.__QALIM`.
+As suites repõem o estado do utilizador — e a sessão — no fim, e não deixam rasto: guardam o que está *em disco* (não só o que está em memória), cancelam as gravações adiadas que a última repintura agendou, e devolvem o `localStorage` byte a byte como o encontraram. Cada uma reporta em `window.__QA`, `window.__QAUI`, `window.__QALIM` e `window.__QAFUZZ`.
+
+O fuzz é **determinístico**: cada agregado tem uma semente, e uma falha repete-se dando a mesma semente. É a única suite que testa aquilo em que ninguém pensou — as outras testam casos escolhidos, e por isso testam o que o autor já imaginou.
 
 O que as suites verificam de mais útil não são os casos felizes, mas as **invariantes**:
 
@@ -512,7 +515,8 @@ O que as suites verificam de mais útil não são os casos felizes, mas as **inv
 - o bruto de cada fonte é sempre o líquido mais a carga fiscal;
 - a retenção nunca desce quando a remuneração sobe, nunca excede a remuneração, e nunca fica negativa por muitos dependentes — em todas as 33 tabelas;
 - ganhar mais nunca deixa ninguém com menos líquido;
-- cada escalão publicado bate com a taxa efetiva que o ficheiro oficial declara.
+- cada escalão publicado bate com a taxa efetiva que o ficheiro oficial declara;
+- **seja qual for o agregado** — e o fuzz gera-os aos milhares — o saldo é rendimento menos despesa, o balanço fecha, a tesouraria acumula mês a mês, nenhum número publicado é `NaN` ou infinito, e nenhuma vista deixa escapar `NaN` ou `undefined` para o ecrã.
 
 É por aí que os erros aparecem. Dos bugs encontrados até hoje, os mais graves — ativos contados duas vezes no balanço, cache de crédito a ignorar o mês — vieram de invariantes, não de testar funcionalidades uma a uma.
 

@@ -41,9 +41,21 @@ function semLancar(fn, nome){
 
 /* Estado do utilizador, para o devolver intacto no fim.
    Os testes correm sobre um estado vazio e determinístico — nunca sobre
-   o que estivesse carregado, para que a ordem de execução não importe. */
+   o que estivesse carregado, para que a ordem de execução não importe.
+
+   Guarda-se o que está *em disco*, e não só o que está em memória: há
+   grupos que chamam `carregarExemplo()`, e essa função grava. Repor só a
+   variável `S` deixava o exemplo escrito no localStorage — quem tivesse
+   um orçamento a sério e recarregasse a página antes de mexer em alguma
+   coisa encontrava o exemplo no lugar dele. */
 var estadoUtilizador = JSON.parse(JSON.stringify(S));
+var discoEstado = localStorage.getItem(STORE_KEY);
+var discoSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+
+/* E a sessão sai de cena enquanto se testa: um rascunho por recuperar
+   abriria o diálogo por cima dos testes. */
+localStorage.removeItem(SESSAO_KEY);
 function reporEstado(){ S = estadoVazio(); limparCacheCredito(); MES = isoMes(hoje()); }
 
 /* ============================================================
@@ -2318,7 +2330,19 @@ G("meta de cada objetivo");
 S = normalizar(estadoUtilizador);
 limparCacheCredito();
 MES = mesInicial;
+/* O disco fica como estava: nem o exemplo, nem os estados de teste. */
+if (discoEstado !== null) localStorage.setItem(STORE_KEY, discoEstado);
+else localStorage.removeItem(STORE_KEY);
+if (discoSessao !== null) localStorage.setItem(SESSAO_KEY, discoSessao);
+else localStorage.removeItem(SESSAO_KEY);
 try { irPara(vistaInicial); } catch(e){ falhas.push({grupo:"limpeza", teste:"render final", detalhe:e.message}); }
+
+/* A repintura acima agenda uma gravação da sessão (600 ms). Sem a cancelar,
+   ela dispararia depois desta limpeza e voltaria a escrever no disco aquilo
+   que se acabou de arrumar. */
+if (typeof _sessaoT !== "undefined") clearTimeout(_sessaoT);
+if (typeof guardarT !== "undefined") clearTimeout(guardarT);
+if (discoSessao === null) localStorage.removeItem(SESSAO_KEY);
 
 window.__QA = {
   total: passes + falhas.length,
