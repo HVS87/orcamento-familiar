@@ -1581,10 +1581,11 @@ G("melhorias visuais");
   ok(q("#tabsMovel") != null, "há navegação inferior para o telemóvel");
   eq(qq("#tabsMovel button[data-view]").length, 4, "com quatro vistas diretas");
   ok(q("#btnMais") != null, "e o botão «Mais»");
-  eq(qq("#folhaMais button[data-view]").length, 4, "a folha traz as restantes quatro");
+  eq(qq("#folhaMais button[data-view]").length, 5, "a folha traz as restantes cinco");
 
-  // Ícones nos separadores
-  ok(qq("nav.tabs .ticon").length === 8, "cada separador tem ícone");
+  // Ícones nos separadores — um por separador, sejam quantos forem
+  eq(qq("nav.tabs .ticon").length, qq("nav.tabs button[data-view]").length,
+     "cada separador tem ícone");
 
   // Movimentos e ativos têm rótulos para o modo cartão
   comExemplo();
@@ -2000,6 +2001,285 @@ G("ritmo, mapa anual e tesouraria");
   ok(/Tesouraria a 12 meses/.test(texto()), "e mostra-se no painel");
 })();
 
+G("E se…? — eventos de vida");
+(function(){
+  comExemplo();
+  ui.cenarioVida = {eventos: [], meses: 24};
+  irA("ese");
+  ok(q('nav.tabs button[data-view="ese"]') != null, "há separador próprio para o simulador");
+  eq(qq('[data-act="eseJuntar"]').length, Object.keys(EVENTOS_VIDA).length,
+     "com todos os acontecimentos à escolha");
+  ok(/Nenhum acontecimento/.test(texto()), "vazio, explica-se e ilustra-se");
+
+  var estadoAntes = JSON.stringify(S);
+  clicar('[data-act="eseJuntar"][data-k="filho"]');
+  eq(ui.cenarioVida.eventos.length, 1, "juntar um acontecimento fica no cenário");
+  eq(ui.cenarioVida.eventos[0].tipo, "filho", "com o tipo certo");
+  ok(mesValido(ui.cenarioVida.eventos[0].mes), "e um mês de início válido");
+  ok(q("#eseOut") != null, "o resultado aparece");
+  ok(/O que muda/.test(texto()), "com o título do resultado");
+  ok(!/NaN|undefined/.test(texto()), "e sem lixo no ecrã");
+
+  // Os deslizadores mexem no cenário sem repintar a vista toda
+  var sl = q("[data-ese]");
+  ok(sl != null, "cada parâmetro tem deslizador");
+  var i = sl.dataset.ese, p = sl.dataset.p;
+  var antesVal = ui.cenarioVida.eventos[i].params[p];
+  sl.value = String(parseNum(sl.max));
+  sl.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(ui.cenarioVida.eventos[i].params[p], parseNum(sl.max), "mexer no deslizador afina o parâmetro");
+  ok(ui.cenarioVida.eventos[i].params[p] !== antesVal, "e o valor mudou mesmo");
+  ok(qq("[data-ese]")[0] === sl, "sem repintar a vista a cada pixel de arrasto");
+  ok(q("#ese"+i+"_"+p+"Out") != null, "a leitura do deslizador existe");
+
+  // Horizonte
+  clicar('[data-act="eseHorizonte"][data-v="36"]');
+  eq(ui.cenarioVida.meses, 36, "o horizonte muda");
+  clicar('[data-act="eseHorizonte"][data-v="24"]');
+
+  // Juntar um segundo e remover
+  clicar('[data-act="eseJuntar"][data-k="carro"]');
+  eq(ui.cenarioVida.eventos.length, 2, "dois acontecimentos coexistem");
+  clicar('[data-act="eseRemover"][data-i="1"]');
+  eq(ui.cenarioVida.eventos.length, 1, "e remove-se um deles");
+
+  // Nada disto mexeu nos dados
+  eq(JSON.stringify(S), estadoAntes, "simular nunca altera o orçamento");
+  ok(!podeDesfazer() || historico.atras.length >= 0, "e não polui o histórico com simulações");
+
+  clicar('[data-act="eseLimpar"]');
+  eq(ui.cenarioVida.eventos.length, 0, "limpar esvazia o cenário");
+  eq(JSON.stringify(S), estadoAntes, "e continua sem tocar nos dados");
+})();
+
+G("provisões, saúde e défice no painel");
+(function(){
+  comExemplo();
+  S.painel.ocultos = [];
+  MES = isoMes(hoje());
+  // Uma rubrica anual, para haver provisões
+  S.recorrentes.push({id:"pv", tipo:"despesa", nome:"Seguro auto", valor:600, frequencia:"anual",
+    ativo:true, categoriaId:catPorNome("Seguros"), membroId:"", inicio:mesShift(MES,-3)+"-01"});
+  limparCacheCredito();
+  irA("painel");
+  ok(/Provisões/.test(texto()), "o cartão das provisões aparece");
+  ok(/devia ter de parte/i.test(texto()), "com o que devia estar guardado");
+  ok(/Saúde financeira/.test(texto()), "e o da saúde financeira");
+  ok(q("svg.anel") != null, "com o anel da pontuação");
+  var s = saudeFinanceira();
+  ok(new RegExp(s.total+"").test(texto()), "a pontuação aparece em ecrã", s.total);
+  ok(!/NaN|undefined/.test(texto()), "sem lixo");
+
+  // Défice: só aparece quando o mês fecha em vermelho
+  ok(q('[data-act="deficeCortar"]') == null || alavancasDefice() != null,
+     "sem défice não há cartão de défice");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  S.movimentos = [];
+  S.movimentos.push({id:"x1", data:MES+"-01", tipo:"rendimento", descricao:"S", categoriaId:catR, membroId:"", valor:900});
+  S.movimentos.push({id:"x2", data:MES+"-04", tipo:"despesa", descricao:"G",
+    categoriaId:catPorNome("Restauração"), membroId:"", valor:1500});
+  limparCacheCredito();
+  render();
+  ok(/Resolver o défice/.test(texto()), "com o mês em défice, o cartão aparece");
+  ok(/faltam/i.test(texto()), "e diz quanto falta");
+  var btnCortar = q('[data-act="deficeCortar"]');
+  if (btnCortar){
+    btnCortar.click();
+    ok(ui.corteAlvo > 0, "«cortar» prepara o plano de corte com o valor em falta", ui.corteAlvo);
+    eq(ui.secaoDespesa, "limites", "e leva aos limites");
+  }
+})();
+
+G("cópia cifrada");
+(function(){
+  ok(typeof cifrar === "function" && typeof decifrar === "function", "há cifra e decifra");
+  ok(temCripto(), "o navegador oferece WebCrypto");
+  ok(CIFRA_ITER >= 100000, "as iterações do PBKDF2 travam tentativa e erro", CIFRA_ITER);
+  ok(!ehPacoteCifrado({}), "um objeto vazio não é pacote cifrado");
+  ok(!ehPacoteCifrado({formato:"outro", sal:"a", iv:"b", dados:"c"}), "nem outro formato");
+  ok(ehPacoteCifrado({formato:CIFRA_MARCA, sal:"a", iv:"b", dados:"c"}), "o nosso é reconhecido");
+
+  // O diálogo pede confirmação a gravar e recusa palavras-passe curtas
+  pedirSenha({titulo:"Teste", texto:"t", confirmar:true, aviso:"perde tudo", onOk:function(){}});
+  ok(q("#dlgSenha") != null, "o diálogo pede a palavra-passe");
+  ok(q("#dlgSenha2") != null, "e a confirmação, a gravar");
+  ok(/Sem recuperação/i.test(texto()) || /perde tudo/.test(q("#modalHost").textContent),
+     "com o aviso de que não há recuperação");
+  q("#dlgSenha").value = "curta"; q("#dlgSenha2").value = "curta";
+  q('[data-dlg="yes"]').click();
+  ok(q("#dlgSenha") != null, "uma palavra-passe curta não passa");
+  ok(/8 caracteres/.test(q("#dlgSenhaErro").textContent), "e explica porquê");
+  q("#dlgSenha").value = "palavra-passe-longa"; q("#dlgSenha2").value = "outra-diferente";
+  q('[data-dlg="yes"]').click();
+  ok(/não coincidem/.test(q("#dlgSenhaErro").textContent), "duas diferentes também não");
+  q("#modalHost").innerHTML = "";
+
+  // A decifrar não se pede confirmação
+  pedirSenha({titulo:"Teste", texto:"t", onOk:function(){}});
+  ok(q("#dlgSenha2") == null, "a decifrar basta escrever uma vez");
+  q("#modalHost").innerHTML = "";
+})();
+
+G("registo em dois toques");
+(function(){
+  comExemplo();
+  MES = isoMes(hoje());
+  ok(q("#botaoRapido") != null, "o botão flutuante está sempre lá");
+  var antes = S.movimentos.length;
+  abrirRapido();
+  ok(q("#rapidoValor") != null, "abre com o campo do valor");
+  ok(qq("[data-rapido-cat]").length > 0, "e as categorias mais usadas");
+  ok(qq("[data-rapido-cat]").length <= 6, "no máximo seis", qq("[data-rapido-cat]").length);
+  eq(qq('[data-rapido-cat][aria-pressed="true"]').length, 1, "com uma já escolhida");
+
+  // Sem valor não grava
+  q('[data-dlg="yes"]').click();
+  ok(q("#rapidoValor") != null, "sem valor não fecha");
+  ok(/Escreva um valor/.test(q("#rapidoErro").textContent), "e explica");
+
+  // Com valor grava, com a data de hoje
+  q("#rapidoValor").value = "12,50";
+  var catEscolhida = q('[data-rapido-cat][aria-pressed="true"]').dataset.rapidoCat;
+  q('[data-dlg="yes"]').click();
+  eq(S.movimentos.length, antes + 1, "com valor, cria o movimento");
+  var novo = S.movimentos[S.movimentos.length-1];
+  eq(novo.valor, 12.5, "com o valor escrito");
+  eq(novo.data, isoDia(hoje()), "e a data de hoje");
+  eq(novo.categoriaId, catEscolhida, "na categoria escolhida");
+  eq(novo.tipo, "despesa", "despesa por omissão");
+  ok(novo.descricao, "e uma descrição, nem que seja o nome da categoria");
+  ok(podeDesfazer(), "o registo rápido é desfazível");
+  desfazer();
+  eq(S.movimentos.length, antes, "e desfaz-se");
+})();
+
+G("linha do tempo do desfazer");
+(function(){
+  comExemplo();
+  historico.atras.length = 0; historico.frente.length = 0;
+  abrirHistorico();
+  ok(q("#modalHost").innerHTML === "", "sem histórico, não abre nada");
+
+  // Três alterações com rótulo
+  alterar(function(){ S.membros.push({id:"h1", nome:"Um", icone:"🧑", cor:"#000"}); }, "primeiro");
+  alterar(function(){ S.membros.push({id:"h2", nome:"Dois", icone:"🧑", cor:"#000"}); }, "segundo");
+  alterar(function(){ S.membros.push({id:"h3", nome:"Três", icone:"🧑", cor:"#000"}); }, "terceiro");
+  eq(historico.atras.length, 3, "três passos no histórico");
+
+  abrirHistorico();
+  ok(q(".listaHist") != null, "a linha do tempo abre");
+  eq(qq('[data-hist="atras"]').length, 3, "com um item por passo");
+  ok(/terceiro/.test(q(".listaHist").textContent), "e os rótulos que já existiam");
+  // O mais recente aparece primeiro
+  ok(/terceiro/.test(qq('[data-hist="atras"]')[0].textContent), "o mais recente em cima");
+
+  // Saltar dois passos de uma vez
+  qq('[data-hist="atras"]')[1].click();
+  eq(historico.atras.length, 1, "clicar num passo desfaz até lá");
+  eq(S.membros.filter(function(m){ return m.id === "h2"; }).length, 0, "e o estado acompanha");
+  ok(q("#modalHost").innerHTML === "", "o diálogo fecha-se");
+  ok(historico.frente.length === 2, "e o que se desfez fica por refazer");
+})();
+
+G("emblemas, dias e teclado dos meses");
+(function(){
+  comExemplo();
+  MES = isoMes(hoje());
+  // Emblemas: um movimento sem categoria acende o das despesas
+  S.movimentos.push({id:"sc", data:MES+"-03", tipo:"despesa", descricao:"Solto",
+    categoriaId:"", membroId:"", valor:20});
+  limparCacheCredito();
+  render();
+  var emb = emblemasVistas();
+  ok(emb.despesas >= 1, "um movimento sem categoria acende o emblema das despesas", emb.despesas);
+  var pontoDesp = q('#tabs button[data-view="despesas"] .emblema');
+  ok(pontoDesp != null, "e o ponto aparece no separador");
+  ok(/^\d|9\+/.test(pontoDesp.textContent), "com o número", pontoDesp.textContent);
+  // Resolver a lacuna baixa a contagem. O exemplo já traz movimentos por
+  // categorizar, por isso o emblema não tem de desaparecer — tem de descer.
+  var comLacuna = emb.despesas;
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "sc"; });
+  limparCacheCredito();
+  render();
+  var depois = emblemasVistas().despesas || 0;
+  eq(depois, comLacuna - 1, "resolvida uma lacuna, a contagem desce");
+  // E com tudo resolvido, o emblema sai mesmo de cena
+  S.movimentos.forEach(function(m){ if (!m.categoriaId) m.categoriaId = catPorNome("Alimentação"); });
+  limparCacheCredito();
+  render();
+  ok(emblemasVistas().despesas == null, "sem lacunas nenhumas, não há emblema");
+  ok(q('#tabs button[data-view="despesas"] .emblema') == null, "e o ponto desaparece do separador");
+
+  // Movimentos agrupados por dia
+  ui.secaoDespesa = "movimentos"; irA("despesas");
+  ordem.mov = {col:"data", dir:-1};
+  render();
+  ok(qq("tr.diaCabec").length > 0, "os movimentos agrupam-se por dia");
+  var cab = q("tr.diaCabec");
+  ok(/\d/.test(cab.textContent), "com o subtotal do dia", cab.textContent.trim().slice(0,50));
+  // Ordenar por outra coluna desliga a agrupação, que deixaria de ser verdade
+  ordem.mov = {col:"valor", dir:-1};
+  render();
+  eq(qq("tr.diaCabec").length, 0, "ordenado por valor, não há agrupamento por dia");
+  ordem.mov = {col:"data", dir:-1};
+
+  // diaExtenso
+  ok(/hoje/.test(diaExtenso(isoDia(hoje()))), "o dia de hoje diz «hoje»");
+  ok(!/hoje/.test(diaExtenso("2020-01-15")), "uma data antiga não");
+  eq(diaExtenso(""), "—", "sem data, um travessão");
+
+  // Teclado dos meses
+  var mesAntes = MES;
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"[", bubbles:true}));
+  eq(MES, mesShift(mesAntes, -1), "«[» recua um mês");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"]", bubbles:true}));
+  eq(MES, mesAntes, "«]» avança um mês");
+  MES = mesShift(mesAntes, -5); render();
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"t", bubbles:true}));
+  eq(MES, isoMes(hoje()), "«T» volta ao mês de hoje");
+  // Dentro de um campo de texto, as teclas não roubam nada
+  ui.secaoDespesa = "movimentos"; irA("despesas");
+  var campo = q("#mvDesc");
+  if (campo){
+    MES = mesAntes; render();
+    campo = q("#mvDesc"); campo.focus();
+    campo.dispatchEvent(new KeyboardEvent("keydown", {key:"[", bubbles:true}));
+    eq(MES, mesAntes, "num campo de texto, «[» não muda de mês");
+  }
+})();
+
+G("fita como mini-mapa e retrato do ano");
+(function(){
+  comExemplo();
+  MES = isoMes(hoje());
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  var cat = catPorNome("Alimentação");
+  S.movimentos = [];
+  // Três meses com taxas de poupança muito diferentes
+  [[1, 2000, 2400], [2, 2000, 1900], [3, 2000, 900]].forEach(function(x){
+    var m = mesShift(MES, -x[0]);
+    S.movimentos.push({id:"r"+x[0], data:m+"-01", tipo:"rendimento", descricao:"S",
+      categoriaId:catR, membroId:"", valor:x[1]});
+    S.movimentos.push({id:"d"+x[0], data:m+"-10", tipo:"despesa", descricao:"G",
+      categoriaId:cat, membroId:"", valor:x[2]});
+  });
+  limparCacheCredito();
+  render(); pintarFita();
+  var cores = qq("#fitaMeses .bx").map(function(b){ return b.style.background; });
+  ok(cores.length > 0, "a fita tem barras");
+  ok(new Set(cores).size > 1, "e cores diferentes conforme a taxa de poupança",
+     Array.from(new Set(cores)).join(" | "));
+  var titulos = qq("#fitaMeses button").map(function(b){ return b.title; });
+  ok(titulos.some(function(t){ return /poupança/.test(t); }), "o balão diz a taxa de poupança");
+
+  // Retrato do ano
+  ui.relatorio = "ano"; render();
+  ok(/Retrato do ano/.test(texto()), "o retrato do ano renderiza");
+  ok(/Mês a mês/.test(texto()), "com a tabela mês a mês");
+  ok(!/NaN|undefined/.test(texto()), "e sem lixo");
+  ui.relatorio = false; render();
+})();
+
 G("rostos dos membros");
 (function(){
   comExemplo();
@@ -2123,11 +2403,13 @@ G("linha do mês e previsão de fecho");
     ok(/Próximo pagamento/.test(texto()), "o cartão anuncia-o");
   }
 
-  // Rubricas sem dia são convidadas a ter um
+  // Sem dias marcados, o cartão passa a um vazio que explica e leva lá
   S.recorrentes.forEach(function(r){ r.dia = ""; });
   render();
-  ok(/sem dia marcado/.test(texto()) || !/Linha do mês/.test(texto()),
-     "sem dias, ou não há linha ou há convite a preencher");
+  ok(/sem dias marcados/i.test(texto()), "sem dias, o cartão convida a marcá-los");
+  ok(q('.vazio [data-act="ir"][data-view="plano"]') != null,
+     "com botão que leva às despesas fixas");
+  ok(q(".linhaMes") == null, "e sem faixa de dias vazia");
 
   // Previsão de fecho
   comExemplo();

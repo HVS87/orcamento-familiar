@@ -631,6 +631,14 @@ G("aparência: paletas, densidade, texto e contraste");
   S.painel.ocultos = [];
   var paletas = Object.keys(PALETAS);
   var combinacoes = 0;
+  /* Medir transbordo numa janela sem largura não quer dizer nada: qualquer
+     conteúdo «transborda» zero pixels. Acontece quando a página corre num
+     separador oculto ou num painel recolhido — aí verifica-se só que
+     renderiza e não escreve lixo, e diz-se que a medida ficou de fora. */
+  var podeMedir = window.innerWidth > 100;
+  ok(true, podeMedir
+    ? "a janela tem largura para medir transbordos ("+window.innerWidth+"px)"
+    : "janela sem largura ("+window.innerWidth+"px): a medida de transbordo fica de fora");
   paletas.forEach(function(pal){
     ["conforto","compacta"].forEach(function(den){
       ["normal","grande","maior"].forEach(function(txt){
@@ -641,9 +649,10 @@ G("aparência: paletas, densidade, texto e contraste");
           VISTAS_TODAS.forEach(function(v){
             if (v === "despesas") ui.secaoDespesa = "planear";
             try { irPara(v); } catch(e){ ok(false, etq + " " + v + ": renderiza", e.message); return; }
-            ok(document.documentElement.scrollWidth <= window.innerWidth + 1,
-               etq + " " + v + ": não transborda na horizontal",
-               document.documentElement.scrollWidth + " > " + window.innerWidth);
+            if (podeMedir)
+              ok(document.documentElement.scrollWidth <= window.innerWidth + 1,
+                 etq + " " + v + ": não transborda na horizontal",
+                 document.documentElement.scrollWidth + " > " + window.innerWidth);
             ok(!LIXO.test(document.getElementById("app").innerText), etq + " " + v + ": sem lixo no ecrã");
           });
           combinacoes++;

@@ -2524,6 +2524,244 @@ G("sequências, património no tempo e plano de corte");
   MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
 })();
 
+G("provisões, saúde financeira e alavancas do défice");
+(function(){
+  var guardado = JSON.stringify(S), mesGuardado = MES;
+  S = estadoVazio(); MES = "2026-07";
+  var cat = catPorNome("Seguros");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+
+  // Próxima ocorrência de uma rubrica não mensal
+  var anual = {id:"a1", tipo:"despesa", nome:"Seguro auto", valor:600, frequencia:"anual",
+    ativo:true, categoriaId:cat, membroId:"", inicio:"2026-03-01"};
+  S.recorrentes.push(anual);
+  eq(proximaOcorrencia(anual, "2026-03"), "2026-03", "no mês da âncora, é esse mês");
+  eq(proximaOcorrencia(anual, "2026-04"), "2027-03", "no mês seguinte, é daqui a onze");
+  eq(proximaOcorrencia(anual, "2026-09"), "2027-03", "a meio do ciclo, o próximo março");
+  var trim = {id:"t1", tipo:"despesa", nome:"Água", valor:90, frequencia:"trimestral",
+    ativo:true, categoriaId:cat, membroId:"", inicio:"2026-01-01"};
+  S.recorrentes.push(trim);
+  eq(proximaOcorrencia(trim, "2026-02"), "2026-04", "trimestral salta de três em três");
+  eq(proximaOcorrencia(trim, "2026-04"), "2026-04", "e acerta no mês do ciclo");
+  var mensal = {id:"m1", tipo:"despesa", nome:"Renda", valor:700, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:""};
+  eq(proximaOcorrencia(mensal, "2026-05"), "2026-05", "uma mensal é sempre este mês");
+
+  var pr = provisoes("2026-07");
+  ok(pr.linhas.length === 2, "só as não mensais entram nas provisões", pr.linhas.length);
+  ok(pr.linhas.every(function(x){ return x.devia >= 0 && x.devia <= x.total + 0.01; }),
+     "o provisionado nunca passa o total da rubrica nem fica negativo");
+  ok(pr.linhas.every(function(x){ return x.porMes > 0 && x.porMes <= x.total; }),
+     "a quota mensal é positiva e menor do que o total");
+  eq(pr.porMes, 600/12 + 90/3, "a provisão mensal soma as quotas de cada rubrica", 0.01);
+  eq(pr.doze, 600 + 90*4, "e o custo anual soma as ocorrências do ano", 0.01);
+  ok(pr.devia <= pr.linhas.reduce(function(s,x){ return s + x.total; }, 0) + 0.01,
+     "o total a ter de parte nunca passa a soma das rubricas");
+  ok(pr.disponivel <= pr.liquidez + 0.01, "o disponível nunca passa a liquidez");
+
+  // Saúde financeira
+  S = estadoVazio(); MES = isoMes(hoje());
+  var s0 = saudeFinanceira();
+  ok(s0.total >= 0 && s0.total <= 100, "a pontuação vive entre 0 e 100", s0.total);
+  eq(COMPONENTES_SAUDE.reduce(function(a,c){ return a + c.peso; }, 0), 100,
+     "os pesos dos componentes somam 100");
+  ok(s0.partes.length === COMPONENTES_SAUDE.length, "todos os componentes são medidos");
+  ok(s0.partes.every(function(x){ return x.nota >= 0 && x.nota <= 1; }),
+     "cada nota fica entre 0 e 1");
+  ok(s0.partes.every(function(x){ return x.pontos <= x.peso + 0.01; }),
+     "e nenhum componente dá mais pontos do que o seu peso");
+  ok(["Sólida","Razoável","Frágil","Em risco"].indexOf(s0.nivel.lbl) >= 0,
+     "o nível tem nome", s0.nivel.lbl);
+
+  // Um orçamento saudável pontua mais do que um em apuros
+  S = estadoVazio(); MES = isoMes(hoje());
+  var catAli = catPorNome("Alimentação");
+  S.ativos.push({id:"liq", nome:"Conta", classe:"corrente", atual:20000, aquisicao:20000,
+    encargos:[], rendimentos:[], aportes:[]});
+  S.movimentos.push({id:"r1", data:MES+"-01", tipo:"rendimento", descricao:"S", categoriaId:catR, membroId:"", valor:3000});
+  S.movimentos.push({id:"d1", data:MES+"-05", tipo:"despesa", descricao:"G", categoriaId:catAli, membroId:"", valor:1500});
+  limparCacheCredito();
+  var bom = saudeFinanceira().total;
+  S.ativos = [];
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "d1"; });
+  S.movimentos.push({id:"d2", data:MES+"-05", tipo:"despesa", descricao:"G", categoriaId:catAli, membroId:"", valor:2950});
+  limparCacheCredito();
+  var mau = saudeFinanceira().total;
+  ok(bom > mau, "um orçamento com reserva e poupança pontua mais", bom+" vs "+mau);
+
+  // A taxa de esforço até 20% não penaliza
+  var comp = COMPONENTES_SAUDE.filter(function(c){ return c.k === "esforco"; })[0];
+  ok(comp != null, "há componente de esforço com créditos");
+
+  // Alavancas do défice
+  S = estadoVazio(); MES = isoMes(hoje());
+  S.movimentos.push({id:"rr", data:MES+"-01", tipo:"rendimento", descricao:"S", categoriaId:catR, membroId:"", valor:1000});
+  S.movimentos.push({id:"dd", data:MES+"-05", tipo:"despesa", descricao:"G", categoriaId:catPorNome("Restauração"), membroId:"", valor:1600});
+  limparCacheCredito();
+  var al = alavancasDefice();
+  ok(al != null, "com o mês em défice há alavancas");
+  if (al){
+    ok(al.falta > 0, "e um valor em falta", al.falta);
+    ok(al.alavancas.length > 0, "com pelo menos uma alavanca");
+    ok(al.alavancas.every(function(x){ return x.valor >= 0 && isFinite(x.valor); }),
+       "cada alavanca vale um número não negativo");
+    for (var i = 1; i < al.alavancas.length; i++)
+      ok(al.alavancas[i-1].valor >= al.alavancas[i].valor, "ordenadas pela que mais rende");
+  }
+  // Com saldo positivo não há cartão nenhum
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "dd"; });
+  limparCacheCredito();
+  ok(alavancasDefice() === null, "sem défice não há alavancas a propor");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("eventos de vida — o orçamento noutra vida");
+(function(){
+  var guardado = JSON.stringify(S), mesGuardado = MES;
+  S = estadoVazio(); MES = isoMes(hoje());
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  var catAli = catPorNome("Alimentação");
+  S.recorrentes.push({id:"rd", tipo:"rendimento", nome:"Salário", valor:2500, frequencia:"mensal",
+    ativo:true, categoriaId:catR, membroId:""});
+  S.recorrentes.push({id:"dp", tipo:"despesa", nome:"Compras", valor:600, frequencia:"mensal",
+    ativo:true, categoriaId:catAli, membroId:""});
+  S.ativos.push({id:"liq", nome:"Conta", classe:"corrente", atual:15000, aquisicao:15000,
+    encargos:[], rendimentos:[], aportes:[]});
+  limparCacheCredito();
+  var base = planoMes(MES);
+
+  // Todos os eventos têm a forma esperada
+  Object.keys(EVENTOS_VIDA).forEach(function(k){
+    var ev = EVENTOS_VIDA[k];
+    ok(typeof ev.lbl === "string" && ev.lbl.length > 0, k+": tem nome");
+    ok(typeof ev.icone === "string" && ev.icone.length > 0, k+": tem ícone");
+    ok(typeof ev.desc === "string" && ev.desc.length > 10, k+": explica-se");
+    ok(Array.isArray(ev.params) && ev.params.length > 0, k+": tem parâmetros");
+    ev.params.forEach(function(p){
+      ok(p.k && p.lbl, k+"."+p.k+": parâmetro identificado");
+      ok(p.valor >= p.min && p.valor <= p.max, k+"."+p.k+": o valor por omissão está no intervalo",
+         p.valor+" em ["+p.min+","+p.max+"]");
+      ok(p.passo > 0, k+"."+p.k+": tem passo positivo");
+    });
+    // Montar não rebenta e devolve mexidas com tipo conhecido
+    var mex = ev.montar(paramsEvento(k), mesShift(MES, 1));
+    ok(Array.isArray(mex) && mex.length > 0, k+": montar produz mexidas");
+    mex.forEach(function(m){
+      ok(["despesa","rendimento","rendimentoFixo","pontual","fim"].indexOf(m.tipo) >= 0,
+         k+": mexida de tipo conhecido", m.tipo);
+    });
+  });
+
+  // Sem eventos, o cenário é o plano
+  var p0 = planoComEventos(MES, []);
+  eq(p0.rend, base.rend, "sem eventos o rendimento é o mesmo", 0.01);
+  eq(p0.desp, base.desp, "e a despesa também", 0.01);
+  eq(p0.pontual, 0, "e não há pontuais");
+
+  // Um evento antes de começar não mexe em nada
+  var evs = [{tipo:"filho", mes: mesShift(MES, 3), params: paramsEvento("filho")}];
+  var antes = planoComEventos(MES, evs);
+  eq(antes.desp, base.desp, "antes do mês de início, a despesa não muda", 0.01);
+  var depois = planoComEventos(mesShift(MES, 3), evs);
+  ok(depois.desp > base.desp, "no mês do início, a despesa sobe", depois.desp+" vs "+base.desp);
+  eq(depois.rend - depois.desp, depois.saldo, "e o saldo do cenário fecha", 0.01);
+
+  // Tempo parcial corta a percentagem certa
+  var tp = [{tipo:"tempoParcial", mes: MES, params:{percentagem: 80}}];
+  var cp = planoComEventos(MES, tp);
+  eq(base.rend - cp.rend, base.rend * 0.2, "80% de trabalho tira 20% do rendimento", 0.01);
+
+  // Desemprego acaba quando acaba
+  var de = [{tipo:"desemprego", mes: MES, params:{meses: 3, subsidio: 800}}];
+  var m0 = planoComEventos(MES, de);
+  var m4 = planoComEventos(mesShift(MES, 4), de);
+  ok(m0.rend < base.rend, "durante o desemprego o rendimento cai");
+  eq(m4.rend, base.rend, "e ao quarto mês volta ao normal", 0.01);
+
+  // Os pontuais caem uma vez só, no mês certo
+  var carro = [{tipo:"carro", mes: mesShift(MES,1), params: paramsEvento("carro")}];
+  eq(planoComEventos(MES, carro).pontual, 0, "o pontual não cai antes do mês");
+  ok(planoComEventos(mesShift(MES,1), carro).pontual > 0, "cai no mês do evento");
+  eq(planoComEventos(mesShift(MES,2), carro).pontual, 0, "e não se repete no mês seguinte");
+
+  // A tesouraria do cenário acumula, como a real
+  var t = tesourariaCenario(24, evs);
+  eq(t.length, 24, "a tesouraria do cenário projeta o horizonte pedido");
+  for (var i = 1; i < t.length; i++)
+    ok(Math.abs(t[i].acumulado - (t[i-1].acumulado + t[i].saldo)) < 0.02,
+       "e acumula mês a mês");
+  ok(t.every(function(x){ return isFinite(x.acumulado); }), "com números finitos");
+
+  // A comparação usa o mês em que o cenário está em pleno
+  var c = compararCenario(evs, 24);
+  eq(c.mesRegime, mesShift(MES, 3), "o regime é o mais tardio dos inícios");
+  eq(c.rendDepois - c.despDepois, c.saldoDepois, "as contas do cenário fecham", 0.01);
+  eq(c.real.length, c.cen.length, "as duas séries têm o mesmo comprimento");
+  ok(c.detalhe.length > 0, "e há detalhe do que muda");
+  ok(c.detalhe.every(function(d){ return d.nome && isFinite(d.valor); }),
+     "cada linha do detalhe tem nome e valor");
+
+  // Dois eventos somam-se
+  var dois = [{tipo:"filho", mes: MES, params: paramsEvento("filho")},
+              {tipo:"carro", mes: MES, params: paramsEvento("carro")}];
+  var c2 = compararCenario(dois, 24);
+  var so1 = compararCenario([dois[0]], 24);
+  ok(c2.pontualTotal > so1.pontualTotal, "dois eventos trazem mais encargos pontuais");
+
+  // Nada disto toca nos dados
+  var estadoAgora = JSON.stringify(S);
+  compararCenario(dois, 36);
+  eq(JSON.stringify(S), estadoAgora, "simular não altera o estado");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("retrato do ano");
+(function(){
+  var guardado = JSON.stringify(S), mesGuardado = MES;
+  S = estadoVazio(); MES = "2026-07";
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  var cat = catPorNome("Alimentação");
+
+  var vazio = dadosAno("2026");
+  eq(vazio.comDados.length, 0, "um ano sem movimentos não tem meses com dados");
+  eq(vazio.rend, 0, "nem rendimento");
+
+  // Seis meses de 2026 e os mesmos de 2025, para comparar
+  [1,2,3,4,5,6].forEach(function(m){
+    var mm = "2026-"+String(m).padStart(2,"0");
+    S.movimentos.push({id:"a"+m, data:mm+"-10", tipo:"despesa", descricao:"G", categoriaId:cat, membroId:"", valor:400});
+    S.movimentos.push({id:"ar"+m, data:mm+"-01", tipo:"rendimento", descricao:"S", categoriaId:catR, membroId:"", valor:2000});
+    var m5 = "2025-"+String(m).padStart(2,"0");
+    S.movimentos.push({id:"b"+m, data:m5+"-10", tipo:"despesa", descricao:"G", categoriaId:cat, membroId:"", valor:320});
+    S.movimentos.push({id:"br"+m, data:m5+"-01", tipo:"rendimento", descricao:"S", categoriaId:catR, membroId:"", valor:1900});
+  });
+  S.notas["2026-03"] = "Férias";
+  S.fechados["2026-02"] = {em:"2026-03-01"};
+  limparCacheCredito();
+
+  var d = dadosAno("2026");
+  eq(d.comDados.length, 6, "seis meses com movimentos");
+  eq(d.rend, 12000, "o rendimento do ano soma os seis meses", 0.01);
+  eq(d.desp, 2400, "e a despesa também", 0.01);
+  eq(d.saldo, d.rend - d.desp, "o saldo fecha", 0.01);
+  eq(d.taxa, (d.rend - d.desp) / d.rend * 100, "a taxa de poupança é o saldo sobre o rendimento", 0.01);
+  eq(d.notas.length, 1, "as notas do ano são recolhidas");
+  eq(d.fechados, 1, "e os meses fechados contados");
+  eq(d.linhas.length, 12, "as doze linhas existem sempre");
+  ok(d.linhas.filter(function(x){ return !x.temDados; }).length === 6, "seis sem dados");
+
+  var ali = d.cats.filter(function(x){ return x.cat.id === cat; })[0];
+  ok(ali != null, "a categoria com gasto aparece");
+  eq(ali.total, 2400, "com o total do ano", 0.01);
+  eq(ali.antes, 1920, "e o do ano anterior", 0.01);
+  eq(ali.pct, (2400-1920)/1920*100, "a variação face ao ano anterior", 0.01);
+  ok(d.melhor != null && d.pior != null, "há melhor e pior mês");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
 G("escalas de dinheiro dos deslizadores");
 (function(){
   /* Os tetos chegam aos milhões, mas o passo em baixo tem de continuar
