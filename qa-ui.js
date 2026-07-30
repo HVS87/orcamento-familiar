@@ -720,10 +720,12 @@ G("objetivos");
 
 G("estratégias de poupança e investimento");
 (function(){
+  // Os deslizadores de dinheiro movem-se em posições numa escala progressiva:
+  // o teste diz o valor que quer e a conversão é a mesma que a interface usa.
   function deslizar(id, valor){
     var el = document.getElementById(id);
     if (!el) return false;
-    el.value = valor;
+    el.value = el.dataset.escala ? escalaPos(ESCALAS[el.dataset.escala], valor) : valor;
     el.dispatchEvent(new Event("input", {bubbles:true}));
     return true;
   }
@@ -855,6 +857,56 @@ G("deslizadores");
   });
   ok(testados >= 5, "há deslizadores no separador Ativos: " + testados);
 
+  // Deslizadores com escala: teto nos milhões sem perder o passo fino
+  irA("estrategias");
+  var ini = q('[data-slider="estInicial"]');
+  ok(ini != null, "o «já tem poupado» está em ecrã");
+  eq(ini.dataset.escala, "capital", "e usa a escala do capital");
+  eq(ini.step, "1", "o comando move-se em posições");
+  eq(ini.max, String(escalaPassos(ESCALAS.capital)), "com tantas posições quantas a escala tem");
+
+  // Um valor de milionário chega mesmo ao estado
+  ini.value = ini.max; ini.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.inicial, 3000000, "o topo do deslizador vale 3 000 000 €");
+  var esperado = fmtSlider(3000000, " €");
+  eq(q("#estInicialOut").textContent, esperado, "e a leitura mostra-o em euros");
+  eq(ini.getAttribute("aria-valuetext"), esperado, "o leitor de ecrã ouve euros, não a posição");
+  ok(/3\D?000\D?000/.test(esperado), "com os milhões escritos por extenso: "+esperado);
+
+  // E o passo fino em baixo continua a existir
+  ini.value = 1; ini.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.inicial, 100, "uma posição acima de zero são 100 €, não milhares");
+  ini.value = escalaPos(ESCALAS.capital, 8500);
+  ini.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.inicial, 8500, "e 8 500 € são exatamente atingíveis");
+
+  var men = q('[data-slider="estMensal"]');
+  eq(men.dataset.escala, "mensal", "a poupança mensal também tem escala");
+  men.value = men.max; men.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.mensal, 50000, "e chega a 50 000 €/mês");
+  men.value = escalaPos(ESCALAS.mensal, 250);
+  men.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.mensal, 250, "sem perder os 250 €/mês de quem começa");
+
+  // O resultado acompanha valores destes
+  ok(/€/.test(q("#estOut").textContent), "o resultado continua a mostrar-se");
+  ok(!/NaN|undefined|Infinity/.test(texto()), "sem lixo no ecrã com valores de milionário");
+
+  clicar('[data-act="estObjetivo"][data-obj="entrada"]');
+  var casa = q('[data-slider="estPrecoCasa"]');
+  eq(casa.dataset.escala, "casa", "o preço da casa tem escala própria");
+  casa.value = casa.max; casa.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.precoCasa, 3000000, "e chega a 3 000 000 €");
+  ok(/IMT/.test(q("#estOut").textContent), "com o IMT ainda calculado");
+  ok(!/NaN|undefined|Infinity/.test(texto()), "sem lixo numa casa de 3 M€");
+
+  clicar('[data-act="estObjetivo"][data-obj="automovel"]');
+  var auto = q('[data-slider="estPrecoAuto"]');
+  eq(auto.dataset.escala, "auto", "o automóvel tem escala própria");
+  auto.value = auto.max; auto.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(S.estrategia.precoAuto, 500000, "e chega a 500 000 €");
+  clicar('[data-act="estObjetivo"][data-obj="reforma"]');
+
   // Choque de taxa
   irA("creditos");
   var ch = q('[data-slider="choqueTaxa"]');
@@ -894,7 +946,8 @@ G("simulador de um ativo");
 
   // Mexer num comando faz aparecer os botões sem repintar tudo
   var sl = q('[data-slider="simA_contrib"]');
-  sl.value = 500; sl.dispatchEvent(new Event("input", {bubbles:true}));
+  sl.value = escalaPos(ESCALAS[sl.dataset.escala], 500);
+  sl.dispatchEvent(new Event("input", {bubbles:true}));
   eq(ui.simAtivo.contrib, 500, "a simulação regista a contribuição");
   eq(a.contribuicao, contribAntes, "a simulação não altera o ativo");
   ok(q('[data-act="simAplicar"][data-id="' + a.id + '"]') != null,
@@ -908,7 +961,8 @@ G("simulador de um ativo");
 
   // Aplicar ao ativo
   var sl2 = q('[data-slider="simA_contrib"]');
-  sl2.value = 500; sl2.dispatchEvent(new Event("input", {bubbles:true}));
+  sl2.value = escalaPos(ESCALAS[sl2.dataset.escala], 500);
+  sl2.dispatchEvent(new Event("input", {bubbles:true}));
   clicar('[data-act="simAplicar"][data-id="' + a.id + '"]');
   ok(haDialogo(), "aplicar pede confirmação");
   confirmarDialogo();

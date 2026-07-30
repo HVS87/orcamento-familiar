@@ -238,6 +238,10 @@ Metas com valor-alvo e prazo, cada uma com um **anel de progresso** e um **vered
 
 Um separador de **simuladores interativos**, um por objetivo. Escolhe-se o objetivo, o instrumento, a poupança mensal e o horizonte, e a ferramenta projeta o resultado **líquido do imposto português de 2026** de cada instrumento — com deslizadores que recalculam ao vivo.
 
+Os montantes vão até onde é preciso: **3 000 000 €** de capital já poupado, **3 000 000 €** de preço da casa, **500 000 €** de automóvel e **50 000 €/mês** de entrega (poupança, reforço de PPR ou amortização extra). Um deslizador linear com estes tetos daria passos de milhares no intervalo onde a maioria dos orçamentos vive, por isso as escalas de dinheiro são **progressivas** — o capital anda de 100 em 100 € até aos 10 000 €, de 1 000 em 1 000 até aos 100 000, de 10 000 em 10 000 até ao milhão e de 25 000 em 25 000 até aos três. O comando move-se em posições e o valor em euros aparece na leitura e no `aria-valuetext`, para quem usa leitor de ecrã. Valores como 8 500 € ou 1 250 000 € são exatamente atingíveis.
+
+Subir o teto do deslizador **não altera limites legais**: a dedução do PPR à coleta continua limitada a 400 €/ano até aos 35 anos, 350 € dos 35 aos 50 e 300 € acima disso, por muito que se entregue.
+
 Cinco objetivos, cada um com os instrumentos que costumam fazer-lhe sentido:
 
 | Objetivo | O que calcula | Instrumentos sugeridos |
@@ -488,7 +492,7 @@ Organização do código dentro do `<script>`:
 
 ### Testes
 
-Quatro suites, 15 004 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
+Quatro suites, 15 110 asserções, executadas dentro da própria aplicação. Para as correr, abra a app e cole na consola:
 
 ```js
 ["/qa.js","/qa-ui.js","/qa-limites.js","/qa-fuzz.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
@@ -498,8 +502,8 @@ Quatro suites, 15 004 asserções, executadas dentro da própria aplicação. Pa
 
 | Ficheiro | O que cobre | Asserções |
 | --- | --- | --- |
-| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), planeamento de compras grandes (folga por trimestre, melhor altura), coerência do exemplo e do código | 3924 |
-| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), planear despesa (analisar, marcar, reservar, realizar, anular), explicador, diálogo, exportação | 867 |
+| `qa.js` | cálculo puro: parsing, aritmética de meses, amortização (incluindo reforço e ordem de amortização), TIR, tabelas de retenção, fiscalidade, prestações sociais (parental, risco, abono, majorações <36 meses, deficiência, pré-natal, parto múltiplo, prematuridade), estratégias de investimento (IMT/selo na compra, regime fiscal por instrumento, simulador, esforço para a meta), projeções, migração, passe de cálculo (plano e movimentos), planeamento de compras grandes (folga por trimestre, melhor altura), escalas de dinheiro dos deslizadores (monotonia, ida e volta, tetos e limite legal do PPR), coerência do exemplo e do código | 4009 |
+| `qa-ui.js` | interações: cada vista, formulário, validação em linha, deslizador, ordenação, gráfico, calculadoras de prestações, estratégias e a sua execução no orçamento, paleta de comandos e procura de dados, painel de atenção, saúde dos dados, regras e recorrências, ritmo dos limites, mapa anual, tesouraria, cenários, seleção em lote, edição em linha, navegação por teclado, arranque por perfil, estados vazios, acessibilidade, relatório, desfazer e refazer, autosave e restauro de sessão, eliminação com anulação, navegação móvel, objetivos, visita guiada, temas, Sankey, calendário de calor, importador CSV, painel personalizável, fita de meses, comparação de meses, amortização, «posso pagar isto?», duplicar, copiar mês, expressões nos campos, minigráficos, derivação dos números, toque (folha de ações, reordenar por botões, ordenação em modo cartão), planear despesa (analisar, marcar, reservar, realizar, anular), deslizadores com escala até aos milhões sem perder o passo fino, explicador, diálogo, exportação | 888 |
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, compras planeadas com datas impossíveis, volume, identidades contabilísticas | 6604 |
 | `qa-fuzz.js` | estados aleatórios: 58 agregados inteiros gerados ao acaso (membros, rendimentos, rubricas, movimentos, ativos, créditos, objetivos e compras planeadas, com valores hostis à mistura) mais um **macaco** que dá 45 cliques ao acaso sobre 8 desses agregados, verificando as invariantes a cada passo | 3609 |
 

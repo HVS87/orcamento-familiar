@@ -7111,12 +7111,12 @@ function viewEstrategias(){
   let alvoControlos = "";
   if (o.casa){
     alvoControlos =
-      slider("estPrecoCasa","Preço da casa", parseNum(e.precoCasa), 50000, 800000, 5000, " €")+
+      slider("estPrecoCasa","Preço da casa", parseNum(e.precoCasa), 50000, 3000000, 5000, " €", "casa")+
       slider("estLtv","Financiamento do banco", parseNum(e.ltv), 50, 100, 5, "%")+
       '<label style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;margin:6px 0 2px">'+
         '<input type="checkbox" id="estJovem"'+(e.jovemImt ? " checked" : "")+'> Comprador jovem até 35 anos (isenção de IMT e Imposto de Selo)</label>';
   } else if (o.auto){
-    alvoControlos = slider("estPrecoAuto","Preço do automóvel", parseNum(e.precoAuto), 3000, 80000, 1000, " €");
+    alvoControlos = slider("estPrecoAuto","Preço do automóvel", parseNum(e.precoAuto), 3000, 500000, 1000, " €", "auto");
   } else if (o.emergencia){
     alvoControlos = slider("estMesesEmerg","Meses de despesa a cobrir", parseNum(e.mesesEmerg), 1, 12, 1, " meses");
   }
@@ -7126,9 +7126,9 @@ function viewEstrategias(){
   const controlos =
     '<div class="row" style="margin-bottom:4px">'+selInstr+'</div>'+
     '<div class="grid g2" style="gap:2px 24px">'+
-      slider("estMensal","Poupança mensal", parseNum(e.mensal), 0, 2000, 10, " €")+
+      slider("estMensal","Poupança mensal", parseNum(e.mensal), 0, 50000, 10, " €", "mensal")+
       slider("estAnos","Horizonte", parseNum(e.anos), 1, 40, 1, " anos")+
-      slider("estInicial","Já tem poupado", parseNum(e.inicial), 0, 100000, 500, " €")+
+      slider("estInicial","Já tem poupado", parseNum(e.inicial), 0, 3000000, 500, " €", "capital")+
       slider("estCresc","O reforço cresce", parseNum(e.crescAnual), 0, 10, 0.5, "%/ano")+
       slider("estInfl","Inflação estimada", parseNum(e.inflacao), 0, 8, 0.25, "%")+
       controloIdade+
@@ -7285,12 +7285,65 @@ function cartaoCenarios(simAtual){
 /* ------------------------------- Investimentos ------------------------------- */
 
 /** Comando de deslizador com leitura ao vivo. */
-function slider(id, rotulo, valor, min, max, passo, sufixo){
-  const v = Number.isFinite(valor) ? valor : min;
+/* ---------------------------------------------------------------
+   Escalas de dinheiro
+
+   Um teto de 3 000 000 € com passo linear daria passos de milhares
+   no intervalo onde a maioria dos orçamentos vive: cada pixel de
+   arrasto valeria dez mil euros. Estas escalas são progressivas —
+   passo fino em baixo, grosso em cima — e o deslizador passa a
+   mover-se em posições, com o valor em euros derivado delas.
+   Cada tramo é [de, até, passo].
+   --------------------------------------------------------------- */
+const ESCALAS = {
+  // Capital acumulado: poupanças, carteiras, PPR já constituído
+  capital: [[0, 10000, 100], [10000, 100000, 1000], [100000, 1000000, 10000], [1000000, 3000000, 25000]],
+  // Entregas mensais: poupança, reforço de PPR, amortização extra
+  mensal:  [[0, 2000, 10], [2000, 20000, 100], [20000, 50000, 500]],
+  // Habitação
+  casa:    [[50000, 300000, 5000], [300000, 1000000, 25000], [1000000, 3000000, 50000]],
+  // Automóvel
+  auto:    [[3000, 100000, 1000], [100000, 500000, 5000]],
+};
+
+/** Quantas posições tem a escala. */
+function escalaPassos(esc){
+  return esc.reduce((n, [de, ate, passo]) => n + Math.round((ate - de) / passo), 0);
+}
+/** Posição → euros. */
+function escalaValor(esc, pos){
+  let p = Math.max(0, Math.round(parseNum(pos)));
+  for (const [de, ate, passo] of esc){
+    const n = Math.round((ate - de) / passo);
+    if (p <= n) return de + p * passo;
+    p -= n;
+  }
+  return esc[esc.length - 1][1];
+}
+/** Euros → posição mais próxima (o valor guardado manda, mesmo se vier de fora). */
+function escalaPos(esc, valor){
+  const v = parseNum(valor);
+  let acc = 0;
+  for (const [de, ate, passo] of esc){
+    const n = Math.round((ate - de) / passo);
+    if (v <= ate) return acc + Math.max(0, Math.round((v - de) / passo));
+    acc += n;
+  }
+  return acc;
+}
+
+function slider(id, rotulo, valor, min, max, passo, sufixo, escala){
+  const tramos = escala ? ESCALAS[escala] : null;
+  const v = Number.isFinite(valor) ? valor : (tramos ? tramos[0][0] : min);
+  // Com escala, o comando move-se em posições e o valor real vai no
+  // aria-valuetext — senão um leitor de ecrã anunciava «237», não «24 000 €».
+  const rMin = tramos ? 0 : min, rMax = tramos ? escalaPassos(tramos) : max;
+  const rPasso = tramos ? 1 : passo, rValor = tramos ? escalaPos(tramos, v) : v;
   return '<div class="ctrl"><div class="top"><span class="lbl">'+esc(rotulo)+'</span>'+
     '<output id="'+esc(id)+'Out" for="'+esc(id)+'">'+esc(fmtSlider(v, sufixo))+'</output></div>'+
     '<input type="range" id="'+esc(id)+'" data-slider="'+esc(id)+'" data-sufixo="'+esc(sufixo || "")+'" '+
-    'min="'+min+'" max="'+max+'" step="'+passo+'" value="'+esc(v)+'" aria-label="'+esc(rotulo)+'"></div>';
+    (escala ? 'data-escala="'+esc(escala)+'" aria-valuetext="'+esc(fmtSlider(v, sufixo))+'" ' : '')+
+    'min="'+rMin+'" max="'+rMax+'" step="'+rPasso+'" value="'+esc(rValor)+'" aria-label="'+esc(rotulo)+'"></div>';
 }
 const fmtSlider = (v, sufixo) =>
   (Math.round(v*10)/10).toLocaleString("pt-PT",{maximumFractionDigits:1}) + (sufixo || "");
@@ -7937,7 +7990,7 @@ function simuladorAtivo(a){
       'A simulação não altera os dados do ativo.</div></div>'+
     '</div>'+
     '<div class="grid g3 no-print" style="margin-bottom:14px">'+
-      slider("simA_contrib", "Contribuição mensal", p.contrib, 0, 2000, 25, " €")+
+      slider("simA_contrib", "Contribuição mensal", p.contrib, 0, 50000, 25, " €", "mensal")+
       slider("simA_cresc",   "Cresce por ano",      p.cresc,   0, 15,   0.5, "%")+
       slider("simA_taxa",    "Retorno anual",       p.taxa,   -2, 15,   0.25, "%")+
       slider("simA_reinv",   "Reinvestimento",      p.reinv,   0, 100,  5,   "%")+
@@ -8427,7 +8480,7 @@ function cartaoAmortizar(){
     '<div class="tblwrap"><table><thead><tr><th></th><th>Crédito</th><th class="r">Taxa</th>'+
     '<th class="r">Em dívida</th><th class="r">Prestação</th></tr></thead><tbody>'+linhas+'</tbody></table></div>'+
     '<div class="no-print" style="margin-top:14px">'+
-      slider("amortExtra", "Reforço mensal", extra, 0, 1000, 25, " €")+'</div>'+
+      slider("amortExtra", "Reforço mensal", extra, 0, 50000, 25, " €", "mensal")+'</div>'+
     efeito+
     '<div class="note" style="margin-top:10px">A projeção usa a taxa corrente de cada crédito. Nos '+
     'indexados a taxa há de mudar, pelo que isto é uma estimativa — e não substitui confirmar com o banco '+
@@ -11681,10 +11734,14 @@ document.addEventListener("input", (e) => {
   if (t.dataset && t.dataset.slider){
     const cfg = SLIDERS[t.dataset.slider];
     if (!cfg) return;
-    const v = parseFloat(t.value);
+    // Nos deslizadores com escala o comando dá a posição, não os euros.
+    const tramos = t.dataset.escala ? ESCALAS[t.dataset.escala] : null;
+    const v = tramos ? escalaValor(tramos, t.value) : parseFloat(t.value);
     cfg.set(v);
+    const leitura = fmtSlider(v, t.dataset.sufixo);
+    if (tramos) t.setAttribute("aria-valuetext", leitura);
     const out = $("#"+t.dataset.slider+"Out");
-    if (out) out.textContent = fmtSlider(v, t.dataset.sufixo);
+    if (out) out.textContent = leitura;
     const alvo = $(cfg.alvo);
     if (alvo) alvo.innerHTML = emPasse(cfg.out);
     if (cfg.persiste) guardarAdiado();

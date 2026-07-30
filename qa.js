@@ -1995,6 +1995,87 @@ G("passe de cálculo");
   ok(v2 !== v1, "valorAtivo acompanha alterações entre passagens", v1 + " → " + v2);
 })();
 
+G("escalas de dinheiro dos deslizadores");
+(function(){
+  /* Os tetos chegam aos milhões, mas o passo em baixo tem de continuar
+     fino — é lá que vive a maioria dos orçamentos. */
+  Object.keys(ESCALAS).forEach(function(nome){
+    var esc = ESCALAS[nome];
+    var passos = escalaPassos(esc);
+    var min = esc[0][0], max = esc[esc.length-1][1];
+
+    ok(passos > 0, nome+": tem posições", passos);
+    ok(passos <= 700, nome+": e não são tantas que o arrasto se torne inútil", passos);
+    eq(escalaValor(esc, 0), min, nome+": a posição zero é o mínimo");
+    eq(escalaValor(esc, passos), max, nome+": a última posição é o máximo");
+
+    // Monotonia estrita: cada posição vale mais do que a anterior
+    var anterior = -Infinity, monotona = true;
+    for (var p = 0; p <= passos; p++){
+      var v = escalaValor(esc, p);
+      if (!(v > anterior)) monotona = false;
+      anterior = v;
+    }
+    ok(monotona, nome+": o valor cresce sempre com a posição");
+
+    // Ida e volta: o que a interface mostra volta à mesma posição
+    var voltas = true;
+    for (p = 0; p <= passos; p++){
+      if (escalaPos(esc, escalaValor(esc, p)) !== p) voltas = false;
+    }
+    ok(voltas, nome+": posição → valor → posição devolve o mesmo");
+
+    // Fora dos limites não rebenta nem devolve lixo
+    eq(escalaValor(esc, -50), min, nome+": posição negativa cai no mínimo");
+    eq(escalaValor(esc, passos + 999), max, nome+": posição além do fim cai no máximo");
+    eq(escalaPos(esc, max * 10), passos, nome+": valor acima do teto satura na última posição");
+    ok(escalaPos(esc, min - 9999) >= 0, nome+": valor abaixo do mínimo não dá posição negativa");
+    ok(Number.isFinite(escalaValor(esc, NaN)), nome+": posição inválida devolve um número");
+
+    // Os tramos encaixam sem saltos nem sobreposições
+    for (var i = 1; i < esc.length; i++){
+      eq(esc[i][0], esc[i-1][1], nome+": o tramo "+i+" começa onde o anterior acabou");
+      ok(esc[i][2] > esc[i-1][2], nome+": e com passo mais grosso");
+      eq((esc[i][1] - esc[i][0]) % esc[i][2], 0, nome+": tramo "+i+" divisível pelo passo");
+    }
+    eq((esc[0][1] - esc[0][0]) % esc[0][2], 0, nome+": primeiro tramo divisível pelo passo");
+  });
+
+  // Os tetos que o utilizador pediu
+  eq(ESCALAS.capital[ESCALAS.capital.length-1][1], 3000000, "o capital acumulado chega a 3 milhões");
+  eq(ESCALAS.casa[ESCALAS.casa.length-1][1], 3000000, "o preço da casa também");
+  ok(ESCALAS.mensal[ESCALAS.mensal.length-1][1] >= 50000, "a entrega mensal chega a 50 000 €");
+  ok(ESCALAS.auto[ESCALAS.auto.length-1][1] >= 500000, "o automóvel chega a 500 000 €");
+  // E o passo fino em baixo não se perdeu
+  eq(ESCALAS.capital[0][2], 100, "no capital, os primeiros 10 000 € andam de 100 em 100");
+  eq(ESCALAS.mensal[0][2], 10, "na entrega mensal, os primeiros 2 000 € andam de 10 em 10");
+  eq(escalaValor(ESCALAS.capital, 1), 100, "a primeira posição do capital vale 100 €");
+  eq(escalaValor(ESCALAS.mensal, 1), 10, "a primeira posição da mensal vale 10 €");
+
+  // Uma estratégia com valores de milionário continua a fechar as contas
+  var guardado = JSON.stringify(S.estrategia);
+  S.estrategia.inicial = 2500000;
+  S.estrategia.mensal = 40000;
+  S.estrategia.anos = 20;
+  S.estrategia.retornoBruto = 5;
+  S.estrategia.modoFiscal = "mais_valias";
+  var r = simularEstrategia(S.estrategia);
+  ok(isFinite(r.valorBruto) && r.valorBruto > 0, "simula 2,5 M€ com 40 000 €/mês", r.valorBruto);
+  ok(r.valorBruto > r.aportado, "e o capital cresce acima do que se entregou");
+  eq(r.valorLiquido, r.valorBruto - r.imposto, "líquido = bruto − imposto", 0.01);
+  ok(r.aportado >= 2500000 + 40000 * 12 * 20 - 1, "o aportado inclui a entrada e as entregas");
+
+  // O limite legal do PPR não sobe com o teto do deslizador: é lei
+  S.estrategia.modoFiscal = "ppr";
+  S.estrategia.idade = 40;
+  var pp = simularEstrategia(S.estrategia);
+  var limite = limitePPR(40);
+  ok(pp.beneficioPPR <= limite * 20 + 0.01,
+     "a dedução do PPR continua limitada por lei ("+limite+" €/ano), mesmo com entregas enormes",
+     pp.beneficioPPR);
+  S.estrategia = JSON.parse(guardado);
+})();
+
 G("coerência do exemplo");
 (function(){
   /* O exemplo é a primeira coisa que alguém vê. Se contradisser a si
