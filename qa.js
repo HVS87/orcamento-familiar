@@ -1995,6 +1995,421 @@ G("passe de cálculo");
   ok(v2 !== v1, "valorAtivo acompanha alterações entre passagens", v1 + " → " + v2);
 })();
 
+G("dia do mês e linha do mês");
+(function(){
+  eq(diaDoMesValido(5), 5, "o dia 5 é válido");
+  eq(diaDoMesValido("12"), 12, "e aceita texto");
+  eq(diaDoMesValido(0), "", "o dia 0 não existe");
+  eq(diaDoMesValido(32), "", "nem o 32");
+  eq(diaDoMesValido("abc"), "", "nem letras");
+  eq(diaDoMesValido(null), "", "nem nada");
+  eq(diaDoMesValido(15.6), 16, "arredonda ao dia mais próximo");
+
+  // Um dia 31 encosta ao último dia do mês, como faz o banco
+  eq(diaNoMes(31, "2026-02"), 28, "o dia 31 em fevereiro é 28");
+  eq(diaNoMes(31, "2024-02"), 29, "e 29 num ano bissexto");
+  eq(diaNoMes(31, "2026-04"), 30, "e 30 em abril");
+  eq(diaNoMes(15, "2026-07"), 15, "um dia que existe fica igual");
+  eq(diaNoMes("", "2026-07"), 0, "sem dia não há dia");
+
+  var guardado = JSON.stringify(S);
+  S = estadoVazio(); MES = isoMes(hoje());
+  var cat = catPorNome("Alimentação");
+  S.recorrentes.push({id:"r1", tipo:"despesa", nome:"Renda", valor:600, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:1});
+  S.recorrentes.push({id:"r2", tipo:"despesa", nome:"Luz", valor:60, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:12});
+  S.recorrentes.push({id:"r3", tipo:"despesa", nome:"Sem dia", valor:99, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:""});
+  S.recorrentes.push({id:"r4", tipo:"rendimento", nome:"Salário", valor:1500, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:23});
+  var ev = eventosDoMes(MES);
+  eq(ev.dias.length, 3, "só as rubricas com dia entram na linha do mês");
+  eq(ev.dias[0].dia, 1, "ordenadas por dia");
+  eq(ev.dias[0].despesa, 600, "com o valor do dia");
+  eq(ev.totalDespesa, 660, "e o total só conta as despesas", 0.01);
+  eq(ev.totalRendimento, 1500, "os rendimentos contam à parte", 0.01);
+  ok(ev.dias.every(function(d){ return d.dia >= 1 && d.dia <= ev.ultimo; }),
+     "nenhum dia cai fora do mês");
+
+  // Uma compra planeada marcada entra no último dia
+  S.planeadas.push({id:"p1", nome:"Sofá", valor:800, categoriaId:cat, horizonte:12,
+    mes:MES, objetivoId:"", feitaEm:"", membroId:"", criadoEm:""});
+  var ev2 = eventosDoMes(MES);
+  var ultimoDia = ev2.dias[ev2.dias.length-1];
+  eq(ultimoDia.dia, ev2.ultimo, "a compra planeada cai no último dia do mês");
+  ok(ultimoDia.itens.some(function(i){ return /Sofá/.test(i.nome); }), "com o nome da compra");
+  // Uma compra já realizada não entra
+  S.planeadas[0].feitaEm = isoDia(hoje());
+  eq(eventosDoMes(MES).dias.length, 3, "uma compra já feita sai da linha do mês");
+
+  S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("previsão de fecho do mês");
+(function(){
+  var guardado = JSON.stringify(S);
+  var mesGuardado = MES;
+  S = estadoVazio(); MES = isoMes(hoje());
+  var cat = catPorNome("Alimentação");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+
+  // Sem movimentos não se prevê nada — melhor calar do que inventar
+  ok(preverFechoMes() === null, "sem movimentos não há previsão");
+
+  // Um mês a decorrer, com histórico regular atrás
+  for (var i = 1; i <= 4; i++){
+    var m = mesShift(MES, -i);
+    S.movimentos.push({id:"h"+i, data:m+"-10", tipo:"despesa", descricao:"Gasto",
+      categoriaId:cat, membroId:"", valor:800});
+    S.movimentos.push({id:"hr"+i, data:m+"-01", tipo:"rendimento", descricao:"Salário",
+      categoriaId:catR, membroId:"", valor:2000});
+  }
+  S.movimentos.push({id:"a1", data:MES+"-02", tipo:"despesa", descricao:"Gasto",
+    categoriaId:cat, membroId:"", valor:300});
+  S.movimentos.push({id:"a2", data:MES+"-01", tipo:"rendimento", descricao:"Salário",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+
+  var f = preverFechoMes();
+  ok(f != null, "com movimentos há previsão");
+  ok(f.dia >= 1 && f.dia <= f.ultimo, "o dia está dentro do mês", f.dia+"/"+f.ultimo);
+  eq(f.rendPrev - f.despPrev, f.saldoPrev, "o saldo previsto fecha as contas", 0.01);
+  ok(f.despPrev >= realMes(MES).desp - 0.01, "a despesa prevista nunca é menor do que a já feita");
+  ok(f.decorrido > 0 && f.decorrido <= 1, "a fração decorrida está entre 0 e 1", f.decorrido);
+  ok(f.margem >= 0, "a margem não é negativa", f.margem);
+  ok(f.mesesHistorico >= 2, "usou o histórico para a margem", f.mesesHistorico);
+  ok(isFinite(f.ritmoDia) && f.ritmoDia >= 0, "o ritmo diário é um número não negativo", f.ritmoDia);
+
+  // Num mês que não é o corrente não há previsão: o mês está fechado
+  MES = mesShift(isoMes(hoje()), -1);
+  ok(preverFechoMes() === null, "um mês passado não se prevê");
+  MES = mesShift(isoMes(hoje()), 1);
+  ok(preverFechoMes() === null, "nem um mês futuro");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("anomalias com sazonalidade");
+(function(){
+  var guardado = JSON.stringify(S);
+  var mesGuardado = MES;
+  S = estadoVazio();
+  // Julho, para o homólogo cair sempre no mesmo mês do calendário
+  MES = "2026-07";
+  var luz = catPorNome("Eletricidade e gás");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+
+  // Três anos de luz sazonal: 120 € no inverno, 55 € no verão. Três, e não
+  // dois, porque a base «sazonal» exige dois meses homólogos — com só um, a
+  // referência passa a «misto» de propósito, e é isso que se testa a seguir.
+  for (var k = 1; k <= 38; k++){
+    var m = mesShift(MES, -k);
+    var mes = parseInt(m.split("-")[1], 10);
+    var inverno = (mes <= 3 || mes >= 11);
+    S.movimentos.push({id:"lz"+k, data:m+"-12", tipo:"despesa", descricao:"Luz",
+      categoriaId:luz, membroId:"", valor: inverno ? 120 : 55});
+    S.movimentos.push({id:"rd"+k, data:m+"-01", tipo:"rendimento", descricao:"Salário",
+      categoriaId:catR, membroId:"", valor:2000});
+  }
+  // Julho corrente: 58 €, praticamente igual aos julhos anteriores
+  S.movimentos.push({id:"lzA", data:MES+"-12", tipo:"despesa", descricao:"Luz",
+    categoriaId:luz, membroId:"", valor:58});
+  S.movimentos.push({id:"rdA", data:MES+"-01", tipo:"rendimento", descricao:"Salário",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+
+  var ref = esperadoCategoria(luz, MES);
+  ok(ref != null, "há referência para a categoria");
+  eq(ref.base, "sazonal", "com dois julhos anteriores, a base é sazonal");
+  eq(ref.esperado, 55, "e o esperado é o julho típico, não a média do ano");
+  ok(ref.n >= 2, "com pelo menos duas observações", ref.n);
+
+  // A mediana ingénua dos últimos seis meses misturaria o inverno
+  var recentes = [];
+  for (k = 1; k <= 6; k++){
+    var rr = realMes(mesShift(MES, -k));
+    if (rr.rend > 0 || rr.desp > 0) recentes.push(rr.porCat[luz] || 0);
+  }
+  var medIngenua = mediana(recentes);
+  ok(medIngenua > ref.esperado, "a mediana recente é enviesada pelo inverno",
+     medIngenua + " vs " + ref.esperado);
+
+  // E por isso a luz de verão não é anomalia — era com a mediana ingénua
+  var an = anomaliasMes(MES);
+  ok(!an.some(function(a){ return a.cat.id === luz; }),
+     "a luz de verão não é anomalia com sazonalidade");
+  ok(Math.abs((58 - medIngenua) / medIngenua * 100) >= ANOMALIA_PCT,
+     "mas seria falso alarme sem ela",
+     Math.round((58 - medIngenua) / medIngenua * 100) + "%");
+
+  // Num mês de inverno, o inverno também é normal. O ciclo acima já pôs
+  // 120 € em janeiro de 2026 — não se acrescenta nada, senão somava-se ao
+  // que já lá está e o mês passava a ser mesmo uma anomalia.
+  MES = "2026-01";
+  eq(realMes(MES).porCat[luz], 120, "janeiro tem a luz de inverno que o ciclo criou");
+  var refI = esperadoCategoria(luz, MES);
+  eq(refI.base, "sazonal", "em janeiro a base também é sazonal");
+  eq(refI.esperado, 120, "e o esperado é o janeiro típico");
+  ok(!anomaliasMes(MES).some(function(a){ return a.cat.id === luz; }),
+     "a luz de inverno também não é anomalia");
+
+  // Uma categoria que dobra a sério é anomalia
+  MES = "2026-07";
+  var rest = catPorNome("Restauração");
+  for (k = 1; k <= 38; k++){
+    S.movimentos.push({id:"rs"+k, data:mesShift(MES,-k)+"-20", tipo:"despesa",
+      descricao:"Jantar", categoriaId:rest, membroId:"", valor:90});
+  }
+  S.movimentos.push({id:"rsA", data:MES+"-20", tipo:"despesa", descricao:"Jantares",
+    categoriaId:rest, membroId:"", valor:210});
+  limparCacheCredito();
+  var an2 = anomaliasMes(MES);
+  var aRest = an2.filter(function(a){ return a.cat.id === rest; })[0];
+  ok(aRest != null, "uma categoria que mais que dobra é anomalia");
+  if (aRest){
+    ok(aRest.acima, "marcada como acima do habitual");
+    ok(aRest.pct > 100, "com o desvio calculado", Math.round(aRest.pct)+"%");
+    eq(aRest.gasto, 210, "o gasto é o real");
+    eq(aRest.esperado, 90, "e o esperado é o habitual do mês");
+  }
+  // A dupla fasquia: muita percentagem em poucos euros não conta
+  var cafe = catPorNome("Restauração");
+  ok(ANOMALIA_EUR >= 10, "há uma fasquia absoluta em euros", ANOMALIA_EUR);
+  ok(ANOMALIA_PCT >= 20, "e uma fasquia relativa", ANOMALIA_PCT);
+  ok(an2.every(function(a){ return Math.abs(a.dif) >= ANOMALIA_EUR; }),
+     "toda a anomalia passa a fasquia em euros");
+  ok(an2.every(function(a){ return Math.abs(a.pct) >= ANOMALIA_PCT; }),
+     "e a fasquia em percentagem");
+  // Ordenadas pelo que mais pesa em euros
+  for (var i = 1; i < an2.length; i++){
+    ok(Math.abs(an2[i-1].dif) >= Math.abs(an2[i].dif), "ordenadas por desvio absoluto");
+  }
+  // Com um único mês homólogo, a base é «misto»: um ano não faz padrão
+  // sazonal, mas é informação a mais e entra na mistura.
+  S = estadoVazio(); MES = "2026-07";
+  for (k = 1; k <= 14; k++){
+    S.movimentos.push({id:"u"+k, data:mesShift(MES,-k)+"-12", tipo:"despesa", descricao:"Luz",
+      categoriaId:luz, membroId:"", valor: 60});
+    S.movimentos.push({id:"ur"+k, data:mesShift(MES,-k)+"-01", tipo:"rendimento", descricao:"Salário",
+      categoriaId:catR, membroId:"", valor:2000});
+  }
+  S.movimentos.push({id:"uA", data:MES+"-12", tipo:"despesa", descricao:"Luz",
+    categoriaId:luz, membroId:"", valor:62});
+  limparCacheCredito();
+  var refM = esperadoCategoria(luz, MES);
+  eq(refM.base, "misto", "com um só homólogo a base é misto");
+  ok(refM.n > 2, "e usa mais observações do que o homólogo sozinho", refM.n);
+  ok(BASE_ANOMALIA[refM.base] != null, "cada base tem descrição em palavras");
+  Object.keys(BASE_ANOMALIA).forEach(function(b){
+    ok(typeof BASE_ANOMALIA[b] === "string" && BASE_ANOMALIA[b].length > 5,
+       "a base «"+b+"» explica-se em palavras");
+  });
+
+  // Sem histórico não há referência, e portanto não há anomalia
+  S = estadoVazio(); MES = isoMes(hoje());
+  S.movimentos.push({id:"so1", data:MES+"-05", tipo:"despesa", descricao:"Único",
+    categoriaId:luz, membroId:"", valor:500});
+  limparCacheCredito();
+  ok(esperadoCategoria(luz, MES) === null, "sem meses anteriores não há esperado");
+  eq(anomaliasMes(MES).length, 0, "e sem esperado não há anomalias");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("subscrições, inflação pessoal e medianas");
+(function(){
+  var guardado = JSON.stringify(S);
+  var mesGuardado = MES;
+
+  // Mediana
+  eq(mediana([]), 0, "a mediana de nada é zero");
+  eq(mediana([5]), 5, "de um só valor é ele próprio");
+  eq(mediana([1,3]), 2, "de dois é a média deles");
+  eq(mediana([1,2,3]), 2, "de três ímpares é o do meio");
+  eq(mediana([1,2,3,10]), 2.5, "e não se deixa arrastar pelo extremo");
+  eq(mediana([3,1,2]), 2, "ordena antes de escolher");
+  eq(mediana([1,NaN,3]), 2, "ignora o que não é número");
+
+  S = estadoVazio(); MES = isoMes(hoje());
+  var catSub = catPorNome("Subscrições");
+  ["Netflix","Spotify","Nuvem"].forEach(function(n, i){
+    S.recorrentes.push({id:"s"+i, tipo:"despesa", nome:n, valor:[8.99,6.99,4.99][i],
+      frequencia:"mensal", ativo:true, categoriaId:catSub, membroId:"", dia:15});
+  });
+  // Uma despesa grande não é subscrição
+  S.recorrentes.push({id:"big", tipo:"despesa", nome:"Renda", valor:700,
+    frequencia:"mensal", ativo:true, categoriaId:catPorNome("Habitação"), membroId:"", dia:1});
+  // Nem uma anual
+  S.recorrentes.push({id:"an", tipo:"despesa", nome:"Seguro", valor:40,
+    frequencia:"anual", ativo:true, categoriaId:catPorNome("Seguros"), membroId:"", dia:""});
+  limparCacheCredito();
+
+  var subs = subscricoes();
+  eq(subs.length, 3, "só as mensais pequenas contam como subscrição");
+  ok(subs.every(function(x){ return x.mensal <= SUBSCRICAO_TETO; }), "todas abaixo do tecto");
+  eq(subs[0].anual, subs[0].mensal * 12, "o anual é o mensal × 12", 0.01);
+  ok(subs[0].anual >= subs[subs.length-1].anual, "ordenadas pelo custo anual");
+  var totalAno = subs.reduce(function(s,x){ return s + x.anual; }, 0);
+  eq(totalAno, (8.99+6.99+4.99)*12, "o total ao ano soma as três", 0.01);
+
+  // Inflação pessoal
+  S = estadoVazio(); MES = "2026-07";
+  var cat = catPorNome("Alimentação");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  ok(inflacaoPessoal(MES) === null, "sem mês homólogo não há inflação pessoal");
+  S.movimentos.push({id:"i1", data:"2025-07-05", tipo:"despesa", descricao:"Compras",
+    categoriaId:cat, membroId:"", valor:400});
+  S.movimentos.push({id:"i2", data:"2026-07-05", tipo:"despesa", descricao:"Compras",
+    categoriaId:cat, membroId:"", valor:440});
+  S.movimentos.push({id:"i3", data:"2025-07-01", tipo:"rendimento", descricao:"Salário",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+  var inf = inflacaoPessoal(MES);
+  ok(inf != null, "com os dois meses há inflação pessoal");
+  eq(inf.taxa, 10, "400 € para 440 € é 10%", 0.01);
+  eq(inf.mesAnterior, "2025-07", "compara com o mesmo mês do ano anterior");
+  eq(inf.nCategorias, 1, "com uma categoria em comum");
+  // Uma categoria só num dos meses não entra: não há variação a medir
+  S.movimentos.push({id:"i4", data:"2026-07-06", tipo:"despesa", descricao:"Nova",
+    categoriaId:catPorNome("Restauração"), membroId:"", valor:100});
+  limparCacheCredito();
+  eq(inflacaoPessoal(MES).nCategorias, 1, "uma categoria nova não entra na inflação");
+
+  // A ponderação é pelo peso: a categoria maior manda mais
+  S = estadoVazio(); MES = "2026-07";
+  var c1 = catPorNome("Alimentação"), c2 = catPorNome("Restauração");
+  S.movimentos.push({id:"p1", data:"2025-07-05", tipo:"despesa", descricao:"A", categoriaId:c1, membroId:"", valor:900});
+  S.movimentos.push({id:"p2", data:"2026-07-05", tipo:"despesa", descricao:"A", categoriaId:c1, membroId:"", valor:900});
+  S.movimentos.push({id:"p3", data:"2025-07-06", tipo:"despesa", descricao:"B", categoriaId:c2, membroId:"", valor:50});
+  S.movimentos.push({id:"p4", data:"2026-07-06", tipo:"despesa", descricao:"B", categoriaId:c2, membroId:"", valor:100});
+  limparCacheCredito();
+  var inf2 = inflacaoPessoal(MES);
+  ok(inf2.taxa < 20, "a categoria pequena a dobrar não dobra a inflação toda", inf2.taxa);
+  ok(inf2.taxa > 0, "mas também não a ignora", inf2.taxa);
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("sequências, património no tempo e plano de corte");
+(function(){
+  var guardado = JSON.stringify(S);
+  var mesGuardado = MES;
+  S = estadoVazio(); MES = isoMes(hoje());
+  var cat = catPorNome("Alimentação");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+
+  eq(sequencias().length, 0, "sem dados não há sequências");
+
+  // Cinco meses com saldo positivo
+  for (var i = 1; i <= 5; i++){
+    var m = mesShift(MES, -i);
+    S.movimentos.push({id:"s"+i, data:m+"-10", tipo:"despesa", descricao:"Gasto",
+      categoriaId:cat, membroId:"", valor:500});
+    S.movimentos.push({id:"r"+i, data:m+"-01", tipo:"rendimento", descricao:"Salário",
+      categoriaId:catR, membroId:"", valor:1500});
+  }
+  limparCacheCredito();
+  var seqs = sequencias();
+  var saldo = seqs.filter(function(s){ return /saldo positivo/.test(s.txt); })[0];
+  ok(saldo != null, "há sequência de saldo positivo");
+  eq(saldo.n, 5, "com cinco meses");
+
+  // Um mês negativo pelo meio quebra a contagem
+  S.movimentos.push({id:"neg", data:mesShift(MES,-3)+"-15", tipo:"despesa",
+    descricao:"Estouro", categoriaId:cat, membroId:"", valor:3000});
+  limparCacheCredito();
+  var saldo2 = sequencias().filter(function(s){ return /saldo positivo/.test(s.txt); })[0];
+  eq(saldo2.n, 2, "um mês em défice interrompe a sequência");
+
+  // Meses fechados de seguida
+  S.fechados[mesShift(MES,-1)] = {em: isoDia(hoje())};
+  S.fechados[mesShift(MES,-2)] = {em: isoDia(hoje())};
+  var fech = sequencias().filter(function(s){ return /fechados/.test(s.txt); })[0];
+  ok(fech != null, "há sequência de meses fechados");
+  eq(fech.n, 2, "com dois meses");
+  // Um buraco quebra
+  delete S.fechados[mesShift(MES,-1)];
+  ok(!sequencias().some(function(s){ return /fechados/.test(s.txt); }),
+     "um mês por fechar quebra a sequência");
+
+  // Objetivos atingidos entram como marco
+  S.objetivos.push({id:"o1", nome:"Fundo", alvo:1000, atual:1000, ativoId:"", prazo:"", cor:"#000", celebrado:true});
+  ok(sequencias().some(function(s){ return /objetivo/.test(s.txt); }), "um objetivo atingido é marco");
+
+  // Património: instantâneos e a linha do stock
+  var d = registarPatrimonio(MES);
+  eq(d.mes, MES, "o instantâneo é do mês pedido");
+  eq(d.ativo - d.divida, d.liquido, "e fecha: ativo − dívida = líquido", 0.01);
+  eq(S.patrimonioHist.length, 1, "guardou um instantâneo");
+  registarPatrimonio(MES);
+  eq(S.patrimonioHist.length, 1, "guardar duas vezes no mesmo mês não duplica");
+  registarPatrimonio(mesShift(MES, -1));
+  eq(S.patrimonioHist.length, 2, "um mês diferente acrescenta");
+  ok(S.patrimonioHist[0].mes < S.patrimonioHist[1].mes, "e ficam por ordem de mês");
+
+  // Plano de corte
+  S = estadoVazio(); MES = isoMes(hoje());
+  var desejo1 = catPorNome("Restauração"), desejo2 = catPorNome("Lazer e cultura");
+  var neces = catPorNome("Alimentação"), juros = catPorNome("Juros de crédito");
+  var poup = S.categorias.filter(function(c){ return c.grupo === "poupanca" && c.tipo === "despesa"; })[0];
+  S.movimentos.push({id:"d1", data:MES+"-05", tipo:"despesa", descricao:"Jantares", categoriaId:desejo1, membroId:"", valor:200});
+  S.movimentos.push({id:"d2", data:MES+"-06", tipo:"despesa", descricao:"Cinema", categoriaId:desejo2, membroId:"", valor:100});
+  S.movimentos.push({id:"n1", data:MES+"-07", tipo:"despesa", descricao:"Compras", categoriaId:neces, membroId:"", valor:600});
+  S.movimentos.push({id:"j1", data:MES+"-08", tipo:"despesa", descricao:"Juros", categoriaId:juros, membroId:"", valor:300});
+  if (poup) S.movimentos.push({id:"pp", data:MES+"-09", tipo:"despesa", descricao:"Poupança", categoriaId:poup.id, membroId:"", valor:250});
+  S.movimentos.push({id:"rr", data:MES+"-01", tipo:"rendimento", descricao:"Salário", categoriaId:catR, membroId:"", valor:2500});
+  limparCacheCredito();
+
+  ok(planoDeCorte(0) === null, "cortar zero não é plano");
+  ok(planoDeCorte(-50) === null, "nem cortar negativo");
+
+  var p60 = planoDeCorte(60);
+  ok(p60 != null, "há plano para 60 €");
+  eq(p60.conseguido, 60, "que atinge a meta", 0.5);
+  ok(p60.atingivel, "e diz que é atingível");
+  ok(p60.soDesejos, "60 € cabem só nos desejos");
+  ok(p60.linhas.every(function(x){ return x.cat.grupo === "desejos"; }), "nenhuma necessidade tocada");
+
+  var p400 = planoDeCorte(400);
+  ok(!p400.soDesejos, "400 € já exigem necessidades");
+  ok(p400.bolsasUsadas.indexOf("desejos") === 0, "mas os desejos vêm primeiro");
+  var iNec = p400.linhas.findIndex(function(x){ return x.cat.grupo === "necessidades"; });
+  var iDes = p400.linhas.findIndex(function(x){ return x.cat.grupo === "desejos"; });
+  ok(iDes >= 0 && iDes < iNec, "e aparecem antes na lista", iDes+" < "+iNec);
+
+  // Nunca corta poupança, juros, prestações ou impostos
+  [p60, p400, planoDeCorte(5000)].forEach(function(p){
+    ok(p.linhas.every(function(x){ return (x.cat.grupo || "") !== "poupanca"; }),
+       "o plano nunca corta poupança");
+    ok(p.linhas.every(function(x){ return CATS_NAO_CORTAVEIS.indexOf(x.cat.nome) < 0; }),
+       "nem juros, prestações ou impostos");
+    ok(p.linhas.every(function(x){ return x.corte <= x.gasto * CORTE_MAX_FRACAO + 0.01; }),
+       "nem deixa nenhuma categoria abaixo de metade");
+    ok(p.conseguido <= p.meta + 0.5, "nem corta mais do que a meta", p.conseguido+" vs "+p.meta);
+  });
+
+  // Uma meta impossível é reportada como impossível, não fingida
+  var pImp = planoDeCorte(100000);
+  ok(!pImp.atingivel, "uma meta impossível não se finge atingida");
+  ok(pImp.conseguido > 0, "mas mostra-se quanto dá", pImp.conseguido);
+
+  // Limites pelo histórico
+  S = estadoVazio(); MES = isoMes(hoje());
+  ok(medianaCategoria(cat, 6) === null, "sem dois meses não há mediana de categoria");
+  for (i = 1; i <= 4; i++){
+    S.movimentos.push({id:"m"+i, data:mesShift(MES,-i)+"-10", tipo:"despesa",
+      descricao:"Compras", categoriaId:cat, membroId:"", valor:[300,320,310,900][i-1]});
+  }
+  limparCacheCredito();
+  var med = medianaCategoria(cat, 6);
+  ok(med != null, "com quatro meses há mediana");
+  eq(med.n, 4, "de quatro observações");
+  eq(med.valor, 315, "e o mês de 900 € não a arrasta", med.valor);
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
 G("escalas de dinheiro dos deslizadores");
 (function(){
   /* Os tetos chegam aos milhões, mas o passo em baixo tem de continuar

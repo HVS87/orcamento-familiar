@@ -448,8 +448,9 @@ svg.mini{width:70px;height:20px;display:block}
 #fitaMeses button[aria-current="true"]{background:var(--accent-soft)}
 #fitaMeses .cx{height:26px;display:flex;align-items:flex-end;width:100%}
 #fitaMeses .bx{width:100%;border-radius:2px;display:block}
-#fitaMeses .lx{font-size:9.5px;color:var(--muted);line-height:1}
+#fitaMeses .lx{font-size:9.5px;color:var(--muted);line-height:1;display:flex;align-items:center;gap:1px}
 #fitaMeses button[aria-current="true"] .lx{color:var(--accent);font-weight:650}
+#fitaMeses .selo{font-size:8px;opacity:.75}
 /* Em ecrãs médios a fita passa para a sua própria linha, em vez de
    desaparecer: é a forma mais rápida de saltar de mês em qualquer
    largura, e escondê-la deixava uma faixa sem ela. */
@@ -480,6 +481,8 @@ svg.mini{width:70px;height:20px;display:block}
 .relatorio .capa h1{font-size:22px;letter-spacing:-.02em}
 .relatorio .capa .mes{font-size:16px;color:var(--accent);font-weight:650;margin-top:2px}
 .relatorio .capa .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.relatorio .notaRel{margin-top:8px;padding:7px 10px;border-left:3px solid var(--accent);
+  background:var(--surface-2);border-radius:0 var(--radius) var(--radius) 0;font-size:13px;font-style:italic}
 .relatorio .card{break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}
 .relatorio .card h2{font-size:15px;margin-bottom:9px}
 
@@ -494,6 +497,42 @@ svg.mini{width:70px;height:20px;display:block}
 .perfil[aria-pressed="true"] .pl{color:var(--accent)}
 .perfil .pi{font-size:22px}
 .perfil .pl{font-size:13.5px;font-weight:650}
+/* Sequências: a contagem em destaque, o resto pequeno. Sem troféus. */
+.marcos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.marco{display:flex;align-items:center;gap:9px;text-align:left;cursor:pointer;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 12px;transition:border-color .12s,background .12s}
+.marco:hover{border-color:var(--accent);background:var(--surface-3)}
+.marco:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.marco .mi{font-size:19px;flex:0 0 auto}
+.marco .mn{font-size:20px;font-weight:700;color:var(--accent);flex:0 0 auto;line-height:1}
+.marco .mt{font-size:11.5px;color:var(--muted);line-height:1.25}
+/* Fecho do mês: os passos em lista, o feito com visto */
+.passos{display:flex;flex-direction:column;gap:8px;margin:4px 0 2px}
+.passo{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-radius:var(--radius);
+  background:var(--surface-2);border:1px solid var(--border)}
+.passo.feito{background:color-mix(in srgb,var(--pos) 8%,var(--surface-2));border-color:color-mix(in srgb,var(--pos) 30%,transparent)}
+.passo .pn{flex:0 0 22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:700;background:var(--surface-3);color:var(--muted)}
+.passo.feito .pn{background:var(--pos);color:#fff}
+.passo .pc{flex:1 1 auto;min-width:0}
+.passo .pt{font-size:13.5px;font-weight:600}
+.passo .pd{font-size:12px;color:var(--muted);margin-top:2px}
+/* Linha do mês: uma coluna por dia, barra nos dias com movimento */
+.linhaMes{display:flex;gap:2px;align-items:flex-end;overflow-x:auto;padding:4px 0 0}
+.ldCol{flex:1 1 0;min-width:9px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  border-radius:4px;padding:2px 0}
+.ldCol.hoje{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
+.ldBarra{height:34px;display:flex;align-items:flex-end;width:100%;justify-content:center}
+.ldBarra span{width:70%;min-width:4px;border-radius:2px 2px 0 0;display:block}
+.ldDia{font-size:9px;color:var(--muted);line-height:1;height:10px}
+.ldCol.hoje .ldDia{color:var(--accent)}
+/* Rosto de um membro: emoji, nome e a cor da pessoa numa pastilha */
+.rosto{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap;
+  padding:2px 8px 2px 3px;border-radius:999px;background:var(--surface-3);
+  border:1px solid color-mix(in srgb,var(--rc) 35%,transparent)}
+.rosto .ri{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;
+  border-radius:999px;background:color-mix(in srgb,var(--rc) 22%,var(--surface));font-size:11.5px}
 /* Planear despesa: a faixa de trimestres, cada célula com o melhor mês */
 .planTri{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin-top:11px}
 .planTri button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;cursor:pointer;
@@ -829,6 +868,10 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 
 const STORE_KEY = "orcamento-familiar-v1";
 const APP_VERSION = 1;
+/* Tecto da nota do mês: é uma nota, não um diário — e o estado inteiro passa
+   pelo histórico de desfazer a cada alteração. Fica aqui, com as outras
+   constantes de topo, porque os explicadores citam-no antes de tudo o mais. */
+const NOTA_MAX = 280;
 
 /* ---------------------------------------------------------------
    Utilitários
@@ -1819,6 +1862,19 @@ const AJUDAS_KPI = {
   "Liquidez imediata":   ["Liquidez imediata", "Dinheiro disponível sem vender nada: contas à ordem, poupança e depósitos. A referência prudente são 3 a 6 meses de despesa.", "Liquidez ÷ despesa mensal"],
   "Liquidez hoje":       ["Liquidez hoje", "O ponto de partida da projeção de tesouraria: contas à ordem, poupança e depósitos a esta data.", ""],
   "Ponto mais baixo":    ["Ponto mais baixo", "O mês em que a tesouraria acumulada fica mais curta nos próximos doze. Se for negativo, é aí que o dinheiro falta.", "Mínimo do saldo acumulado"],
+  /* O mês por dentro */
+  "Saldo previsto":      ["Saldo previsto", "Como o mês deve fechar: o que já aconteceu somado ao que falta — rubricas com dia marcado, compras planeadas e despesa variável ao ritmo observado. A margem vem da variabilidade dos últimos meses e estreita-se à medida que o mês avança.", "Real + por sair + ritmo × dias que faltam"],
+  "Despesa prevista":    ["Despesa prevista", "A despesa do mês inteiro estimada a esta data. Distingue-se da «Despesa» simples porque projeta o que ainda vai acontecer.", ""],
+  "Ritmo diário":        ["Ritmo diário", "Quanto se está a gastar por dia em despesa variável — o total gasto menos as rubricas fixas que já saíram, dividido pelos dias decorridos. É o número que multiplica pelos dias que faltam.", "(Despesa até hoje − fixas já saídas) ÷ dias decorridos"],
+  /* Subscrições, inflação e património no tempo */
+  "Por mês":             ["Por mês", "Soma das mensalidades das subscrições ativas.", ""],
+  "Por ano":             ["Por ano", "A mesma soma multiplicada por doze. É esta que costuma surpreender.", "Mensal × 12"],
+  "Peso na despesa":     ["Peso na despesa", "Quanto as subscrições representam da despesa total prevista do mês.", ""],
+  "A sua inflação":      ["A sua inflação", "A variação de preço do seu cabaz face ao mesmo mês do ano passado, ponderada pelo peso de cada categoria no que gasta hoje. Só entram categorias com gasto nos dois meses.", "Σ(variação × peso) ÷ Σpeso"],
+  "Nas projeções usa":   ["Nas projeções usa", "A inflação que a projeção da carteira e as estratégias estão a aplicar. Pode substituí-la pela sua.", ""],
+  "Diferença":           ["Diferença", "Entre a sua inflação e a que usa nas projeções. Subestimar a inflação faz as projeções parecerem melhores do que são.", ""],
+  "Variação no período": ["Variação no período", "Quanto o património líquido mudou entre o primeiro e o último ponto da série, e a média por mês.", ""],
+  "Instantâneos":        ["Instantâneos", "Quantos retratos mensais do património estão guardados. O fecho do mês guarda um automaticamente.", ""],
   "Grau de endividamento":["Grau de endividamento", "Que fração dos ativos está financiada por dívida. Acima de 60% a alavancagem é elevada.", "Dívida ÷ ativos"],
   "Valor atual":         ["Valor atual", "Por ordem de fiabilidade: unidades × cotação, valor que indicou, ou estimativa pela taxa de valorização.", ""],
   "Retorno obtido":      ["Retorno obtido", "Rentabilidade anualizada efetiva. Com aportes datados usa a TIR, que desconta cada entrada à sua data; sem eles, o CAGR sobre a entrada única.", ""],
@@ -1896,6 +1952,9 @@ const AJUDAS_CAMPO = {
   rcFreq:   ["Periodicidade", "De quanto em quanto tempo a rubrica ocorre. É convertida para o equivalente mensal, para provisionar o que só surge de vez em quando.", ""],
   rcInicio: ["Início", "A partir de que mês a rubrica passa a contar. Em branco, conta desde sempre.", ""],
   rcFim:    ["Fim", "Último mês em que a rubrica conta. Útil para créditos que terminam ou apoios temporários.", ""],
+  rcDia:    ["Dia do mês", "O dia em que esta despesa sai da conta. Alimenta a linha do mês e a previsão de fecho, e faz o «Lançar plano» criar o movimento no dia certo. Um dia 31 num mês mais curto encosta ao último dia.", ""],
+  notaMes:  ["Nota do mês", "Até "+NOTA_MAX+" caracteres para explicar o mês — férias, uma avaria, um extra. Um valor fora do comum quase sempre tem uma história.", ""],
+  corteAlvo:["Quanto cortar", "A poupança mensal que quer conseguir. A ferramenta reparte-a pelas categorias com mais folga e mostra em quanto fica cada uma.", ""],
   /* Rendimentos */
   cpEspecie:["Espécie", "Define o tratamento fiscal por omissão: o que paga Segurança Social, o que sofre retenção de IRS e o que é isento.", ""],
   cpFreq:   ["Periodicidade", "Anual nos subsídios de férias e Natal, mensal no vencimento. É mensalizada para o orçamento.", ""],
@@ -2045,6 +2104,19 @@ const AJUDAS_ACAO = {
   planEstrategia:["Onde guardar a reserva", "Abre as Estratégias com esta meta: para esperas longas, deixar a reserva a render (aforro, depósitos) paga parte da compra.", ""],
   planDaCompra:["Planear esta compra", "Leva o valor para a secção Planear, que responde à pergunta seguinte: não «cabe agora?», mas «quando cabe melhor?».", ""],
   planVerMov: ["Ver movimento", "Abre os movimentos do mês da compra, filtrados pela descrição.", ""],
+  notaGuardar: ["Guardar nota", "Fica associada a este mês e aparece na fita (✎), no relatório e na comparação de meses. Serve para explicar os números daqui a seis meses.", ""],
+  notaApagar: ["Apagar nota", "Remove a nota deste mês. O Ctrl+Z devolve-a.", ""],
+  mbIcone:    ["Rosto do membro", "O emoji que identifica esta pessoa nas tabelas, nos filtros e nos formulários.", ""],
+  mbCor:      ["Cor do membro", "Usada na pastilha do nome, em todo o sítio onde a pessoa aparece.", ""],
+  inflAdotar: ["Usar a sua inflação", "Passa a taxa do seu cabaz para a projeção da carteira e para as estratégias, em vez do valor genérico.", ""],
+  fechoIr:    ["Ir a este passo", "Muda para o mês que está a fechar e abre o sítio onde se resolve o passo.", ""],
+  fecharMes:  ["Fechar o mês", "Marca o mês como arrumado (selo ✓ na fita) e guarda o instantâneo do património desse momento. O Ctrl+Z anula.", ""],
+  fechoDispensar:["Não agora", "Esconde o fecho até à próxima visita. Não altera dados nenhuns.", ""],
+  patInstantaneo:["Guardar instantáneo", "Grava o ativo, a dívida e o património líquido de hoje, para a linha do tempo ter mais um ponto. O fecho do mês faz isto sozinho.", ""],
+  limDoHistorico:["Sugerir pelo histórico", "Define cada limite com a mediana real dos últimos seis meses, arredondada aos 5 €. O plano diz o que devia ser; a mediana diz o que é, e ignora o mês do frigorífico.", ""],
+  corteCalcular:["Sugerir onde cortar", "Reparte a meta pelas categorias com mais folga: desejos primeiro, e dentro deles as que estão mais acima do seu próprio hábito. Nunca corta uma categoria para menos de metade.", ""],
+  corteAplicar:["Aplicar aos limites", "Transforma o plano de corte em limites concretos por categoria — o gasto atual menos o corte de cada linha.", ""],
+  corteLimpar: ["Limpar o plano", "Descarta a meta e os ajustes. Não mexe nos limites já definidos.", ""],
   alternar:   ["Abrir e fechar", "Mostra ou esconde as componentes desta fonte de rendimento.", ""],
   rdToggle:   ["Ativar ou desativar", "Uma fonte desativada deixa de contar nos totais, mas mantém-se registada.", ""],
   recToggle:  ["Ativar ou desativar", "Uma rubrica desativada deixa de contar no plano, sem se perder o histórico.", ""],
@@ -2109,6 +2181,30 @@ const CENARIOS = {
 /* ---------------------------------------------------------------
    Estado inicial
    --------------------------------------------------------------- */
+/* Rostos dos membros: um emoji e uma cor por pessoa, atribuídos por ordem.
+   Numa tabela de família com quatro pessoas, «👩 Ana» lê-se num relance e
+   «Ana» obriga a ler. A cor é a mesma em todo o sítio onde a pessoa aparece. */
+const ROSTOS_MEMBRO = [
+  {icone:"🧑", cor:"#2f5fd0"}, {icone:"👩", cor:"#c96fb0"}, {icone:"👨", cor:"#0f7a4d"},
+  {icone:"👧", cor:"#e0913f"}, {icone:"👦", cor:"#8a6fe0"}, {icone:"👵", cor:"#7d8aa8"},
+  {icone:"👴", cor:"#3a97d4"}, {icone:"🧒", cor:"#d05f8c"},
+];
+/* Emoji à escolha para o rosto de um membro. */
+const EMOJIS_MEMBRO = ["🧑","👩","👨","👧","👦","👶","🧒","👵","👴","🧑‍🦱","👩‍🦰","👨‍🦰","🐕","🐈"];
+
+/** Dia do mês entre 1 e 31, ou "" quando não é dia nenhum. */
+function diaDoMesValido(v){
+  const n = Math.round(parseNum(v));
+  return (n >= 1 && n <= 31) ? n : "";
+}
+/** O dia de uma rubrica ajustado ao mês: o dia 31 em fevereiro é o dia 28. */
+function diaNoMes(dia, mes){
+  const d = diaDoMesValido(dia);
+  if (!d) return 0;
+  const [a, m] = mes.split("-").map(Number);
+  return Math.min(d, new Date(a, m, 0).getDate());
+}
+
 function categoriasSeed(){
   const c = (nome,tipo,grupo,cor,icone) => ({id:uid("cat"), nome, tipo, grupo, cor, icone: icone || ""});
   return [
@@ -2175,6 +2271,9 @@ function estadoVazio(){
       crescAnual:0, inflacao:2, idade:40, precoCasa:250000, ltv:90, jovemImt:false,
       precoAuto:20000, mesesEmerg:6},
     planeadas: [],     // compras grandes com data pensada (Planear despesa)
+    notas: {},         // mes ISO -> nota do mês («dezembro: férias»)
+    fechados: {},      // mes ISO -> {em: dia} — meses arrumados no fecho guiado
+    patrimonioHist: [], // [{mes, ativo, divida, liquido}] — instantâneos mensais
     dicasOcultas: [],   // sugestões de próximo passo já dispensadas
     tutorialVisto: false,
     paleta: "meianoite",   // paleta de cor da interface
@@ -2205,6 +2304,9 @@ let ui = {
   planPrefill: null,         // valor trazido do «Posso pagar isto?»
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
+  fechoDispensado: null,     // mês cujo fecho se dispensou nesta sessão
+  corteAlvo: 0,              // meta do plano de corte (€/mês)
+  corteAjustes: {},          // categoriaId -> corte ajustado à mão
 };
 const aberto = (id) => !!ui.abertos[id];
 
@@ -2430,8 +2532,16 @@ function normalizar(d){
   // em vez do padrão. Bastava um `categorias:{}` para ficar sem categorias.
   const out = Object.assign({}, base, d);
   out.membros     = Array.isArray(d.membros) ? d.membros : [];
+  // Cada membro tem um rosto: um emoji e uma cor, para as tabelas se lerem
+  // de relance. Quem vem de uma versão anterior recebe-os por ordem.
+  out.membros.forEach((m, i) => {
+    if (!m.icone) m.icone = ROSTOS_MEMBRO[i % ROSTOS_MEMBRO.length].icone;
+    if (!m.cor)   m.cor   = ROSTOS_MEMBRO[i % ROSTOS_MEMBRO.length].cor;
+  });
   out.categorias  = Array.isArray(d.categorias) && d.categorias.length ? d.categorias : base.categorias;
   out.recorrentes = Array.isArray(d.recorrentes) ? d.recorrentes : [];
+  // O dia do mês é opcional: sem ele, a rubrica não entra na linha do mês.
+  out.recorrentes.forEach(r => { r.dia = diaDoMesValido(r.dia); });
   out.movimentos  = Array.isArray(d.movimentos) ? d.movimentos : [];
   out.objetivos   = Array.isArray(d.objetivos) ? d.objetivos : [];
   // Um objetivo ligado a um ativo que desapareceu volta a acompanhar-se à mão
@@ -2450,6 +2560,29 @@ function normalizar(d){
   out.limites     = (d.limites && typeof d.limites === "object" && !Array.isArray(d.limites)) ? d.limites : {};
   out.projecao    = Object.assign({}, base.projecao, (d.projecao && typeof d.projecao === "object") ? d.projecao : {});
   out.estrategia  = Object.assign({}, base.estrategia, (d.estrategia && typeof d.estrategia === "object") ? d.estrategia : {});
+  // Notas do mês: só chaves que sejam meses, e texto com tecto — é uma nota,
+  // não um diário, e o estado inteiro passa pelo histórico a cada alteração.
+  out.notas = {};
+  if (d.notas && typeof d.notas === "object" && !Array.isArray(d.notas)){
+    Object.keys(d.notas).forEach(m => {
+      if (/^\d{4}-(0[1-9]|1[0-2])$/.test(m) && String(d.notas[m] || "").trim())
+        out.notas[m] = String(d.notas[m]).slice(0, NOTA_MAX);
+    });
+  }
+  out.fechados = {};
+  if (d.fechados && typeof d.fechados === "object" && !Array.isArray(d.fechados)){
+    Object.keys(d.fechados).forEach(m => {
+      if (/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) out.fechados[m] = {em: String((d.fechados[m] || {}).em || "")};
+    });
+  }
+  // Instantâneos do património: um por mês, o último a valer, por ordem
+  out.patrimonioHist = (Array.isArray(d.patrimonioHist) ? d.patrimonioHist : [])
+    .filter(x => x && /^\d{4}-(0[1-9]|1[0-2])$/.test(x.mes))
+    .map(x => ({mes: x.mes, ativo: parseNum(x.ativo), divida: parseNum(x.divida), liquido: parseNum(x.liquido)}));
+  const porMes = {};
+  out.patrimonioHist.forEach(x => { porMes[x.mes] = x; });
+  out.patrimonioHist = Object.keys(porMes).sort().map(m => porMes[m]);
+
   out.planeadas = (Array.isArray(d.planeadas) ? d.planeadas : [])
     .filter(p => p && p.id)
     .map(p => ({
@@ -2716,6 +2849,21 @@ const catRotulo = (id) => {
 };
 const membro = (id) => S.membros.find(m => m.id === id);
 const membroNome = (id) => { const m = membro(id); return m ? m.nome : ""; };
+const membroIcone = (id) => { const m = membro(id); return (m && m.icone) || ""; };
+const membroCor = (id) => { const m = membro(id); return (m && m.cor) || "var(--muted)"; };
+/** Nome com o rosto à frente, para seletores e etiquetas de texto. */
+const membroRotulo = (id) => {
+  const m = membro(id);
+  if (!m) return "";
+  return (m.icone ? m.icone + " " : "") + m.nome;
+};
+/** Pastilha com o rosto do membro, para as tabelas. */
+function membroPastilha(id){
+  const m = membro(id);
+  if (!m) return '<span class="muted">—</span>';
+  return '<span class="rosto" style="--rc:'+esc(m.cor || "var(--muted)")+'">'+
+    '<span class="ri" aria-hidden="true">'+esc(m.icone || "")+'</span>'+esc(m.nome)+'</span>';
+}
 
 /** Uma rubrica recorrente está ativa no mês? */
 function recAtiva(r, mes){
@@ -4669,6 +4817,16 @@ function alertas(){
       detalhe:"Faltam "+eur(-saldo)+" para cobrir as despesas de "+mesLabel(MES), vista:"despesas"});
   }
 
+  // Categorias fora do habitual, já com a sazonalidade descontada
+  anomaliasMes(MES).slice(0, 4).forEach(a => {
+    out.push({grau: a.acima ? 1 : 0, icone: a.acima ? "⚡" : "🌱",
+      titulo: (a.cat.icone ? a.cat.icone+" " : "")+a.cat.nome+" "+
+        pct(Math.abs(a.pct))+(a.acima ? " acima" : " abaixo")+" do habitual",
+      detalhe: eur(a.gasto)+" contra "+eur(a.esperado)+" esperados, "+
+        BASE_ANOMALIA[a.base]+" ("+a.n+" observações)",
+      vista:"movimentos"});
+  });
+
   // Compras planeadas: chegou o mês marcado
   S.planeadas.filter(p => !p.feitaEm && mesValido(p.mes) && p.mes === MES).forEach(p => {
     out.push({grau:1, icone:"🛒", titulo:'Mês marcado para «'+p.nome+'»',
@@ -5192,6 +5350,14 @@ function viewPainel(){
      ou fechado não se constrói, tal como nas fichas de ativo. */
   const produtores = {
     atencao:     () => cartaoAtencao(),
+    fecho:       () => cartaoFechoMes(),
+    previsao:    () => cartaoPrevisao(),
+    linhaMes:    () => cartaoLinhaMes(),
+    marcos:      () => cartaoMarcos(),
+    nota:        () => cartaoNota(),
+    subscricoes: () => cartaoSubscricoes(),
+    inflacao:    () => cartaoInflacao(),
+    patrimonioTempo: () => cartaoPatrimonioTempo(),
     digest:      () => resumoMensal(),
     comparativo: () => comparativo,
     grafico:     () => grafico,
@@ -5350,6 +5516,14 @@ function cartaoComparar(){
     o.push('<option value="'+m+'"'+(m === sel ? " selected" : "")+'>'+esc(mesLabel(m))+'</option>'); } return o.join(""); };
 
   const totalDif = fb.desp - fa.desp;
+  // As notas dos dois meses ao lado da comparação: é aqui que a explicação
+  // de um desvio grande faz mais falta.
+  const notaDe = (m) => (S.notas && S.notas[m]) || "";
+  const notas = (notaDe(a) || notaDe(b))
+    ? '<div class="note" style="margin-top:10px">'+
+      (notaDe(a) ? '<div>✎ <strong>'+esc(mesLabel(a))+':</strong> '+esc(notaDe(a))+'</div>' : "")+
+      (notaDe(b) ? '<div>✎ <strong>'+esc(mesLabel(b))+':</strong> '+esc(notaDe(b))+'</div>' : "")+
+      '</div>' : "";
   return '<div class="card"><div class="card-head"><div class="t"><h2>Comparar dois meses</h2>'+
     '<div class="sub">Onde é que a despesa mudou, categoria a categoria. Meses sem movimentos usam o plano.</div></div></div>'+
     '<div class="row no-print" style="margin-bottom:12px">'+
@@ -5373,7 +5547,680 @@ function cartaoComparar(){
         '<td class="r num '+(totalDif > 0 ? "neg" : "pos")+'">'+(totalDif > 0 ? "+" : "")+esc(eur(totalDif))+
         '</td></tr></tfoot></table></div>'
       : '<div class="empty">Sem despesa nos dois meses escolhidos.</div>')+
+    notas +
     '</div>';
+}
+
+/* ===============================================================
+   Rituais — arrumar, medir a constância, ver o stock crescer
+   =============================================================== */
+
+/**
+ * Sequências: a constância tornada visível. Não há pontos nem troféus —
+ * só a contagem do que se tem mantido, que é o que sustenta um orçamento
+ * ao longo de anos. Conta-se para trás a partir do último mês fechado com
+ * dados, e para no primeiro mês que quebra a regra.
+ */
+function sequencias(){
+  const hojeM = isoMes(hoje());
+  const out = [];
+
+  /* Conta meses consecutivos, do mais recente para trás, enquanto a
+     condição se mantiver. Só olha para meses com movimentos: um mês sem
+     dados não confirma nem quebra nada — interrompe a contagem. */
+  const contar = (cond) => {
+    let n = 0;
+    for (let i = 1; i <= 36; i++){
+      const m = mesShift(hojeM, -i);
+      const r = realMes(m);
+      if (r.rend <= 0 && r.desp <= 0) break;
+      if (!cond(m, r)) break;
+      n++;
+    }
+    return n;
+  };
+
+  const saldos = contar((m, r) => r.saldo > 0);
+  if (saldos >= 2) out.push({icone:"📈", n: saldos, unidade:"meses",
+    txt:"meses seguidos com saldo positivo", vista:"painel"});
+
+  // Limites respeitados: só conta nas categorias que têm limite definido
+  const comLimite = S.categorias.filter(c => c.tipo === "despesa" && parseNum(S.limites[c.id]) > 0);
+  comLimite.forEach(c => {
+    const lim = parseNum(S.limites[c.id]);
+    const n = contar((m, r) => (r.porCat[c.id] || 0) <= lim);
+    if (n >= 3) out.push({icone: c.icone || "🎯", n, unidade:"meses",
+      txt:"meses dentro do limite de "+c.nome, vista:"orcamento"});
+  });
+
+  // Meses fechados de seguida: o hábito de arrumar
+  let fechados = 0;
+  for (let i = 1; i <= 36; i++){
+    if (S.fechados && S.fechados[mesShift(hojeM, -i)]) fechados++; else break;
+  }
+  if (fechados >= 2) out.push({icone:"✓", n: fechados, unidade:"meses",
+    txt:"meses fechados sem falhar", vista:"painel"});
+
+  // Objetivos: meses seguidos com a reserva a crescer, e metas atingidas
+  const concluidos = S.objetivos.filter(o => parseNum(o.alvo) > 0 && poupadoObjetivo(o) >= parseNum(o.alvo)).length;
+  if (concluidos >= 1) out.push({icone:"🎯", n: concluidos, unidade: concluidos === 1 ? "objetivo" : "objetivos",
+    txt: concluidos === 1 ? "objetivo já atingido" : "objetivos já atingidos", vista:"objetivos"});
+
+  // Estratégias em curso: rubricas de poupança criadas pela execução
+  const aPoupar = S.recorrentes.filter(r => recAtiva(r, hojeM) &&
+    /poupan|reforço|ppr|aforro|investir/i.test(r.nome || "")).length;
+  if (aPoupar >= 1) out.push({icone:"🏦", n: aPoupar, unidade: aPoupar === 1 ? "estratégia" : "estratégias",
+    txt: aPoupar === 1 ? "estratégia a entregar todos os meses" : "estratégias a entregar todos os meses",
+    vista:"estrategias"});
+
+  // Património líquido a crescer, instantâneo a instantâneo
+  const hist = S.patrimonioHist || [];
+  let subidas = 0;
+  for (let i = hist.length - 1; i > 0; i--){
+    if (hist[i].liquido > hist[i-1].liquido) subidas++; else break;
+  }
+  if (subidas >= 2) out.push({icone:"🏛", n: subidas, unidade:"meses",
+    txt:"meses seguidos com o património a crescer", vista:"ativos"});
+
+  return out.sort((a,b) => b.n - a.n);
+}
+
+/**
+ * Fecho do mês. A arrumação de um mês é sempre a mesma coisa — categorizar
+ * o que ficou solto, olhar os desvios, ajustar limites, escrever a nota —
+ * e feita avulso esquece-se metade. Aqui é uma lista de passos com estado,
+ * cada um a dizer o que falta e a levar ao sítio onde se faz.
+ */
+function passosFecho(mes){
+  const m = mes || mesShift(isoMes(hoje()), -1);
+  const r = realMes(m);
+  const p = planoMes(m);
+  const semCat = S.movimentos.filter(x => mesDoDia(x.data) === m && !x.categoriaId).length;
+  const desvio = p.desp > 0 ? Math.abs(r.desp - p.desp) / p.desp * 100 : 0;
+  const anomalias = anomaliasMes(m);
+  const semLimite = S.categorias.filter(c => c.tipo === "despesa" &&
+    (r.porCat[c.id] || 0) > 0 && !(parseNum(S.limites[c.id]) > 0)).length;
+  const nota = (S.notas && S.notas[m]) || "";
+  const temDados = r.rend > 0 || r.desp > 0;
+
+  return {mes: m, temDados, passos: [
+    {k:"categorias", feito: semCat === 0,
+     t:"Categorizar o que ficou solto",
+     d: semCat === 0 ? "Todos os movimentos de "+mesLabel(m)+" têm categoria."
+        : semCat+" movimento(s) sem categoria — sem elas, os totais por categoria mentem.",
+     vista:"movimentos", btn:"Ver movimentos"},
+    {k:"desvios", feito: desvio <= 10,
+     t:"Olhar os desvios face ao plano",
+     d: "Despesa real "+eur(r.desp)+" contra "+eur(p.desp)+" previstos ("+
+        (r.desp >= p.desp ? "+" : "")+pct(p.desp > 0 ? (r.desp-p.desp)/p.desp*100 : 0)+")."+
+        (anomalias.length ? " "+anomalias.length+" categoria(s) fora do habitual." : ""),
+     vista:"painel", btn:"Ver painel"},
+    {k:"limites", feito: semLimite === 0,
+     t:"Fechar limites em falta",
+     d: semLimite === 0 ? "Todas as categorias com gasto têm limite."
+        : semLimite+" categoria(s) com gasto e sem limite definido.",
+     vista:"orcamento", btn:"Definir limites"},
+    {k:"nota", feito: !!nota,
+     t:"Escrever a nota do mês",
+     d: nota ? "«"+nota+"»" : "Uma linha a explicar o mês poupa dúvidas daqui a seis meses.",
+     vista:"painel", btn:"Escrever nota"},
+  ]};
+}
+
+function cartaoFechoMes(){
+  const anterior = mesShift(isoMes(hoje()), -1);
+  // Só se oferece quando o mês anterior tem dados, ainda não está fechado, e
+  // não foi dispensado nesta sessão
+  if (S.fechados && S.fechados[anterior]) return "";
+  if (ui.fechoDispensado === anterior) return "";
+  const f = passosFecho(anterior);
+  if (!f.temDados) return "";
+  const feitos = f.passos.filter(x => x.feito).length;
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Fechar '+esc(mesLabel(anterior))+'</h2>'+
+    '<div class="sub">Cinco minutos a arrumar o mês que passou. Nenhum passo é obrigatório — '+
+    'o selo serve para saber onde ficou.</div></div>'+
+    '<span class="tag">'+feitos+' de '+f.passos.length+'</span></div>'+
+    '<div class="passos">'+f.passos.map((x, i) =>
+      '<div class="passo'+(x.feito ? " feito" : "")+'">'+
+        '<span class="pn">'+(x.feito ? "✓" : (i+1))+'</span>'+
+        '<span class="pc"><span class="pt">'+esc(x.t)+'</span>'+
+          '<span class="pd">'+esc(x.d)+'</span></span>'+
+        '<button class="btn sm ghost no-print" data-act="fechoIr" data-view="'+esc(x.vista)+'" '+
+          'data-mes="'+esc(anterior)+'">'+esc(x.btn)+'</button>'+
+      '</div>').join("")+'</div>'+
+    '<div class="actions no-print" style="margin-top:11px">'+
+      '<button class="btn primary" data-act="fecharMes" data-mes="'+esc(anterior)+'">'+
+        'Marcar '+esc(mesLabel(anterior))+' como fechado</button>'+
+      ' <button class="btn ghost" data-act="fechoDispensar" data-mes="'+esc(anterior)+'">Não agora</button>'+
+    '</div></div>';
+}
+
+function cartaoMarcos(){
+  const lista = sequencias();
+  if (!lista.length) return "";
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Sequências e marcos</h2>'+
+    '<div class="sub">O que se tem mantido. Conta-se para trás a partir do mês passado, '+
+    'e um mês sem movimentos interrompe a contagem.</div></div></div>'+
+    '<div class="marcos">'+lista.map(s =>
+      '<button class="marco no-print" data-act="ir" data-view="'+esc(s.vista)+'">'+
+        '<span class="mi" aria-hidden="true">'+esc(s.icone)+'</span>'+
+        '<span class="mn num">'+s.n+'</span>'+
+        '<span class="mt">'+esc(s.txt)+'</span>'+
+      '</button>').join("")+'</div></div>';
+}
+
+/**
+ * Instantâneo do património no mês. A evolução mostra fluxos — o que
+ * entrou e saiu; falta a linha do *stock*, que é a que mede o progresso.
+ * Guarda-se um por mês, e o mais recente substitui o do mesmo mês.
+ */
+function registarPatrimonio(mes){
+  const m = mes || isoMes(hoje());
+  const b = balanco();
+  if (!S.patrimonioHist) S.patrimonioHist = [];
+  const existente = S.patrimonioHist.find(x => x.mes === m);
+  // `balanco()` chama-lhe `ativos` (carteira + bens); aqui guarda-se como
+  // `ativo`, que é o nome da série no gráfico.
+  const dados = {mes: m, ativo: b.ativos, divida: b.divida, liquido: b.liquido};
+  if (existente) Object.assign(existente, dados);
+  else {
+    S.patrimonioHist.push(dados);
+    S.patrimonioHist.sort((a,b2) => a.mes.localeCompare(b2.mes));
+  }
+  return dados;
+}
+
+function cartaoPatrimonioTempo(){
+  const hist = (S.patrimonioHist || []).slice(-24);
+  const b = balanco();
+  const agora = isoMes(hoje());
+  // O mês corrente entra sempre, calculado ao vivo, mesmo sem instantâneo
+  const serie = hist.filter(x => x.mes !== agora).concat([{mes: agora, ativo: b.ativos, divida: b.divida, liquido: b.liquido}]);
+  if (serie.length < 2){
+    return '<div class="card"><div class="card-head"><div class="t"><h2>Património ao longo do tempo</h2>'+
+      '<div class="sub">A linha do que é seu, mês a mês.</div></div></div>'+
+      '<div class="empty">Ainda só há um ponto. Guarde um instantâneo por mês — '+
+      'o fecho do mês faz isso por si, ou use o botão abaixo.</div>'+
+      '<div class="actions no-print" style="margin-top:10px">'+
+      '<button class="btn sm" data-act="patInstantaneo">Guardar instantâneo de '+esc(mesLabel(agora))+'</button></div></div>';
+  }
+
+  const W = 720, H = 200, padL = 62, padR = 14, padT = 14, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  // Guarda contra um instantâneo estragado: um único valor não finito punha
+  // NaN em toda a grelha do SVG, e o gráfico desaparecia sem dizer porquê.
+  const vals = serie.map(s => s.liquido).concat(serie.map(s => s.ativo))
+    .map(v => parseNum(v)).filter(v => Number.isFinite(v)).concat([0]);
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const amp = (max - min) || 1;
+  const x = (i) => padL + (i / Math.max(1, serie.length - 1)) * iw;
+  const y = (v) => {
+    const n = parseNum(v);
+    return Number.isFinite(n) ? padT + ih - ((n - min) / amp) * ih : padT + ih;
+  };
+
+  let grelha = "";
+  for (let g = 0; g <= 3; g++){
+    const v = min + amp * g / 3, yy = y(v);
+    grelha += '<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+
+      '" stroke="currentColor" opacity=".12"/>'+
+      '<text x="'+(padL-7)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="currentColor" opacity=".55">'+
+      esc(eur0(v))+'</text>';
+  }
+  const linha = (chave, cor, largura) => '<polyline fill="none" stroke="'+cor+'" stroke-width="'+largura+
+    '" stroke-linejoin="round" points="'+serie.map((s,i) => x(i).toFixed(1)+","+y(s[chave]).toFixed(1)).join(" ")+'"/>';
+  const area = '<polygon fill="var(--accent)" opacity=".13" points="'+
+    padL+','+y(Math.max(min,0)).toFixed(1)+' '+
+    serie.map((s,i) => x(i).toFixed(1)+","+y(s.liquido).toFixed(1)).join(" ")+' '+
+    (padL+iw).toFixed(1)+','+y(Math.max(min,0)).toFixed(1)+'"/>';
+
+  let zonas = "", eixo = "";
+  const passo = Math.ceil(serie.length / 8) || 1;
+  serie.forEach((s,i) => {
+    zonas += '<rect class="hit" x="'+(x(i) - iw/serie.length/2).toFixed(1)+'" y="'+padT+'" width="'+
+      (iw/serie.length).toFixed(1)+'" height="'+ih+'"'+
+      tipData(mesLabel(s.mes), [["Ativo", eur(s.ativo)], ["Dívida", eur(s.divida)],
+        ["Património líquido", eur(s.liquido)]])+'/>';
+    if (i % passo === 0) eixo += '<text x="'+x(i).toFixed(1)+'" y="'+(H-8)+
+      '" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">'+
+      esc(mesLabel(s.mes, true))+'</text>';
+  });
+
+  const primeiro = serie[0], ultimo = serie[serie.length-1];
+  const dif = ultimo.liquido - primeiro.liquido;
+  const meses = serie.length - 1;
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Património ao longo do tempo</h2>'+
+    '<div class="sub">A linha do <em>stock</em>: o que é seu, mês a mês. A evolução mostra fluxos; '+
+    'esta mostra o resultado deles.</div></div>'+
+    '<button class="btn sm no-print" data-act="patInstantaneo">Guardar instantâneo</button></div>'+
+    '<div class="grid g3" style="margin-bottom:14px">'+
+      kpi("Património líquido", eur(ultimo.liquido), "Hoje", ultimo.liquido >= 0 ? "accent" : "bad")+
+      kpi("Variação no período", (dif >= 0 ? "+" : "")+eur(dif),
+          meses+" "+(meses === 1 ? "mês" : "meses")+" · "+esc(eur(dif/Math.max(1,meses)))+"/mês",
+          dif >= 0 ? "good" : "bad")+
+      kpi("Instantâneos", String(serie.length), "O mês corrente é calculado ao vivo")+
+    '</div>'+
+    '<div class="tblwrap"><svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" '+
+      'aria-label="Património líquido ao longo do tempo">'+
+      grelha + area + linha("ativo", "var(--muted)", 1.5) + linha("liquido", "var(--accent)", 2.5) +
+      eixo + zonas + '</svg></div>'+
+    '<div class="legend">'+
+      '<div><span class="dot" style="background:var(--accent)"></span><span>Património líquido</span></div>'+
+      '<div><span class="dot" style="background:var(--muted)"></span><span>Ativo total</span></div>'+
+    '</div></div>';
+}
+
+/* ===============================================================
+   Insight — o que os números dizem sem ninguém perguntar
+   =============================================================== */
+
+/** Mediana de uma lista de números (lista vazia → 0). */
+function mediana(vals){
+  const v = vals.filter(x => Number.isFinite(x)).slice().sort((a,b) => a - b);
+  if (!v.length) return 0;
+  const meio = Math.floor(v.length / 2);
+  return v.length % 2 ? v[meio] : (v[meio-1] + v[meio]) / 2;
+}
+
+/** Despesa real de uma categoria num mês (0 quando o mês não tem movimentos). */
+function gastoCategoriaMes(catId, mes){
+  const r = realMes(mes);
+  return (r.rend > 0 || r.desp > 0) ? (r.porCat[catId] || 0) : 0;
+}
+
+/**
+ * Quanto se espera gastar numa categoria neste mês — com sazonalidade.
+ *
+ * A eletricidade em janeiro não se compara com a de julho, e as férias em
+ * agosto não são uma anomalia: são agosto. Por isso a referência é, por
+ * ordem de preferência:
+ *   1. os mesmos meses do calendário em anos anteriores (≥ 2 observações)
+ *      — capta o padrão sazonal da própria pessoa;
+ *   2. a mediana dos últimos seis meses, quando não há anos anteriores.
+ * A mediana (e não a média) ignora um mês atípico isolado.
+ */
+function esperadoCategoria(catId, mes){
+  const m = mes || MES;
+  const [ano, mm] = m.split("-").map(Number);
+
+  // 1. o mesmo mês do calendário, nos anos anteriores
+  const homologos = [];
+  for (let k = 1; k <= 3; k++){
+    const mAnt = (ano - k) + "-" + String(mm).padStart(2, "0");
+    const r = realMes(mAnt);
+    if (r.rend > 0 || r.desp > 0) homologos.push(r.porCat[catId] || 0);
+  }
+  if (homologos.length >= 2)
+    return {esperado: mediana(homologos), base: "sazonal", n: homologos.length};
+
+  // 2. os últimos seis meses
+  const recentes = [];
+  for (let i = 1; i <= 6; i++){
+    const mAnt = mesShift(m, -i);
+    const r = realMes(mAnt);
+    if (r.rend > 0 || r.desp > 0) recentes.push(r.porCat[catId] || 0);
+  }
+  // Com um único homólogo, vale mais do que nada: entra na mistura
+  if (homologos.length === 1 && recentes.length >= 2)
+    return {esperado: mediana(recentes.concat(homologos)), base: "misto", n: recentes.length + 1};
+  if (recentes.length >= 2)
+    return {esperado: mediana(recentes), base: "recente", n: recentes.length};
+  return null;
+}
+
+const ANOMALIA_PCT = 25;    // desvio relativo mínimo
+const ANOMALIA_EUR = 15;    // e desvio absoluto mínimo, para não alarmar cêntimos
+
+/**
+ * Categorias fora do habitual neste mês. Dupla fasquia de propósito: 40%
+ * de desvio em 3 € não é notícia, e 15 € num orçamento grande também não —
+ * só entra o que passa as duas.
+ */
+function anomaliasMes(mes){
+  const m = mes || MES;
+  const r = realMes(m);
+  if (r.rend <= 0 && r.desp <= 0) return [];
+  const out = [];
+  S.categorias.filter(c => c.tipo === "despesa").forEach(c => {
+    const gasto = r.porCat[c.id] || 0;
+    const ref = esperadoCategoria(c.id, m);
+    if (!ref || ref.esperado <= 0) return;
+    const dif = gasto - ref.esperado;
+    const pctDif = ref.esperado > 0 ? dif / ref.esperado * 100 : 0;
+    if (Math.abs(pctDif) < ANOMALIA_PCT || Math.abs(dif) < ANOMALIA_EUR) return;
+    out.push({cat: c, gasto, esperado: ref.esperado, dif, pct: pctDif,
+              base: ref.base, n: ref.n, acima: dif > 0});
+  });
+  return out.sort((a,b) => Math.abs(b.dif) - Math.abs(a.dif));
+}
+
+/* Como se descreve a referência de uma anomalia, em palavras. */
+const BASE_ANOMALIA = {
+  sazonal: "face ao mesmo mês de anos anteriores",
+  misto:   "face aos meses recentes e ao mês homólogo",
+  recente: "face aos últimos meses",
+};
+
+/**
+ * Subscrições: as rubricas mensais pequenas, somadas ao ano. O dano nunca
+ * está no valor mensal — está na soma que ninguém faz de cabeça.
+ */
+const SUBSCRICAO_TETO = 60;   // acima disto já não é uma subscrição esquecida
+
+function subscricoes(){
+  const cats = {};
+  S.categorias.forEach(c => { cats[c.id] = c; });
+  return S.recorrentes
+    .filter(r => r.tipo !== "rendimento" && r.frequencia === "mensal" &&
+                 parseNum(r.valor) > 0 && parseNum(r.valor) <= SUBSCRICAO_TETO)
+    .map(r => ({rec: r, mensal: recMensal(r), anual: recMensal(r) * 12, ativa: recAtiva(r, MES)}))
+    .sort((a,b) => b.anual - a.anual);
+}
+
+function cartaoSubscricoes(){
+  const lista = subscricoes();
+  if (lista.length < 2) return "";
+  const ativas = lista.filter(x => x.ativa);
+  const totalMes = ativas.reduce((s,x) => s + x.mensal, 0);
+  const totalAno = totalMes * 12;
+  const p = planoMes(MES);
+  const peso = p.desp > 0 ? totalMes / p.desp * 100 : 0;
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Subscrições ao ano</h2>'+
+    '<div class="sub">Rubricas mensais até '+esc(eur0(SUBSCRICAO_TETO))+', somadas a doze meses. '+
+    'É a soma anual que dói, não a mensalidade.</div></div>'+
+    '<span class="tag">'+ativas.length+' ativa(s)</span></div>'+
+    '<div class="grid g3" style="margin-bottom:12px">'+
+      kpi("Por mês", eur(totalMes), ativas.length+" subscrição(ões)")+
+      kpi("Por ano", eur(totalAno), "Se nenhuma mudar", "bad")+
+      kpi("Peso na despesa", pct(peso), "Do total previsto do mês", peso > 10 ? "warnb" : "")+
+    '</div>'+
+    '<div class="tblwrap"><table><thead><tr><th>Rubrica</th><th>Categoria</th>'+
+    '<th class="r">Por mês</th><th class="r">Por ano</th><th class="no-print"></th></tr></thead><tbody>'+
+    lista.map(x => '<tr'+(x.ativa ? '' : ' style="opacity:.45"')+'>'+
+      '<td>'+esc(x.rec.nome)+(x.ativa ? '' : ' <span class="tag">inativa</span>')+'</td>'+
+      '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(x.rec.categoriaId))+'"></span>'+
+        esc(catRotulo(x.rec.categoriaId))+'</span></td>'+
+      '<td class="r num">'+esc(eur(x.mensal))+'</td>'+
+      '<td class="r num"><strong>'+esc(eur(x.anual))+'</strong></td>'+
+      '<td class="r no-print"><button class="btn sm ghost" data-act="recToggle" data-id="'+esc(x.rec.id)+'" '+
+        'title="'+(x.ativa ? "Desativar" : "Reativar")+'">'+(x.ativa ? "●" : "○")+'</button></td>'+
+    '</tr>').join("")+
+    '</tbody><tfoot><tr><td colspan="3">Total ativo ao ano</td>'+
+    '<td class="r num">'+esc(eur(totalAno))+'</td><td class="no-print"></td></tr></tfoot></table></div></div>';
+}
+
+/**
+ * Inflação pessoal: o seu cabaz, não o do INE. Compara o custo das mesmas
+ * categorias entre este mês e o mês homólogo do ano anterior, ponderado
+ * pelo peso de cada categoria no orçamento. Sem mês homólogo com dados,
+ * não há número — e é melhor não haver do que inventar.
+ */
+function inflacaoPessoal(mes){
+  const m = mes || MES;
+  const [ano, mm] = m.split("-").map(Number);
+  const mAnt = (ano - 1) + "-" + String(mm).padStart(2, "0");
+  const rHoje = realMes(m), rAntes = realMes(mAnt);
+  if (rHoje.desp <= 0 || (rAntes.rend <= 0 && rAntes.desp <= 0)) return null;
+
+  const linhas = [];
+  let pesoTotal = 0, somaPonderada = 0;
+  S.categorias.filter(c => c.tipo === "despesa").forEach(c => {
+    const a = rAntes.porCat[c.id] || 0;
+    const b = rHoje.porCat[c.id] || 0;
+    if (a <= 0 || b <= 0) return;           // sem os dois pontos não há variação
+    const var_ = (b - a) / a * 100;
+    const peso = b;                          // o peso é o que se gasta hoje
+    linhas.push({cat: c, antes: a, agora: b, variacao: var_, peso});
+    pesoTotal += peso;
+    somaPonderada += var_ * peso;
+  });
+  if (!linhas.length || pesoTotal <= 0) return null;
+  return {mes: m, mesAnterior: mAnt, taxa: somaPonderada / pesoTotal,
+          linhas: linhas.sort((x,y) => Math.abs(y.variacao * y.peso) - Math.abs(x.variacao * x.peso)),
+          nCategorias: linhas.length, cobertura: pesoTotal / rHoje.desp * 100};
+}
+
+function cartaoInflacao(){
+  const inf = inflacaoPessoal(MES);
+  if (!inf) return "";
+  const usada = parseNum(S.projecao.inflacao);
+  const dif = inf.taxa - usada;
+  return '<div class="card"><div class="card-head"><div class="t"><h2>A sua inflação</h2>'+
+    '<div class="sub">O seu cabaz entre '+esc(mesLabel(inf.mesAnterior))+' e '+esc(mesLabel(inf.mes))+
+    ', ponderado pelo peso de cada categoria no que gasta hoje.</div></div></div>'+
+    '<div class="grid g3" style="margin-bottom:12px">'+
+      kpi("A sua inflação", pct(inf.taxa), inf.nCategorias+" categorias · "+pct(inf.cobertura)+" da despesa",
+          inf.taxa > 4 ? "bad" : inf.taxa > 2 ? "warnb" : "good")+
+      kpi("Nas projeções usa", pct(usada), "Estratégias e projeção da carteira")+
+      kpi("Diferença", (dif >= 0 ? "+" : "")+pct(dif),
+          Math.abs(dif) < 0.5 ? "Praticamente igual" : dif > 0 ? "Está a subestimar" : "Está a sobrestimar",
+          Math.abs(dif) < 0.5 ? "good" : "warnb")+
+    '</div>'+
+    '<div class="tblwrap"><table><thead><tr><th>Categoria</th>'+
+      '<th class="r">'+esc(mesLabel(inf.mesAnterior, true))+'</th>'+
+      '<th class="r">'+esc(mesLabel(inf.mes, true))+'</th><th class="r">Variação</th></tr></thead><tbody>'+
+    inf.linhas.slice(0, 8).map(l => '<tr><td><span class="tag">'+
+      '<span class="dot" style="background:'+esc(catCor(l.cat.id))+'"></span>'+esc(catRotulo(l.cat.id))+'</span></td>'+
+      '<td class="r num">'+esc(eur(l.antes))+'</td><td class="r num">'+esc(eur(l.agora))+'</td>'+
+      '<td class="r num '+(l.variacao > 0 ? "neg" : "pos")+'">'+(l.variacao > 0 ? "+" : "")+esc(pct(l.variacao))+'</td>'+
+    '</tr>').join("")+'</tbody></table></div>'+
+    (Math.abs(dif) >= 0.5
+      ? '<div class="actions no-print" style="margin-top:10px">'+
+        '<button class="btn sm" data-act="inflAdotar">Usar '+esc(pct(inf.taxa))+' nas projeções</button></div>'
+      : "")+
+    '</div>';
+}
+
+/* ===============================================================
+   O mês por dentro
+
+   A tesouraria a 12 meses responde a «em que mês é que aperta».
+   Faltava a pergunta de dentro do mês: «e até ao dia 31, quando?».
+   Duas peças: a linha do mês, que põe os pagamentos nos dias em que
+   caem, e a previsão de fecho, que projeta o saldo final ao ritmo
+   observado, com uma banda tirada da variabilidade dos meses anteriores.
+   =============================================================== */
+
+/** Os dias do mês em que sai (ou entra) dinheiro previsto, agrupados. */
+function eventosDoMes(mes){
+  const m = mes || MES;
+  const [ano, mm] = m.split("-").map(Number);
+  const ultimo = new Date(ano, mm, 0).getDate();
+  const porDia = {};
+  const juntar = (dia, nome, valor, tipo, cor) => {
+    if (!dia) return;
+    const d = Math.min(Math.max(1, dia), ultimo);
+    if (!porDia[d]) porDia[d] = {dia: d, itens: [], despesa: 0, rendimento: 0};
+    porDia[d].itens.push({nome, valor, tipo, cor});
+    if (tipo === "rendimento") porDia[d].rendimento += valor; else porDia[d].despesa += valor;
+  };
+
+  // Rubricas do plano com dia marcado — as sem dia ficam de fora de propósito:
+  // inventar-lhes o dia 1 dava uma linha do mês falsamente precisa.
+  S.recorrentes.filter(r => recAtiva(r, m) && r.dia && r.frequencia === "mensal")
+    .forEach(r => juntar(diaNoMes(r.dia, m), r.nome, recMensal(r),
+      r.tipo === "rendimento" ? "rendimento" : "despesa", catCor(r.categoriaId)));
+
+  // Compras planeadas marcadas para este mês, no fim do mês (não têm dia)
+  (S.planeadas || []).filter(p => !p.feitaEm && p.mes === m && parseNum(p.valor) > 0)
+    .forEach(p => juntar(ultimo, "🛒 "+p.nome, parseNum(p.valor), "despesa", catCor(p.categoriaId)));
+
+  const dias = Object.keys(porDia).map(Number).sort((a,b) => a - b).map(d => porDia[d]);
+  return {mes: m, ultimo, dias,
+          totalDespesa: dias.reduce((s,d) => s + d.despesa, 0),
+          totalRendimento: dias.reduce((s,d) => s + d.rendimento, 0)};
+}
+
+/** O próximo pagamento a partir de hoje, quando o mês em análise é o corrente. */
+function proximoPagamento(){
+  const ev = eventosDoMes(MES);
+  if (MES !== isoMes(hoje())) return null;
+  const hj = hoje().getDate();
+  const d = ev.dias.find(x => x.dia >= hj && x.despesa > 0);
+  if (!d) return null;
+  return {dia: d.dia, faltam: d.dia - hj, valor: d.despesa,
+          nomes: d.itens.filter(i => i.tipo !== "rendimento").map(i => i.nome)};
+}
+
+function cartaoLinhaMes(){
+  const ev = eventosDoMes(MES);
+  if (!ev.dias.length) return "";
+  const hj = MES === isoMes(hoje()) ? hoje().getDate() : 0;
+  const maxDia = Math.max(...ev.dias.map(d => d.despesa + d.rendimento));
+
+  // Uma coluna por dia do mês; as colunas com movimento ganham barra e balão.
+  let celulas = "";
+  for (let d = 1; d <= ev.ultimo; d++){
+    const e = ev.dias.find(x => x.dia === d);
+    const total = e ? e.despesa + e.rendimento : 0;
+    const h = total > 0 && maxDia > 0 ? Math.max(4, Math.round(total / maxDia * 30)) : 0;
+    const cor = e && e.rendimento > e.despesa ? "var(--pos)" : "var(--neg)";
+    const passado = hj > 0 && d < hj;
+    celulas += '<div class="ldCol'+(d === hj ? " hoje" : "")+'"'+
+      (e ? tipData("Dia "+d+" de "+mesLabel(MES),
+            e.itens.map(i => [i.nome, (i.tipo === "rendimento" ? "+" : "−")+eur(i.valor)])
+              .concat([["Total do dia", eur(total)]])) : "")+'>'+
+      '<div class="ldBarra">'+(h ? '<span style="height:'+h+'px;background:'+cor+
+        ';opacity:'+(passado ? .45 : 1)+'"></span>' : "")+'</div>'+
+      '<div class="ldDia">'+(d === hj ? "<strong>"+d+"</strong>" : (d % 5 === 0 || d === 1 ? d : "")) +'</div>'+
+    '</div>';
+  }
+
+  const prox = proximoPagamento();
+  const aviso = prox
+    ? '<div class="note" style="margin-top:11px">Próximo pagamento: <strong>'+
+      (prox.faltam === 0 ? "hoje" : prox.faltam === 1 ? "amanhã" : "dentro de "+prox.faltam+" dias")+
+      '</strong> (dia '+prox.dia+'), '+esc(eur(prox.valor))+' — '+esc(prox.nomes.slice(0,3).join(", "))+
+      (prox.nomes.length > 3 ? " e mais "+(prox.nomes.length-3) : "")+'.</div>'
+    : (MES === isoMes(hoje())
+      ? '<div class="note" style="margin-top:11px">Sem mais pagamentos marcados até ao fim do mês.</div>'
+      : "");
+
+  const semDia = S.recorrentes.filter(r => recAtiva(r, MES) && r.frequencia === "mensal" && !r.dia).length;
+  const convite = semDia
+    ? '<div class="note no-print" style="margin-top:9px">'+semDia+' rubrica(s) mensais sem dia marcado não aparecem aqui. '+
+      'Indique o <strong>dia do mês</strong> em <button class="btn sm ghost" data-act="ir" data-view="plano">Despesas fixas</button>.</div>'
+    : "";
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Linha do mês</h2>'+
+    '<div class="sub">Os dias em que o dinheiro sai, em '+esc(mesLabel(MES))+'. '+
+    'A altura é o valor do dia; o traço marca hoje.</div></div>'+
+    '<span class="tag">'+esc(eur(ev.totalDespesa))+' em '+ev.dias.length+' dia(s)</span></div>'+
+    '<div class="linhaMes">'+celulas+'</div>'+ aviso + convite +'</div>';
+}
+
+/**
+ * Previsão de fecho do mês. O que já aconteceu é real; o que falta
+ * estima-se de duas maneiras somadas: as rubricas fixas que ainda não
+ * saíram (essas sabem-se) e a despesa variável ao ritmo diário observado.
+ * A banda vem da dispersão dos últimos três meses — sem histórico, não se
+ * inventa banda nenhuma.
+ */
+function preverFechoMes(){
+  const m = MES;
+  if (m !== isoMes(hoje())) return null;      // só o mês a decorrer se prevê
+  const r = realMes(m), p = planoMes(m);
+  const [ano, mm] = m.split("-").map(Number);
+  const ultimo = new Date(ano, mm, 0).getDate();
+  const hj = hoje().getDate();
+  const decorrido = hj / ultimo;
+  if (r.rend <= 0 && r.desp <= 0) return null; // sem movimentos, nada a prever
+
+  // Fixas que ainda faltam: rubricas com dia marcado depois de hoje
+  const fixasPorSair = S.recorrentes
+    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) > hj)
+    .reduce((s,x) => s + (x.tipo === "rendimento" ? 0 : recMensal(x)), 0);
+  const rendPorEntrar = S.recorrentes
+    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) > hj)
+    .reduce((s,x) => s + (x.tipo === "rendimento" ? recMensal(x) : 0), 0);
+  // Compras planeadas marcadas para este mês e ainda não realizadas
+  const comprasPorFazer = (S.planeadas || [])
+    .filter(x => !x.feitaEm && x.mes === m).reduce((s,x) => s + parseNum(x.valor), 0);
+
+  // Variável: o que se gastou até hoje fora das fixas com dia, ao ritmo diário
+  const jaFixasComDia = S.recorrentes
+    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) <= hj)
+    .reduce((s,x) => s + (x.tipo === "rendimento" ? 0 : recMensal(x)), 0);
+  const variavelAteHoje = Math.max(0, r.desp - jaFixasComDia);
+  const ritmoDia = hj > 0 ? variavelAteHoje / hj : 0;
+  const variavelPorVir = ritmoDia * (ultimo - hj);
+
+  const despPrev = r.desp + fixasPorSair + comprasPorFazer + variavelPorVir;
+  const rendPrev = Math.max(r.rend + rendPorEntrar, r.rend > 0 ? r.rend : p.rend);
+  const saldoPrev = rendPrev - despPrev;
+
+  // Banda: desvio absoluto médio do saldo dos três meses anteriores face à
+  // sua média. Com menos de dois meses de histórico não há banda.
+  const anteriores = [];
+  for (let i = 1; i <= 3; i++){
+    const mm2 = mesShift(m, -i);
+    const rr = realMes(mm2);
+    if (rr.rend > 0 || rr.desp > 0) anteriores.push(rr.saldo);
+  }
+  let margem = 0;
+  if (anteriores.length >= 2){
+    const media = anteriores.reduce((s,v) => s + v, 0) / anteriores.length;
+    margem = anteriores.reduce((s,v) => s + Math.abs(v - media), 0) / anteriores.length;
+    margem *= (1 - decorrido);      // quanto mais perto do fim, menor a incerteza
+  }
+
+  return {decorrido, dia: hj, ultimo, despPrev, rendPrev, saldoPrev, margem,
+          fixasPorSair, comprasPorFazer, variavelPorVir, ritmoDia,
+          mesesHistorico: anteriores.length,
+          saldoReal: r.saldo, saldoPlano: p.saldo};
+}
+
+function cartaoPrevisao(){
+  const f = preverFechoMes();
+  if (!f) return "";
+  const cor = f.saldoPrev >= 0 ? "good" : "bad";
+  const banda = f.margem > 0
+    ? "entre "+eur(f.saldoPrev - f.margem)+" e "+eur(f.saldoPrev + f.margem)
+    : "sem histórico para estimar a margem";
+  const veredicto = f.saldoPrev >= 0
+    ? (f.margem > 0 && f.saldoPrev - f.margem < 0
+       ? "Deve fechar positivo, mas a margem toca o vermelho"
+       : "A caminho de fechar positivo")
+    : "A caminho de fechar em défice — corte "+eur(-f.saldoPrev)+" até ao fim do mês";
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Como vai fechar o mês</h2>'+
+    '<div class="sub">Dia '+f.dia+' de '+f.ultimo+' ('+esc(pct(f.decorrido*100))+' do mês). '+
+    'O que já aconteceu é real; o resto é o ritmo observado mais as rubricas que ainda faltam.</div></div></div>'+
+    '<div class="grid g3" style="margin-bottom:12px">'+
+      kpi("Saldo previsto", eur(f.saldoPrev), banda, cor)+
+      kpi("Despesa prevista", eur(f.despPrev),
+          "Já "+eur(f.despPrev - f.fixasPorSair - f.comprasPorFazer - f.variavelPorVir)+" gastos", "bad")+
+      kpi("Ritmo diário", eur(f.ritmoDia), "Despesa variável por dia", "warnb")+
+    '</div>'+
+    '<div style="font-size:13px;color:'+(f.saldoPrev >= 0 ? "var(--pos)" : "var(--neg)")+'">'+esc(veredicto)+'</div>'+
+    '<div class="note" style="margin-top:11px">Falta sair: '+esc(eur(f.fixasPorSair))+' de rubricas com dia marcado'+
+      (f.comprasPorFazer > 0 ? ', '+esc(eur(f.comprasPorFazer))+' de compras planeadas' : '')+
+      ' e '+esc(eur(f.variavelPorVir))+' de despesa variável ao ritmo atual'+
+      (f.mesesHistorico >= 2 ? ' · margem tirada dos últimos '+f.mesesHistorico+' meses' : '')+'.</div>'+
+    '</div>';
+}
+
+/**
+ * Nota do mês. Um número fora do comum quase sempre tem uma história —
+ * férias, um jantar de empresa, o mês em que a caldeira se avariou — e sem
+ * onde a guardar, seis meses depois ninguém se lembra porque é que agosto
+ * foi caro. Guarda-se por mês, e aparece na fita, no relatório e na
+ * comparação de meses.
+ */
+function cartaoNota(){
+  const nota = (S.notas && S.notas[MES]) || "";
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Nota de '+esc(mesLabel(MES))+'</h2>'+
+    '<div class="sub">O que explica os números deste mês. Aparece na fita, no relatório e na comparação.</div></div>'+
+    (nota ? '<span class="tag">✎ escrita</span>' : "")+'</div>'+
+    '<textarea id="notaMes" rows="2" maxlength="'+NOTA_MAX+'" placeholder="Ex.: férias no Algarve + revisão do carro" '+
+      'style="width:100%;resize:vertical">'+esc(nota)+'</textarea>'+
+    '<div class="actions no-print" style="margin-top:9px">'+
+      '<button class="btn sm primary" data-act="notaGuardar">Guardar nota</button>'+
+      (nota ? ' <button class="btn sm ghost" data-act="notaApagar">Apagar</button>' : "")+
+    '</div></div>';
 }
 
 /** Resumo dos créditos no painel: encargo, dívida e taxa de esforço. */
@@ -5423,16 +6270,24 @@ function cartaoObjetivosResumo(){
    --------------------------------------------------------------- */
 const CARTOES_PAINEL = {
   atencao:     {lbl:"Precisa da sua atenção",   padrao:true,  largo:false},
+  fecho:       {lbl:"Fechar o mês passado",     padrao:true,  largo:true},
+  previsao:    {lbl:"Como vai fechar o mês",    padrao:true,  largo:false},
+  linhaMes:    {lbl:"Linha do mês",             padrao:true,  largo:true},
   digest:      {lbl:"Resumo do mês fechado",    padrao:true,  largo:false},
   comparativo: {lbl:"Previsto vs. real",        padrao:true,  largo:false},
   grafico:     {lbl:"Despesa por categoria",    padrao:true,  largo:false},
   regra:       {lbl:"Regra 50 / 30 / 20",       padrao:true,  largo:false},
+  marcos:      {lbl:"Sequências e marcos",      padrao:false, largo:false},
+  nota:        {lbl:"Nota do mês",              padrao:false, largo:false},
+  subscricoes: {lbl:"Subscrições ao ano",       padrao:false, largo:false},
+  inflacao:    {lbl:"A sua inflação",           padrao:false, largo:false},
   comparar:    {lbl:"Comparar dois meses",      padrao:false, largo:true},
   podePagar:   {lbl:"Posso pagar isto?",        padrao:false, largo:false},
   sankey:      {lbl:"Para onde vai o dinheiro", padrao:false, largo:true},
   tesouraria:  {lbl:"Tesouraria a 12 meses",    padrao:false, largo:true},
   mapa:        {lbl:"Mapa do ano",              padrao:false, largo:true},
   evolucao:    {lbl:"Evolução",                 padrao:false, largo:false},
+  patrimonioTempo:{lbl:"Património ao longo do tempo", padrao:false, largo:true},
   creditos:    {lbl:"Créditos",                 padrao:false, largo:false},
   objetivos:   {lbl:"Objetivos de poupança",    padrao:false, largo:false},
   patrimonio:  {lbl:"Património líquido",       padrao:false, largo:false},
@@ -5743,7 +6598,7 @@ function viewMovimentos(){
         esc(m.descricao || "—")+'</td>'+
       '<td data-lbl="Categoria" data-edit="categoriaId" data-id="'+esc(m.id)+'" title="Clique duplo para editar">'+
         '<span class="tag"><span class="dot" style="background:'+esc(catCor(m.categoriaId))+'"></span>'+esc(catRotulo(m.categoriaId))+'</span></td>'+
-      '<td data-lbl="Membro">'+esc(membroNome(m.membroId) || "—")+'</td>'+
+      '<td data-lbl="Membro">'+membroPastilha(m.membroId)+'</td>'+
       '<td class="r num '+(isR ? "pos" : "neg")+'" data-lbl="Valor" data-edit="valor" data-id="'+esc(m.id)+'" '+
         'title="Clique duplo para editar">'+(isR ? "+" : "−")+esc(eur(v))+'</td>'+
       '<td class="r no-print" style="white-space:nowrap">'+
@@ -5862,7 +6717,7 @@ function selectCategorias(id, sel, tipo, vazio){
 }
 function selectMembros(id, sel, vazio){
   const opts = S.membros.map(m =>
-    '<option value="'+esc(m.id)+'"'+(m.id === sel ? " selected" : "")+'>'+esc(m.nome)+'</option>').join("");
+    '<option value="'+esc(m.id)+'"'+(m.id === sel ? " selected" : "")+'>'+esc(membroRotulo(m.id))+'</option>').join("");
   return '<select id="'+esc(id)+'"><option value="">'+esc(vazio || "— agregado —")+'</option>'+opts+'</select>';
 }
 
@@ -6059,7 +6914,7 @@ function fichaRendimento(rd){
         'aria-expanded="'+abertoAgora+'" title="Mostrar ou esconder as componentes">'+(abertoAgora ? "▾" : "▸")+'</button>'+
       '<div class="t"><h2>'+esc(rd.nome || "Fonte de rendimento")+
         (rd.ativo === false ? ' <span class="tag">inativa</span>' : "")+'</h2>'+
-        '<div class="sub">'+(rd.membroId ? esc(membroNome(rd.membroId))+' · ' : "")+
+        '<div class="sub">'+(rd.membroId ? esc(membroRotulo(rd.membroId))+' · ' : "")+
         esc((REGIMES_SS[rd.regime] || REGIMES_SS.dependente).lbl)+' · '+
         comps.length+' componente(s) · bruto '+esc(eur(fx.bruto))+' · líquido <strong>'+esc(eur(fx.liquido))+'</strong>'+
         ' · carga '+esc(pct(fx.taxaEfetiva))+'</div></div>'+
@@ -6289,6 +7144,8 @@ function viewPlano(){
       '<div style="flex:0 0 165px"><label class="field" for="rcFreq">Periodicidade</label>'+
         '<select id="rcFreq">'+Object.entries(FREQ).map(([k,v]) =>
           '<option value="'+k+'"'+(f.frequencia===k?" selected":"")+'>'+esc(v.lbl)+'</option>').join("")+'</select></div>'+
+      '<div style="flex:0 0 120px"><label class="field" for="rcDia">Dia do mês <span class="muted">(opc.)</span></label>'+
+        '<input id="rcDia" inputmode="numeric" placeholder="—" maxlength="2" value="'+esc(f.dia || "")+'"></div>'+
     '</div>'+
     '<div class="row" style="margin-top:9px">'+
       '<div style="flex:0 0 160px"><label class="field" for="rcInicio">Início (opcional)</label>'+
@@ -6324,8 +7181,9 @@ function viewPlano(){
             botoesOrdenar("rec", r.id)+'</td>'+
           '<td>'+esc(r.nome || "—")+(ativa ? "" : ' <span class="tag">inativa</span>')+'</td>'+
           '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(r.categoriaId))+'"></span>'+esc(catRotulo(r.categoriaId))+'</span></td>'+
-          '<td>'+esc(membroNome(r.membroId) || "—")+'</td>'+
-          '<td>'+esc((FREQ[r.frequencia] || FREQ.mensal).lbl)+'</td>'+
+          '<td>'+membroPastilha(r.membroId)+'</td>'+
+          '<td>'+esc((FREQ[r.frequencia] || FREQ.mensal).lbl)+
+            (r.dia ? ' <span class="tag">dia '+esc(r.dia)+'</span>' : "")+'</td>'+
           '<td class="r num">'+esc(eur(parseNum(r.valor)))+'</td>'+
           '<td class="r num"><strong>'+esc(eur(recMensal(r)))+'</strong></td>'+
           '<td class="r no-print" style="white-space:nowrap">'+
@@ -6410,6 +7268,190 @@ function textoRitmo(gasto, limite){
   return ritmo + " · " + eur(resta / dias) + "/dia";
 }
 
+/**
+ * Mediana do que se gastou numa categoria nos últimos N meses com dados.
+ * O plano diz o que devia ser; isto diz o que é. Ambos servem de ponto de
+ * partida para um limite, e a mediana tem a vantagem de ignorar o mês em
+ * que se comprou o frigorífico.
+ */
+function medianaCategoria(catId, meses){
+  const n = meses || 6;
+  const vals = [];
+  for (let i = 1; i <= n; i++){
+    const m = mesShift(MES, -i);
+    const r = realMes(m);
+    if (r.rend > 0 || r.desp > 0) vals.push(r.porCat[catId] || 0);
+  }
+  return vals.length >= 2 ? {valor: mediana(vals), n: vals.length} : null;
+}
+
+/* ===============================================================
+   Plano de corte
+
+   Entre «gasto demasiado» e «limites concretos» falta sempre a mesma
+   ponte: onde cortar. Aqui indica-se quanto se quer poupar por mês e a
+   ferramenta reparte o corte pelas categorias onde há folga — desejos
+   primeiro, e dentro deles as que estão mais acima da própria mediana,
+   porque é aí que o corte se sente menos.
+   =============================================================== */
+/* Categorias que não se cortam por decisão: são contrato, lei ou o próprio
+   destino do dinheiro que se quer libertar. Cortar a amortização do crédito
+   para «poupar» é circular — o capital amortizado já é património; e os juros,
+   os impostos e a retenção na fonte não obedecem a uma decisão de consumo. */
+const CATS_NAO_CORTAVEIS = [
+  "Juros de crédito", "Prestações de crédito", "Seguros de crédito",
+  "Impostos", "IRS e Segurança Social",
+];
+const CORTE_MAX_FRACAO = 0.5;   // nunca deixar uma categoria a menos de metade
+
+function planoDeCorte(alvo){
+  const meta = Math.max(0, parseNum(alvo));
+  if (meta <= 0) return null;
+  const r = realMes(MES), p = planoMes(MES);
+  const usarReal = r.rend > 0 || r.desp > 0;
+  const naoCortaveis = new Set(CATS_NAO_CORTAVEIS);
+
+  const candidata = (c) => {
+    const gasto = usarReal ? (r.porCat[c.id] || 0) : (p.porCat[c.id] || 0);
+    if (gasto <= 0) return null;
+    if (naoCortaveis.has(c.nome)) return null;
+    if ((c.grupo || "desejos") === "poupanca") return null;
+    const med = medianaCategoria(c.id, 6);
+    const base = med ? med.valor : gasto;
+    // A folga é o que está acima do próprio hábito, mais uma fatia do que
+    // se gasta — é aí que o corte se sente menos.
+    const acima = Math.max(0, gasto - base);
+    return {cat: c, gasto, mediana: base, temMediana: !!med,
+            acima, folga: acima * 2 + gasto * 0.25, teto: gasto * CORTE_MAX_FRACAO};
+  };
+
+  const todas = S.categorias.filter(c => c.tipo === "despesa").map(candidata).filter(Boolean);
+  // Duas bolsas por ordem de preferência: primeiro os desejos, e só se não
+  // bastarem se toca nas necessidades — que é a conversa difícil.
+  const bolsas = [
+    {nome:"desejos", itens: todas.filter(x => (x.cat.grupo || "desejos") === "desejos")},
+    {nome:"necessidades", itens: todas.filter(x => (x.cat.grupo || "desejos") === "necessidades")},
+  ];
+  if (!bolsas.some(b => b.itens.length)) return null;
+
+  /* Reparte proporcionalmente à folga dentro da bolsa, respeitando o teto de
+     cada categoria e voltando a repartir o que sobrar por causa dos tetos. */
+  const repartir = (itens, quanto) => {
+    const corte = new Map(itens.map(x => [x.cat.id, 0]));
+    let restante = quanto;
+    for (let volta = 0; volta < 6 && restante > 0.01; volta++){
+      const abertas = itens.filter(x => corte.get(x.cat.id) < x.teto - 0.01);
+      if (!abertas.length) break;
+      const folgaTotal = abertas.reduce((s,x) => s + x.folga, 0);
+      if (folgaTotal <= 0) break;
+      let distribuido = 0;
+      abertas.forEach(x => {
+        const quota = restante * (x.folga / folgaTotal);
+        const atual = corte.get(x.cat.id);
+        const novo = Math.min(x.teto, atual + quota);
+        distribuido += novo - atual;
+        corte.set(x.cat.id, novo);
+      });
+      if (distribuido <= 0.01) break;
+      restante -= distribuido;
+    }
+    return {corte, restante};
+  };
+
+  const linhas = [];
+  let porCobrir = meta;
+  const usadas = [];
+  bolsas.forEach(b => {
+    if (porCobrir <= 0.01 || !b.itens.length) return;
+    const {corte, restante} = repartir(b.itens, porCobrir);
+    let somaBolsa = 0;
+    b.itens.forEach(x => {
+      const v = Math.round(corte.get(x.cat.id) * 100) / 100;
+      if (v >= 1){ linhas.push(Object.assign({}, x, {corte: v, bolsa: b.nome})); somaBolsa += v; }
+    });
+    if (somaBolsa > 0) usadas.push(b.nome);
+    porCobrir = restante;
+  });
+
+  const conseguido = linhas.reduce((s,x) => s + x.corte, 0);
+  return {meta, linhas: linhas.slice(0, 10), conseguido,
+          atingivel: conseguido >= meta - 0.5,
+          bolsasUsadas: usadas,
+          soDesejos: usadas.length === 1 && usadas[0] === "desejos",
+          fonte: usarReal ? "movimentos deste mês" : "plano mensal"};
+}
+
+function cartaoCorte(){
+  const alvo = ui.corteAlvo != null ? ui.corteAlvo : 0;
+  const plano = planoDeCorte(alvo);
+  const ajustes = ui.corteAjustes || {};
+
+  const controlo = '<div class="row no-print" style="margin-bottom:10px">'+
+    '<div style="flex:0 0 170px"><label class="field" for="corteAlvo">Quero cortar (€/mês)</label>'+
+      '<input id="corteAlvo" inputmode="decimal" placeholder="0,00" value="'+valEur(alvo)+'" style="text-align:right"></div>'+
+    '<div style="flex:0 0 auto;align-self:flex-end">'+
+      '<button class="btn sm" data-act="corteCalcular">Sugerir onde</button></div>'+
+    '<div style="flex:1 1 auto"></div>'+
+  '</div>';
+
+  let corpo = '<div class="empty">Escreva quanto quer cortar por mês e a ferramenta sugere onde — '+
+    'começando pelos desejos e pelas categorias mais acima do seu próprio hábito.</div>';
+
+  if (plano){
+    // Cada linha tem o seu deslizador: a sugestão é um ponto de partida
+    const total = plano.linhas.reduce((s,x) =>
+      s + (ajustes[x.cat.id] != null ? parseNum(ajustes[x.cat.id]) : x.corte), 0);
+    corpo = '<div class="tblwrap"><table><thead><tr><th>Categoria</th><th>Grupo</th>'+
+      '<th class="r">Gasta</th><th class="r">Habitual</th><th>Corte sugerido</th><th class="r">Fica em</th>'+
+      '</tr></thead><tbody>'+
+      plano.linhas.map(x => {
+        const corte = ajustes[x.cat.id] != null ? parseNum(ajustes[x.cat.id]) : x.corte;
+        const maxCorte = Math.max(1, Math.round(x.teto));
+        return '<tr>'+
+          '<td><span class="tag"><span class="dot" style="background:'+esc(x.cat.cor)+'"></span>'+
+            esc(catRotulo(x.cat.id))+'</span></td>'+
+          '<td><span class="tag g-'+esc(x.cat.grupo || "desejos")+'">'+
+            esc((GRUPOS[x.cat.grupo] || GRUPOS.desejos).lbl)+'</span></td>'+
+          '<td class="r num">'+esc(eur(x.gasto))+'</td>'+
+          '<td class="r num" style="color:var(--muted)">'+esc(eur(x.mediana))+
+            (x.temMediana ? "" : "*")+'</td>'+
+          '<td style="min-width:150px">'+
+            '<input type="range" data-corte="'+esc(x.cat.id)+'" data-gasto="'+x.gasto.toFixed(2)+'" '+
+              'min="0" max="'+maxCorte+'" step="1" value="'+Math.round(corte)+'" '+
+              'aria-label="Corte em '+esc(x.cat.nome)+'" aria-valuetext="'+esc(eur(corte))+'">'+
+            '<div id="corteVal-'+esc(x.cat.id)+'" style="font-size:11.5px;color:var(--muted);text-align:right">'+
+              esc(eur(corte))+'</div></td>'+
+          '<td class="r num"><strong id="corteFica-'+esc(x.cat.id)+'">'+esc(eur(x.gasto - corte))+'</strong></td>'+
+        '</tr>';
+      }).join("")+
+      '</tbody><tfoot><tr><td colspan="4">Corte total</td>'+
+      '<td class="r num" id="corteTotal" data-meta="'+plano.meta.toFixed(2)+'">'+
+        '<span class="'+(total >= plano.meta - 0.5 ? "pos" : "neg")+'">'+esc(eur(total))+'</span></td>'+
+      '<td class="r num">de '+esc(eur(plano.meta))+'</td></tr></tfoot></table></div>'+
+      (plano.atingivel
+        ? '<div class="note" style="margin-top:10px">'+
+          (plano.soDesejos
+            ? 'A meta cabe só nos <strong>desejos</strong> — nenhuma necessidade foi tocada.'
+            : 'Os desejos não bastaram, por isso entram também <strong>necessidades</strong>. '+
+              'Essas exigem mudar de hábito ou de fornecedor, não só de vontade.')+
+          ' Base: '+esc(plano.fonte)+'. Poupança, juros, prestações e impostos ficam de fora: '+
+          'cortar amortização para poupar é circular, e juros não obedecem a decisões. '+
+          'As linhas com * ainda não têm seis meses de histórico.</div>'
+        : '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><strong>Não chega:</strong> '+
+          'as sugestões somam '+esc(eur(plano.conseguido))+' de '+esc(eur(plano.meta))+
+          ', sem deixar nenhuma categoria a menos de metade. Para ir mais longe é preciso mexer no que é '+
+          'estrutural — renda, crédito, seguros — ou aumentar o rendimento.</div>')+
+      '<div class="actions no-print" style="margin-top:10px">'+
+        '<button class="btn primary" data-act="corteAplicar">Aplicar aos limites</button>'+
+        ' <button class="btn ghost" data-act="corteLimpar">Limpar</button></div>';
+  }
+
+  return '<div class="card" style="margin-bottom:16px"><div class="card-head"><div class="t">'+
+    '<h2>Plano de corte</h2>'+
+    '<div class="sub">De «gasto demasiado» a limites concretos. Reparte o corte pelas categorias com mais folga, '+
+    'começando pelos desejos.</div></div></div>'+ controlo + corpo +'</div>';
+}
+
 function viewOrcamento(){
   const r = realMes(MES), p = planoMes(MES);
   const cats = S.categorias.filter(c => c.tipo === "despesa");
@@ -6456,8 +7498,9 @@ function viewOrcamento(){
 
   return '<div class="card"><div class="card-head"><div class="t"><h2>Limites por categoria — '+esc(mesLabel(MES))+'</h2>'+
     '<div class="sub">Defina um teto mensal por categoria. Sem limite definido, usa-se o valor do plano.</div></div>'+
-    '<button class="btn sm no-print" data-act="limDoPlano">Preencher com o plano</button></div>'+
-    mesada+
+    '<button class="btn sm no-print" data-act="limDoPlano">Preencher com o plano</button> '+
+    '<button class="btn sm no-print" data-act="limDoHistorico">Sugerir pelo histórico</button></div>'+
+    mesada + cartaoCorte() +
     (semNada
       ? '<div class="empty">Ainda não há categorias com plano, limite ou gastos. Comece pelo plano mensal.</div>'
       : '<div class="tblwrap"><table><thead><tr><th>Categoria</th><th>Grupo</th><th class="r">Limite/mês</th>'+
@@ -8508,13 +9551,20 @@ function viewConfig(){
       '<div class="shrink"><button class="btn primary" data-act="mbAdd">Adicionar</button></div>'+
     '</div>'+
     (S.membros.length
-      ? '<div class="tblwrap"><table><thead><tr><th>Nome</th><th class="r">Rendimento no plano</th>'+
+      ? '<div class="tblwrap"><table><thead><tr><th>Rosto</th><th>Nome</th><th class="r">Rendimento no plano</th>'+
         '<th class="r">Despesa no plano</th><th class="no-print"></th></tr></thead><tbody>'+
         S.membros.map(m => {
           const rs = S.recorrentes.filter(r => r.membroId === m.id && recAtiva(r, MES));
           const rr = rs.filter(r => r.tipo === "rendimento").reduce((s,r) => s + recMensal(r), 0);
           const dd = rs.filter(r => r.tipo !== "rendimento").reduce((s,r) => s + recMensal(r), 0);
-          return '<tr><td>'+esc(m.nome)+'</td><td class="r num pos">'+esc(eur(rr))+'</td>'+
+          return '<tr><td class="no-print" style="white-space:nowrap">'+
+              '<select data-act="mbIcone" data-id="'+esc(m.id)+'" aria-label="Emoji de '+esc(m.nome)+'" '+
+                'style="width:auto;padding:4px 6px">'+
+                EMOJIS_MEMBRO.map(e => '<option value="'+esc(e)+'"'+(m.icone === e ? " selected" : "")+'>'+esc(e)+'</option>').join("")+
+              '</select> '+
+              '<input type="color" data-act="mbCor" data-id="'+esc(m.id)+'" value="'+esc(m.cor || "#2f5fd0")+'" '+
+                'aria-label="Cor de '+esc(m.nome)+'" style="padding:3px;height:34px;width:44px"></td>'+
+            '<td>'+membroPastilha(m.id)+'</td><td class="r num pos">'+esc(eur(rr))+'</td>'+
             '<td class="r num neg">'+esc(eur(dd))+'</td>'+
             '<td class="r no-print"><button class="btn sm ghost" data-act="mbApagar" data-id="'+esc(m.id)+'">✕</button></td></tr>';
         }).join("")+'</tbody></table></div>'
@@ -9061,7 +10111,13 @@ function viewRelatorio(){
     '<div class="capa"><h1>Orçamento familiar</h1>'+
       '<div class="mes">'+esc(mesLabel(MES))+'</div>'+
       '<div class="sub">'+(usarReal ? "Com base nos movimentos registados" : "Com base no plano mensal")+
-      ' · emitido em '+esc(isoDia(hoje()).split("-").reverse().join("/"))+'</div></div>'+
+      ' · emitido em '+esc(isoDia(hoje()).split("-").reverse().join("/"))+
+      (S.fechados && S.fechados[MES] ? ' · mês fechado' : '')+'</div>'+
+      // A nota do mês é o que explica os números a quem lê o relatório meses
+      // depois — inclui-se logo na capa, e não numa página perdida.
+      ((S.notas && S.notas[MES])
+        ? '<div class="notaRel">✎ '+esc(S.notas[MES])+'</div>' : "")+
+      '</div>'+
 
     '<div class="grid g4" style="margin:16px 0">'+
       kpi("Rendimento", eur(rend), usarReal ? "Real" : "Previsto")+
@@ -9149,11 +10205,18 @@ function pintarFita(){
     const h = Math.max(3, Math.round(Math.abs(d.saldo) / max * 24));
     const cor = d.saldo >= 0 ? "var(--pos)" : "var(--neg)";
     const atual = d.mes === MES;
+    // Selo de mês fechado e marca de nota: a fita passa a dizer o que já
+    // foi arrumado e o que tem história escrita.
+    const fechado = !!(S.fechados && S.fechados[d.mes]);
+    const nota = (S.notas && S.notas[d.mes]) || "";
     return '<button data-mes="'+esc(d.mes)+'"'+(atual ? ' aria-current="true"' : '')+
-      ' title="'+esc(mesLabel(d.mes))+' · saldo '+esc(eur(d.saldo))+(d.futuro ? " (previsto)" : "")+'">'+
+      ' title="'+esc(mesLabel(d.mes))+' · saldo '+esc(eur(d.saldo))+(d.futuro ? " (previsto)" : "")+
+        (fechado ? " · mês fechado" : "")+(nota ? " · "+esc(nota) : "")+'">'+
       '<span class="cx"><span class="bx" style="height:'+h+'px;background:'+cor+
         ';opacity:'+(atual ? 1 : d.futuro ? .35 : .55)+'"></span></span>'+
-      '<span class="lx">'+esc(mesLabel(d.mes, true).split("/")[0])+'</span></button>';
+      '<span class="lx">'+esc(mesLabel(d.mes, true).split("/")[0])+
+        (fechado ? '<span class="selo" aria-label="mês fechado">✓</span>' : "")+
+        (nota ? '<span class="selo" aria-label="tem nota">✎</span>' : "")+'</span></button>';
   }).join("");
 }
 
@@ -9466,8 +10529,10 @@ function importJSON(){
 function carregarExemplo(){
   const s = estadoVazio();
   const byName = (n) => { const c = s.categorias.find(x => x.nome === n); return c ? c.id : ""; };
-  const m1 = {id:uid("mb"), nome:"Ana"};
-  const m2 = {id:uid("mb"), nome:"Bruno"};
+  // Os rostos vêm daqui e não de `normalizar`, porque o exemplo é construído
+  // à mão: sem eles, as pastilhas do exemplo apareciam sem emoji nem cor.
+  const m1 = {id:uid("mb"), nome:"Ana",   icone:ROSTOS_MEMBRO[1].icone, cor:ROSTOS_MEMBRO[1].cor};
+  const m2 = {id:uid("mb"), nome:"Bruno", icone:ROSTOS_MEMBRO[2].icone, cor:ROSTOS_MEMBRO[2].cor};
   s.membros = [m1, m2];
   // Casal com dois filhos: é o que explica a creche, o abono e a tabela
   // de retenção com dependentes.
@@ -9936,6 +11001,115 @@ const ACOES = {
     });
   },
 
+  /* --- limites pelo histórico e plano de corte --- */
+  limDoHistorico(){
+    const cats = S.categorias.filter(c => c.tipo === "despesa");
+    const sugeridos = [];
+    cats.forEach(c => {
+      const m = medianaCategoria(c.id, 6);
+      if (m && m.valor > 0) sugeridos.push({id: c.id, valor: Math.round(m.valor / 5) * 5, n: m.n});
+    });
+    if (!sugeridos.length){
+      toast("Ainda não há dois meses de movimentos para tirar medianas.");
+      return;
+    }
+    confirmar("Sugerir limites pelo histórico",
+      "Serão definidos "+sugeridos.length+" limites com a mediana real dos últimos meses, "+
+      "arredondada aos 5 €. O plano diz o que devia ser; isto diz o que é. Substitui os limites atuais dessas categorias.",
+      () => {
+        alterar(() => { sugeridos.forEach(s => { S.limites[s.id] = s.valor; }); }, "limites pelo histórico");
+        toast(sugeridos.length+" limites definidos pela mediana dos últimos meses.");
+      }, "Definir");
+  },
+  corteCalcular(){
+    const v = parseNum($("#corteAlvo").value);
+    if (v <= 0){ invalido("corteAlvo", "Indique quanto quer cortar por mês."); return; }
+    ui.corteAlvo = v;
+    ui.corteAjustes = {};      // uma meta nova descarta os ajustes da anterior
+    render();
+  },
+  corteLimpar(){
+    ui.corteAlvo = 0; ui.corteAjustes = {};
+    render();
+  },
+  corteAplicar(){
+    const plano = planoDeCorte(ui.corteAlvo);
+    if (!plano) return;
+    const ajustes = ui.corteAjustes || {};
+    const novos = plano.linhas.map(x => {
+      const corte = ajustes[x.cat.id] != null ? parseNum(ajustes[x.cat.id]) : x.corte;
+      return {id: x.cat.id, nome: x.cat.nome, limite: Math.max(0, Math.round((x.gasto - corte) * 100) / 100)};
+    }).filter(x => x.limite > 0);
+    if (!novos.length){ toast("Nada para aplicar."); return; }
+    confirmar("Aplicar o plano de corte",
+      "Serão definidos "+novos.length+" limites: "+novos.slice(0,4).map(x => x.nome+" "+eur(x.limite)).join(", ")+
+      (novos.length > 4 ? " e mais "+(novos.length-4) : "")+
+      ". Os limites atuais dessas categorias são substituídos.",
+      () => {
+        alterar(() => { novos.forEach(x => { S.limites[x.id] = x.limite; }); }, "plano de corte");
+        ui.corteAlvo = 0; ui.corteAjustes = {};
+        toast(novos.length+" limites atualizados com o plano de corte.");
+      }, "Aplicar");
+  },
+
+  /* --- fecho do mês --- */
+  fechoIr(el){
+    // Leva ao sítio do passo, já no mês que se está a fechar
+    if (mesValido(el.dataset.mes)) MES = el.dataset.mes;
+    irPara(el.dataset.view);
+  },
+  fecharMes(el){
+    const m = el.dataset.mes;
+    if (!mesValido(m)) return;
+    alterar(() => {
+      if (!S.fechados) S.fechados = {};
+      S.fechados[m] = {em: isoDia(hoje())};
+      // Fechar um mês guarda o retrato do património nesse momento: é o
+      // instante certo, porque é quando os dados do mês estão completos.
+      registarPatrimonio(m);
+    }, "fecho de "+mesLabel(m));
+    toast(mesLabel(m)+" fechado. O instantâneo do património ficou guardado.");
+  },
+  fechoDispensar(el){
+    // Não é uma decisão sobre os dados: vale para esta sessão e não se grava.
+    ui.fechoDispensado = el.dataset.mes;
+    render();
+    toast("Fica para depois — volta a aparecer na próxima visita.");
+  },
+  patInstantaneo(){
+    const m = isoMes(hoje());
+    alterar(() => { registarPatrimonio(m); }, "instantâneo do património");
+    toast("Instantâneo de "+mesLabel(m)+" guardado.");
+  },
+
+  /* --- inflação pessoal --- */
+  inflAdotar(){
+    const inf = inflacaoPessoal(MES);
+    if (!inf) return;
+    const v = Math.round(inf.taxa * 100) / 100;
+    alterar(() => {
+      S.projecao.inflacao = v;
+      S.estrategia.inflacao = v;
+    }, "inflação das projeções");
+    toast("Projeções e estratégias passam a usar "+pct(v)+".");
+  },
+
+  /* --- nota do mês --- */
+  notaGuardar(){
+    const el = $("#notaMes");
+    if (!el) return;
+    const txt = el.value.trim().slice(0, NOTA_MAX);
+    alterar(() => {
+      if (!S.notas) S.notas = {};
+      if (txt) S.notas[MES] = txt; else delete S.notas[MES];
+    }, "nota do mês");
+    toast(txt ? "Nota de "+mesLabel(MES)+" guardada." : "Nota apagada.");
+  },
+  notaApagar(){
+    alterar(() => { if (S.notas) delete S.notas[MES]; }, "nota do mês");
+    toast("Nota apagada.");
+  },
+
   /* --- planear despesa --- */
   planPreset(el){
     const pr = PRESETS_PLANEIO[parseInt(el.dataset.i, 10)];
@@ -10341,8 +11515,12 @@ const ACOES = {
       "(estas decompostas em juros, amortização e seguros). Pode editá-los depois.", () => {
       alterar(() => {
         const dia1 = MES + "-01";
+        // Cada rubrica com dia próprio cai no seu dia; as outras no dia 1.
+        // Um dia 31 num mês de 30 encosta ao último dia, que é o que o banco faz.
         rubricas.forEach(r => S.movimentos.push({
-          id:uid("mv"), data:dia1, tipo:r.tipo, descricao:r.nome,
+          id:uid("mv"),
+          data: r.dia ? MES + "-" + String(diaNoMes(r.dia, MES)).padStart(2, "0") : dia1,
+          tipo:r.tipo, descricao:r.nome,
           categoriaId:r.categoriaId, membroId:r.membroId || "", valor:parseNum(r.valor),
         }));
         fluxosAtivos.forEach(x => S.movimentos.push({
@@ -10368,10 +11546,15 @@ const ACOES = {
     if (!catId){ invalido("rcCat", "Escolha uma categoria."); return; }
     const ini = $("#rcInicio").value, fim = $("#rcFim").value;
     if (ini && fim && fim < ini){ toast("O fim é anterior ao início."); return; }
+    const diaBruto = $("#rcDia") ? $("#rcDia").value.trim() : "";
+    if (diaBruto && !diaDoMesValido(diaBruto)){
+      invalido("rcDia", "O dia do mês vai de 1 a 31."); return;
+    }
     const dados = {
       tipo: $("#rcTipo").value, nome, categoriaId: catId, membroId: $("#rcMembro").value,
       valor: Math.abs(valor), frequencia: $("#rcFreq").value,
       inicio: ini ? ini+"-01" : "", fim: fim ? fim+"-01" : "",
+      dia: diaDoMesValido(diaBruto),
     };
     alterar(() => {
       if (editando.rec){
@@ -10879,8 +12062,17 @@ const ACOES = {
   mbAdd(){
     const nome = $("#mbNome").value.trim();
     if (!nome){ $("#mbNome").focus(); return; }
-    alterar(() => { S.membros.push({id:uid("mb"), nome}); });
+    alterar(() => {
+      const r = ROSTOS_MEMBRO[S.membros.length % ROSTOS_MEMBRO.length];
+      S.membros.push({id:uid("mb"), nome, icone:r.icone, cor:r.cor});
+    });
     toast("Membro adicionado.");
+  },
+  mbIcone(el){
+    alterar(() => { const m = membro(el.dataset.id); if (m) m.icone = el.value; }, "rosto do membro");
+  },
+  mbCor(el){
+    alterar(() => { const m = membro(el.dataset.id); if (m) m.cor = el.value; }, "cor do membro");
   },
   mbApagar(el){
     const m = membro(el.dataset.id);
@@ -11090,6 +12282,16 @@ function comandosPaleta(){
     {icone:"➕", lbl:"Novo crédito", tipo:"ação", run: () => { irPara("creditos"); focar("crNome"); }},
     {icone:"➕", lbl:"Novo objetivo", tipo:"ação", run: () => { irPara("objetivos"); focar("obNome"); }},
     {icone:"🛒", lbl:"Planear uma compra grande", tipo:"ação", run: () => { irPara("planear"); focar("plNome"); }},
+    {icone:"✂️", lbl:"Plano de corte — onde poupar", tipo:"ação",
+     run: () => { ui.secaoDespesa = "limites"; irPara("despesas"); focar("corteAlvo"); }},
+    {icone:"✎", lbl:"Escrever a nota do mês", tipo:"ação", run: () => {
+       S.painel.ocultos = painelOcultos().filter(k => k !== "nota");
+       irPara("painel"); focar("notaMes"); }},
+    {icone:"✓", lbl:"Fechar o mês passado", tipo:"ação", run: () => {
+       ui.fechoDispensado = null;
+       S.painel.ocultos = painelOcultos().filter(k => k !== "fecho");
+       irPara("painel"); }},
+    {icone:"🏛", lbl:"Guardar instantâneo do património", tipo:"ação", run: () => ACOES.patInstantaneo()},
     {icone:"💾", lbl:"Exportar cópia de segurança (JSON)", tipo:"ação", run: exportJSON},
     {icone:"🖨️", lbl:"Imprimir", tipo:"ação", run: () => window.print()},
     {icone:"🎓", lbl:"Visita guiada pela aplicação", tipo:"ação", run: () => ACOES.tutorialIniciar()},
@@ -11602,6 +12804,12 @@ const TUTORIAL_PASSOS = [
    texto:"O que <strong>realmente aconteceu</strong>, dia a dia. O botão <strong>«Lançar plano deste mês»</strong> cria os movimentos a partir das rubricas mensais, das prestações de crédito e dos fluxos dos ativos — depois é só ajustar ao real. Há filtros por texto, categoria, membro e tipo."},
   {vista:"orcamento", sel:null, titulo:"Despesas — limites por categoria",
    texto:"Defina um <strong>teto mensal</strong> por categoria e acompanhe as barras: verde dentro do limite, âmbar perto, vermelho ultrapassado. <strong>«Preencher com o plano»</strong> usa os valores das despesas fixas como ponto de partida."},
+  {vista:"painel", sel:null, titulo:"Painel — o mês por dentro",
+   texto:"Dois cartões respondem à pergunta de dentro do mês. A <strong>linha do mês</strong> põe cada pagamento no dia em que sai — indique o <strong>dia do mês</strong> nas despesas fixas e ela enche-se — e diz quantos dias faltam para o próximo. <strong>«Como vai fechar o mês»</strong> projeta o saldo final: o que já aconteceu é real, o que falta é o ritmo observado mais as rubricas que ainda vão sair, com uma margem tirada da variabilidade dos últimos meses."},
+  {vista:"painel", sel:null, titulo:"Painel — o que os números dizem sozinhos",
+   texto:"O cartão de <strong>atenção</strong> avisa quando uma categoria sai do habitual, mas com <strong>sazonalidade</strong>: a eletricidade de janeiro compara-se com janeiros anteriores, não com julho. <strong>Subscrições ao ano</strong> soma as mensalidades pequenas a doze meses — é a soma que dói. <strong>A sua inflação</strong> mede o seu cabaz face ao ano passado e oferece-se para substituir os 2% genéricos nas projeções."},
+  {vista:"orcamento", sel:null, titulo:"Limites — plano de corte",
+   texto:"Entre «gasto demasiado» e limites concretos falta a ponte: <strong>onde</strong>. Escreva quanto quer poupar por mês e a ferramenta reparte o corte pelas categorias com mais folga — <strong>desejos primeiro</strong>, e só depois necessidades. Poupança, juros, prestações e impostos ficam de fora, porque cortar amortização para poupar é circular. Cada linha tem deslizador, e um botão transforma tudo em limites. Ao lado, <strong>«Sugerir pelo histórico»</strong> usa a mediana real dos últimos seis meses."},
   {vista:"planear", sel:"#app .form", titulo:"Despesas — planear as compras grandes",
    texto:"Um eletrodoméstico, um portátil, mobília, um carro — compras que <strong>podem escolher a data</strong>. Indique a verba estimada e a ferramenta simula a compra em cada mês do horizonte (3, 6, 12 ou 24 meses) e responde <strong>por trimestre</strong>: onde há folga, onde aperta, e qual a melhor altura. Depois, <strong>marque o mês</strong> (entra na tesouraria projetada), <strong>reserve verba</strong> (vira um objetivo de poupança) e, chegada a hora, <strong>registe a compra</strong> nos movimentos com um toque."},
   {vista:"ativos", sel:"#app .form", titulo:"Ativos — tudo o que tem valor",
@@ -11739,6 +12947,29 @@ function sliderAtivo(campo){
 
 document.addEventListener("input", (e) => {
   const t = e.target;
+
+  /* Deslizadores do plano de corte: repintar a vista a cada pixel de arrasto
+     seria desperdício, e num arrasto de 60 eventos por segundo nota-se. Só
+     mudam os três números que dependem deste deslizador. */
+  if (t.dataset && t.dataset.corte){
+    const id = t.dataset.corte;
+    const gasto = parseNum(t.dataset.gasto);
+    const corte = parseNum(t.value);
+    if (!ui.corteAjustes) ui.corteAjustes = {};
+    ui.corteAjustes[id] = corte;
+    t.setAttribute("aria-valuetext", eur(corte));
+    const lbl = $("#corteVal-"+id), fica = $("#corteFica-"+id);
+    if (lbl) lbl.textContent = eur(corte);
+    if (fica) fica.textContent = eur(gasto - corte);
+    const tot = $("#corteTotal");
+    if (tot){
+      let soma = 0;
+      $$("[data-corte]").forEach(s => { soma += parseNum(s.value); });
+      const meta = parseNum(tot.dataset.meta);
+      tot.innerHTML = '<span class="'+(soma >= meta - 0.5 ? "pos" : "neg")+'">'+esc(eur(soma))+'</span>';
+    }
+    return;
+  }
 
   if (t.dataset && t.dataset.slider){
     const cfg = SLIDERS[t.dataset.slider];
@@ -11943,6 +13174,13 @@ document.addEventListener("pointerleave", () => $("#tip").classList.remove("show
 window.addEventListener("scroll", () => $("#tip").classList.remove("show"), {passive:true});
 document.addEventListener("change", (e) => {
   const t = e.target;
+  // Um `data-act` num select ou num seletor de cor age ao mudar de valor —
+  // o clique não serve, porque escolher numa lista não é carregar num botão.
+  if (t.dataset && t.dataset.act && ACOES[t.dataset.act] &&
+      (t.tagName === "SELECT" || t.type === "color")){
+    ACOES[t.dataset.act](t);
+    return;
+  }
   if (t.id === "fCat"){ filtros.categoria = t.value; render(); }
   else if (t.id === "fMembro"){ filtros.membro = t.value; render(); }
   else if (t.id === "fTipo"){ filtros.tipo = t.value; render(); }
