@@ -11635,8 +11635,20 @@ const CIFRA_ITER = 250000;   // custo deliberado, para travar tentativa e erro
 function temCripto(){
   return !!(window.crypto && window.crypto.subtle && window.TextEncoder);
 }
+/* Base64 em blocos: `String.fromCharCode.apply` passa o array inteiro como
+   argumentos e rebenta a pilha algures acima das dezenas de milhar. Um
+   orçamento com anos de movimentos chega lá à vontade — e seria justamente
+   quem mais dados tem a falhar a exportação. */
 const b64 = {
-  para: (buf) => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))),
+  para(buf){
+    const u = new Uint8Array(buf);
+    const BLOCO = 0x8000;
+    let s = "";
+    for (let i = 0; i < u.length; i += BLOCO){
+      s += String.fromCharCode.apply(null, u.subarray(i, i + BLOCO));
+    }
+    return btoa(s);
+  },
   de: (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0)),
 };
 
@@ -14945,19 +14957,27 @@ $("#botaoRapido").addEventListener("click", abrirRapido);
    passo. O `pointerup` cancela o temporizador, e o clique que se seguiria
    é engolido para não desfazer *também* um passo por cima da lista.
    --------------------------------------------------------------- */
-let _longT = null, _longAbriu = false;
+let _longT = null, _longEm = 0;
 document.addEventListener("pointerdown", (e) => {
   const b = e.target.closest && e.target.closest('[data-act="desfazer"]');
   if (!b || b.disabled) return;
-  _longAbriu = false;
+  _longEm = 0;
   clearTimeout(_longT);
-  _longT = setTimeout(() => { _longAbriu = true; abrirHistorico(); }, 500);
+  _longT = setTimeout(() => { _longEm = Date.now(); abrirHistorico(); }, 500);
 });
 ["pointerup","pointercancel","pointerleave"].forEach(ev =>
   document.addEventListener(ev, () => { clearTimeout(_longT); }));
+/* O clique que se segue à abertura por toque longo é engolido, para não
+   desfazer *também* um passo por cima da lista. Guarda-se o instante e não
+   um sinalizador: com um sinalizador, um toque longo cujo clique nunca
+   chegasse a acontecer — porque se largou fora do botão, ou porque se
+   fechou a lista de outra maneira — deixava a marca ligada, e o clique
+   seguinte no ↶ (por teclado, por exemplo) era engolido sem desfazer nada. */
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest('[data-act="desfazer"]');
-  if (b && _longAbriu){ e.stopPropagation(); e.preventDefault(); _longAbriu = false; }
+  if (b && _longEm && Date.now() - _longEm < 900){
+    e.stopPropagation(); e.preventDefault(); _longEm = 0;
+  }
 }, true);
 
 /* ---------------------------------------------------------------

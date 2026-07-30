@@ -2616,6 +2616,111 @@ G("provisões, saúde financeira e alavancas do défice");
   MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
 })();
 
+G("saúde financeira: melhorar nunca baixa a nota");
+(function(){
+  /* A propriedade que dá sentido à pontuação: se um componente melhora e
+     nada mais muda, a nota não pode descer. Uma fórmula que falhe isto
+     manda a pessoa na direção errada. */
+  var guardado = JSON.stringify(S), mesGuardado = MES;
+  var catAli, catR;
+
+  function cenarioBase(){
+    S = estadoVazio(); MES = isoMes(hoje());
+    catAli = catPorNome("Alimentação");
+    catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+    S.movimentos.push({id:"r", data:MES+"-01", tipo:"rendimento", descricao:"S",
+      categoriaId:catR, membroId:"", valor:2000});
+    S.movimentos.push({id:"d", data:MES+"-05", tipo:"despesa", descricao:"G",
+      categoriaId:catAli, membroId:"", valor:1800});
+    limparCacheCredito();
+  }
+
+  // Mais reserva não pode baixar a nota
+  cenarioBase();
+  var semReserva = saudeFinanceira().total;
+  S.ativos.push({id:"liq", nome:"Conta", classe:"corrente", atual:12000, aquisicao:12000,
+    encargos:[], rendimentos:[], aportes:[]});
+  limparCacheCredito();
+  var comReserva = saudeFinanceira().total;
+  ok(comReserva >= semReserva, "juntar reserva não baixa a nota", semReserva+" → "+comReserva);
+  ok(comReserva > semReserva, "e melhora-a mesmo", semReserva+" → "+comReserva);
+
+  // Poupar mais não pode baixar a nota
+  cenarioBase();
+  var poucaPoupanca = saudeFinanceira().total;
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "d"; });
+  S.movimentos.push({id:"d2", data:MES+"-05", tipo:"despesa", descricao:"G",
+    categoriaId:catAli, membroId:"", valor:1400});
+  limparCacheCredito();
+  ok(saudeFinanceira().total >= poucaPoupanca, "gastar menos não baixa a nota",
+     poucaPoupanca+" → "+saudeFinanceira().total);
+
+  // Menos crédito não pode baixar a nota
+  cenarioBase();
+  S.creditos.push({id:"cr", nome:"C", capital:100000, prazoMeses:360, inicio:mesShift(MES,-12)+"-01",
+    tipoTaxa:"fixa", taxaAnual:4, seguroMensal:20, ativoId:"",
+    categoriaJurosId:"", categoriaCapitalId:"", categoriaSeguroId:""});
+  limparCacheCredito();
+  var comCredito = saudeFinanceira().total;
+  S.creditos = [];
+  limparCacheCredito();
+  ok(saudeFinanceira().total >= comCredito, "sem créditos a nota não desce",
+     comCredito+" → "+saudeFinanceira().total);
+
+  // Definir limites não pode baixar a nota
+  cenarioBase();
+  var semLimites = saudeFinanceira().total;
+  S.categorias.filter(function(c){ return c.tipo === "despesa"; })
+    .forEach(function(c){ S.limites[c.id] = 500; });
+  limparCacheCredito();
+  ok(saudeFinanceira().total >= semLimites, "definir limites não baixa a nota",
+     semLimites+" → "+saudeFinanceira().total);
+
+  // A taxa de esforço até 20% tem nota cheia — o cartão dos créditos chama
+  // «dentro do razoável» a 33%, e penalizar desde 0% contradizia-o
+  cenarioBase();
+  var esf = COMPONENTES_SAUDE.filter(function(c){ return c.k === "esforco"; })[0];
+  S.creditos.push({id:"c2", nome:"C", capital:20000, prazoMeses:120, inicio:mesShift(MES,-6)+"-01",
+    tipoTaxa:"fixa", taxaAnual:3, seguroMensal:0, ativoId:"",
+    categoriaJurosId:"", categoriaCapitalId:"", categoriaSeguroId:""});
+  limparCacheCredito();
+  var m = esf.medir();
+  ok(m.valor > 0, "há taxa de esforço a medir", m.valor);
+  if (m.valor <= 20) eq(m.nota, 1, "até 20% de esforço, a nota é cheia");
+  ok(m.nota >= 0 && m.nota <= 1, "e sempre entre 0 e 1");
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
+G("cifra: base64 em blocos e falha fechada");
+(function(){
+  /* Regressão: `String.fromCharCode.apply` com o array inteiro rebentava a
+     pilha, e um orçamento com anos de movimentos chega lá — falhava
+     justamente a quem mais dados tem para proteger. */
+  var grande = new Uint8Array(600000);
+  for (var i = 0; i < grande.length; i++) grande[i] = i % 256;
+  var texto;
+  try { texto = b64.para(grande.buffer); }
+  catch(e){ ok(false, "base64 de 600 KB não rebenta a pilha", e.message); texto = ""; }
+  ok(texto.length > 0, "base64 de um buffer grande produz texto", texto.length);
+  var volta = b64.de(texto);
+  eq(volta.length, grande.length, "e volta com o mesmo comprimento");
+  var igual = true;
+  for (i = 0; i < grande.length; i += 997) if (volta[i] !== grande[i]) igual = false;
+  ok(igual, "com os mesmos bytes");
+
+  // Buffers pequenos e vazios continuam a funcionar
+  eq(b64.de(b64.para(new Uint8Array([]).buffer)).length, 0, "um buffer vazio roda vazio");
+  var tres = new Uint8Array([0, 127, 255]);
+  var t2 = b64.de(b64.para(tres.buffer));
+  ok(t2[0] === 0 && t2[1] === 127 && t2[2] === 255, "e os extremos de byte sobrevivem");
+
+  // O pacote declara o que é, e não deixa passar o que não é
+  ok(!ehPacoteCifrado(null), "nulo não é pacote");
+  ok(!ehPacoteCifrado({formato:CIFRA_MARCA}), "sem sal nem dados também não");
+  ok(ehPacoteCifrado({formato:CIFRA_MARCA, sal:"a", iv:"b", dados:"c"}), "com tudo, é");
+})();
+
 G("eventos de vida — o orçamento noutra vida");
 (function(){
   var guardado = JSON.stringify(S), mesGuardado = MES;

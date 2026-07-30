@@ -238,6 +238,75 @@ G("estados aleatórios — invariantes");
       }
     } catch(e){ ok(false, etq + ": o mês por dentro não rebenta", e.message); }
 
+    // 4b2. Provisões, saúde financeira e alavancas do défice
+    try {
+      var pr = provisoes(MES);
+      ok(isFinite(pr.devia) && pr.devia >= 0, etq + ": o que devia estar de parte é finito e não negativo", pr.devia);
+      ok(isFinite(pr.porMes) && pr.porMes >= 0, etq + ": e a quota mensal também");
+      pr.linhas.forEach(function(x){
+        ok(x.devia >= 0 && x.devia <= x.total + 0.01,
+           etq + ": provisão de «" + x.rec.nome + "» dentro do total", x.devia + " de " + x.total);
+        ok(x.faltam >= 0 && x.faltam < x.passo + 1, etq + ": meses em falta dentro do ciclo", x.faltam);
+        ok(mesValido(x.proximo), etq + ": a próxima ocorrência é um mês válido", x.proximo);
+        ok(x.proximo >= MES, etq + ": e nunca está no passado", x.proximo);
+      });
+      ok(pr.disponivel <= pr.liquidez + 0.01, etq + ": o disponível nunca passa a liquidez");
+
+      var sf = saudeFinanceira();
+      ok(sf.total >= 0 && sf.total <= 100, etq + ": a saúde financeira fica entre 0 e 100", sf.total);
+      sf.partes.forEach(function(x){
+        ok(x.nota >= 0 && x.nota <= 1, etq + ": nota de «" + x.lbl + "» entre 0 e 1", x.nota);
+        ok(x.pontos <= x.peso + 0.01, etq + ": e os pontos não passam o peso");
+        ok(typeof x.txt === "string" && !LIXO.test(x.txt), etq + ": com texto sem lixo", x.txt);
+      });
+      ok(!sf.melhor || (sf.melhor.sugestao && sf.melhor.ganho > 0),
+         etq + ": a sugestão de melhoria tem texto e ganho");
+
+      var ad = alavancasDefice();
+      if (ad){
+        ok(ad.falta > 0, etq + ": só há alavancas quando falta mesmo dinheiro", ad.falta);
+        ad.alavancas.forEach(function(a){
+          ok(isFinite(a.valor) && a.valor >= 0, etq + ": alavanca com valor finito", a.valor);
+          ok(a.txt && a.det && !LIXO.test(a.txt + a.det), etq + ": e com texto legível");
+        });
+      }
+    } catch(e){ ok(false, etq + ": provisões e saúde não rebentam", e.message); }
+
+    // 4b3. Eventos de vida — simular nunca pode tocar nos dados
+    try {
+      var antesSim = JSON.stringify(S);
+      var chaves = Object.keys(EVENTOS_VIDA);
+      var cenario = [
+        {tipo: umDe(chaves), mes: mesShift(MES, esc(6)), params: null},
+        {tipo: umDe(chaves), mes: mesShift(MES, esc(12)), params: null},
+      ].map(function(x){ x.params = paramsEvento(x.tipo); return x; });
+
+      var cc = compararCenario(cenario, umDe([12, 24, 36]));
+      ok(JSON.stringify(S) === antesSim, etq + ": simular não altera o orçamento");
+      ok(isFinite(cc.saldoDepois) && isFinite(cc.rendDepois) && isFinite(cc.despDepois),
+         etq + ": o cenário dá números finitos");
+      ok(Math.abs((cc.rendDepois - cc.despDepois) - cc.saldoDepois) <= 0.02,
+         etq + ": e as contas do cenário fecham");
+      ok(cc.cen.length === cc.real.length, etq + ": as duas séries têm o mesmo comprimento");
+      for (var z = 1; z < cc.cen.length; z++)
+        ok(Math.abs(cc.cen[z].acumulado - (cc.cen[z-1].acumulado + cc.cen[z].saldo)) <= 0.02,
+           etq + ": a tesouraria do cenário acumula no mês " + z);
+      ok(cc.pontualTotal >= 0 && isFinite(cc.pontualTotal),
+         etq + ": os encargos pontuais não são negativos", cc.pontualTotal);
+      ok(mesValido(cc.mesRegime), etq + ": o mês de regime é válido", cc.mesRegime);
+      cc.detalhe.forEach(function(d){
+        ok(d.nome && isFinite(d.valor), etq + ": cada linha do detalhe tem nome e valor finito");
+      });
+      // Um pontual cai uma vez só em todo o horizonte
+      chaves.forEach(function(k){
+        var so = [{tipo:k, mes: mesShift(MES, 2), params: paramsEvento(k)}];
+        var comPontual = 0;
+        for (var mm = 0; mm < 12; mm++)
+          if (planoComEventos(mesShift(MES, mm), so).pontual > 0) comPontual++;
+        ok(comPontual <= 1, etq + ": «" + k + "» não repete o encargo pontual", comPontual);
+      });
+    } catch(e){ ok(false, etq + ": os eventos de vida não rebentam", e.message); }
+
     // 4c. Insight e rituais
     try {
       anomaliasMes(MES).forEach(function(a){

@@ -2157,6 +2157,25 @@ G("linha do tempo do desfazer");
 (function(){
   comExemplo();
   historico.atras.length = 0; historico.frente.length = 0;
+
+  /* Regressão: a abertura por toque longo engolia o clique seguinte no ↶
+     para não desfazer um passo por cima da lista. Com um sinalizador, um
+     toque longo cujo clique nunca chegasse a acontecer deixava a marca
+     ligada — e o ↶ ficava mudo até alguém carregar duas vezes. */
+  alterar(function(){ S.membros.push({id:"lt1", nome:"A", icone:"🧑", cor:"#000"}); }, "um");
+  alterar(function(){ S.membros.push({id:"lt2", nome:"B", icone:"🧑", cor:"#000"}); }, "dois");
+  var antesN = historico.atras.length;
+  // Simula a marca deixada por um toque longo de há muito tempo
+  if (typeof _longEm !== "undefined"){
+    _longEm = Date.now() - 5000;
+    clicar('[data-act="desfazer"]');
+    eq(historico.atras.length, antesN - 1,
+       "passada a janela do toque longo, o ↶ volta a desfazer");
+    refazer();
+  }
+  ok(true, "a marca do toque longo é temporal, não um sinalizador permanente");
+
+  historico.atras.length = 0; historico.frente.length = 0;
   abrirHistorico();
   ok(q("#modalHost").innerHTML === "", "sem histórico, não abre nada");
 
