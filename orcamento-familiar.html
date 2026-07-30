@@ -2424,7 +2424,11 @@ function adivinhaEspecie(nome){
 /** Garante que todas as coleções existem (compatibilidade futura). */
 function normalizar(d){
   const base = estadoVazio();
-  const out = Object.assign(base, d);
+  // `Object.assign({}, base, d)` e não `Object.assign(base, d)`: a segunda
+  // forma sobrepõe os valores por omissão dentro do próprio `base`, e todos
+  // os recursos a `base.X` mais abaixo passavam a ler o que veio no ficheiro
+  // em vez do padrão. Bastava um `categorias:{}` para ficar sem categorias.
+  const out = Object.assign({}, base, d);
   out.membros     = Array.isArray(d.membros) ? d.membros : [];
   out.categorias  = Array.isArray(d.categorias) && d.categorias.length ? d.categorias : base.categorias;
   out.recorrentes = Array.isArray(d.recorrentes) ? d.recorrentes : [];
@@ -2440,7 +2444,10 @@ function normalizar(d){
     if (o.celebrado == null) o.celebrado = parseNum(o.alvo) > 0 && parseNum(o.atual) >= parseNum(o.alvo);
   });
   out.creditos    = Array.isArray(d.creditos) ? d.creditos : [];
-  out.limites     = (d.limites && typeof d.limites === "object") ? d.limites : {};
+  // Os limites são um mapa categoria→valor. Uma lista também passa o teste
+  // de «objeto», mas um array com chaves de texto serializa como `[]`: os
+  // limites desapareciam em silêncio na gravação seguinte.
+  out.limites     = (d.limites && typeof d.limites === "object" && !Array.isArray(d.limites)) ? d.limites : {};
   out.projecao    = Object.assign({}, base.projecao, (d.projecao && typeof d.projecao === "object") ? d.projecao : {});
   out.estrategia  = Object.assign({}, base.estrategia, (d.estrategia && typeof d.estrategia === "object") ? d.estrategia : {});
   out.planeadas = (Array.isArray(d.planeadas) ? d.planeadas : [])
@@ -10550,8 +10557,10 @@ const ACOES = {
     toast(ui.privado ? "Valores desfocados — bom para mostrar o ecrã." : "Valores visíveis de novo.");
   },
   compararAlternar(){
-    S.comparar = !S.comparar;
-    alterar(() => {});
+    // A alteração vai *dentro* de alterar(): mudar o estado antes fazia o
+    // diff comparar o estado novo com ele próprio, e nada entrava no
+    // histórico — a comparação homóloga ligava-se e o Ctrl+Z não a desligava.
+    alterar(() => { S.comparar = !S.comparar; }, "comparação homóloga");
   },
   temaPaleta(el){
     if (!PALETAS[el.dataset.k]) return;

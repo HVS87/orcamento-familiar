@@ -324,6 +324,195 @@ G("macaco — sequências aleatórias de ações");
   }
 })();
 
+G("ida e volta pelo disco");
+(function(){
+  /* Gravar e reler tem de devolver exatamente o mesmo. A comparação é
+     feita sobre a *forma canónica* — a que a aplicação grava — porque
+     `normalizar` preenche omissões e reordena chaves de propósito. */
+  for (var sem = 700; sem < 720; sem++){
+    agregadoAleatorio(sem);
+    S = normalizar(JSON.parse(JSON.stringify(S)));
+    var canonico = JSON.stringify(S);
+    var etq = "semente " + sem;
+
+    guardar();
+    S = estadoVazio();
+    ok(carregar(), etq + ": carregar() encontra o que se gravou");
+    ok(JSON.stringify(S) === canonico, etq + ": a forma canónica roda igual");
+
+    // Carregar um estado já atual não o regrava — a migração convergiu
+    var disco = localStorage.getItem(STORE_KEY);
+    carregar();
+    ok(localStorage.getItem(STORE_KEY) === disco, etq + ": reler não regrava sem motivo");
+
+    // E normalizar é ponto fixo
+    ok(JSON.stringify(normalizar(JSON.parse(canonico))) === canonico,
+       etq + ": normalizar é ponto fixo da forma canónica");
+  }
+})();
+
+G("desfazer tudo devolve o princípio");
+(function(){
+  /* A promessa do histórico: seja qual for a sequência de ações, desfazer
+     até ao fim devolve o estado inicial — ao byte. As escolhas de
+     aparência ficam de fora por opção: não gastam passos do histórico,
+     para não empurrarem alterações de dados para fora dos 40 guardados. */
+  var APARENCIA = ["tema","paleta","densidade","texto","contraste","ajudas"];
+  function semAparencia(x){
+    var o = JSON.parse(JSON.stringify(x));
+    APARENCIA.forEach(function(k){ delete o[k]; });
+    return JSON.stringify(o);
+  }
+  var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
+                   "imprimir","tutorialIniciar"];
+  var vistas = ["painel","despesas","ativos","creditos","objetivos"];
+
+  for (var c = 0; c < 8; c++){
+    var sem = 800 + c;
+    agregadoAleatorio(sem);
+    S = normalizar(JSON.parse(JSON.stringify(S)));
+    historico.atras.length = 0; historico.frente.length = 0;
+    var inicial = semAparencia(S);
+    var etq = "corrida " + sem;
+    MES = isoMes(hoje()); ui.secaoDespesa = "plano"; irPara("painel");
+
+    for (var passo = 0; passo < 16; passo++){
+      irPara(umDe(vistas));
+      var botoes = Array.prototype.slice.call(document.querySelectorAll("#app button"))
+        .filter(function(b){ return PROIBIDOS.indexOf(b.dataset.act || "") < 0 && !b.disabled; });
+      if (!botoes.length) continue;
+      try {
+        botoes[esc(botoes.length)].click();
+        var sim = document.querySelector('[data-dlg="yes"]'); if (sim) sim.click();
+      } catch(e){ /* o macaco já cobre os rebentões; aqui interessa o histórico */ }
+      var mh = document.getElementById("modalHost"); if (mh) mh.innerHTML = "";
+    }
+
+    var voltas = 0;
+    while (podeDesfazer() && voltas < 80){ desfazer(); voltas++; }
+    ok(semAparencia(S) === inicial,
+       etq + ": desfazer tudo devolve o estado inicial", voltas + " passos desfeitos");
+
+    // Refazer tem de repor tantos passos quantos desfez, e desfazer outra vez converge
+    var noFundo = semAparencia(S), frente = 0;
+    while (podeRefazer() && frente < 80){ refazer(); frente++; }
+    ok(frente === voltas, etq + ": refazer repõe todos os passos", frente + " de " + voltas);
+    var v2 = 0;
+    while (podeDesfazer() && v2 < 80){ desfazer(); v2++; }
+    ok(semAparencia(S) === noFundo, etq + ": a segunda volta de desfazer não diverge");
+  }
+})();
+
+G("migração de formas antigas e malformadas");
+(function(){
+  /* O que pode chegar de um ficheiro exportado por uma versão anterior, ou
+     de um ficheiro editado à mão. Nada disto deve rebentar, e o resultado
+     tem de ser um estado utilizável. */
+  var ENTRADAS = [
+    {},
+    {membros:"não é lista", categorias:{}, movimentos:null, limites:[]},
+    {categorias:[]},
+    {patrimonio:[{id:"p1", nome:"Casa velha", classe:"imovel", atual:200000}]},
+    {investimentos:[{id:"i1", nome:"ETF", classe:"depositos", investido:1000, atual:1200}]},
+    {painel:{ocultos:["inexistente","atencao"], ordem:["lixo"], fechados:null}},
+    {objetivos:[{id:"o1", nome:"X", alvo:100, atual:50, ativoId:"desaparecido"}]},
+    {planeadas:[{id:"pl1", nome:"P", valor:"800", horizonte:99, mes:"2026-13", objetivoId:"não existe"}]},
+    {planeadas:"não é lista"},
+    {planeadas:[{nome:"sem id"}, null, {id:"ok", nome:"Bom", valor:100}]},
+    {fiscal:{ias:"abc", capitais:null}, estrategia:{instrumento:"inventado", mensal:"500"}},
+    {projecao:{anos:"abc"}},
+    {cenarios:[{nome:"C", cfg:{instrumento:"desconhecido"}}, {semCfg:true}, null]},
+    {regrasCategoria:[{padrao:"  "}, {padrao:"luz", categoriaId:5}, null]},
+    {paleta:"inexistente", densidade:"gigante", texto:"enorme", contraste:"médio"},
+    {version:999, criadoEm:"data inválida", tema:"arco-íris"},
+    {recorrenciasIgnoradas:"x", dicasOcultas:{}, tutorialVisto:"sim"},
+    {limites:{"cat-inexistente":"abc"}},
+  ];
+  var LISTAS = ["membros","categorias","rendimentos","recorrentes","movimentos",
+                "objetivos","creditos","ativos","planeadas","cenarios","regrasCategoria"];
+  var vazio = estadoVazio();
+
+  ENTRADAS.forEach(function(d, i){
+    var etq = "entrada " + i;
+    var st = null;
+    try { st = normalizar(JSON.parse(JSON.stringify(d))); }
+    catch(e){ ok(false, etq + ": normalizar não rebenta", e.message); return; }
+    passes++;   // não rebentou
+
+    LISTAS.forEach(function(k){ ok(Array.isArray(st[k]), etq + ": " + k + " é lista"); });
+    ok(st.categorias.length > 0, etq + ": não fica sem categorias");
+    ok(st.limites && typeof st.limites === "object" && !Array.isArray(st.limites),
+       etq + ": os limites são um mapa, não uma lista");
+    ok(!!PALETAS[st.paleta], etq + ": a paleta é válida", st.paleta);
+    ok(["conforto","compacta"].indexOf(st.densidade) >= 0, etq + ": densidade válida", st.densidade);
+    ok(["normal","grande","maior"].indexOf(st.texto) >= 0, etq + ": tamanho de texto válido", st.texto);
+    ok(["normal","alto"].indexOf(st.contraste) >= 0, etq + ": contraste válido", st.contraste);
+    ok(!("patrimonio" in st), etq + ": o nome antigo dos ativos desaparece");
+
+    // Os padrões não se perdem por vir um objeto parcial no ficheiro
+    Object.keys(vazio.projecao).forEach(function(k){
+      ok(st.projecao[k] !== undefined, etq + ": projecao." + k + " tem valor"); });
+    Object.keys(vazio.estrategia).forEach(function(k){
+      ok(st.estrategia[k] !== undefined, etq + ": estrategia." + k + " tem valor"); });
+
+    st.planeadas.forEach(function(p, j){
+      ok(!!p.id, etq + ": planeada " + j + " tem id");
+      ok([3,6,12,24].indexOf(p.horizonte) >= 0, etq + ": horizonte saneado", p.horizonte);
+      ok(!p.mes || /^\d{4}-(0[1-9]|1[0-2])$/.test(p.mes), etq + ": mês saneado", p.mes);
+      ok(typeof p.valor === "number", etq + ": valor numérico", typeof p.valor);
+      ok(!p.objetivoId || st.objetivos.some(function(o){ return o.id === p.objetivoId; }),
+         etq + ": sem reservas órfãs");
+    });
+    st.painel.ocultos.concat(st.painel.ordem, st.painel.fechados).forEach(function(k){
+      ok(!!CARTOES_PAINEL[k], etq + ": o painel só cita cartões que existem", k); });
+
+    // E tem de renderizar
+    S = st; limparCacheCredito(); MES = isoMes(hoje());
+    VISTAS_TODAS.forEach(function(v){
+      try {
+        irPara(v);
+        ok(!LIXO.test(document.getElementById("app").innerText), etq + " " + v + ": sem lixo no ecrã");
+      } catch(e){ ok(false, etq + " " + v + ": renderiza", e.message); }
+    });
+  });
+})();
+
+G("aparência: paletas, densidade, texto e contraste");
+(function(){
+  /* Toda a matriz de aparência, em todas as vistas: nada transborda na
+     horizontal e nada escreve lixo. Um transbordo aqui é o género de coisa
+     que só aparece na combinação — texto «maior» com densidade compacta
+     numa paleta de contraste alto. */
+  agregadoAleatorio(900);
+  S.painel.ocultos = [];
+  var paletas = Object.keys(PALETAS);
+  var combinacoes = 0;
+  paletas.forEach(function(pal){
+    ["conforto","compacta"].forEach(function(den){
+      ["normal","grande","maior"].forEach(function(txt){
+        ["normal","alto"].forEach(function(con){
+          S.paleta = pal; S.densidade = den; S.texto = txt; S.contraste = con;
+          var etq = pal + "/" + den + "/" + txt + "/" + con;
+          try { aplicarTema(); } catch(e){ ok(false, etq + ": aplicarTema", e.message); return; }
+          VISTAS_TODAS.forEach(function(v){
+            if (v === "despesas") ui.secaoDespesa = "planear";
+            try { irPara(v); } catch(e){ ok(false, etq + " " + v + ": renderiza", e.message); return; }
+            ok(document.documentElement.scrollWidth <= window.innerWidth + 1,
+               etq + " " + v + ": não transborda na horizontal",
+               document.documentElement.scrollWidth + " > " + window.innerWidth);
+            ok(!LIXO.test(document.getElementById("app").innerText), etq + " " + v + ": sem lixo no ecrã");
+          });
+          combinacoes++;
+        });
+      });
+    });
+  });
+  ok(combinacoes === paletas.length * 2 * 3 * 2,
+     "percorreu a matriz de aparência inteira", combinacoes + " combinações");
+  S.paleta = "meianoite"; S.densidade = "conforto"; S.texto = "normal"; S.contraste = "normal";
+  try { aplicarTema(); } catch(e){}
+})();
+
 /* Repor o que era do utilizador */
 S = estadoVazio();
 if (backup){ try { S = normalizar(JSON.parse(backup)); } catch(e){} localStorage.setItem(STORE_KEY, backup); }
