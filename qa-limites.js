@@ -32,6 +32,8 @@ function semErro(fn, nome){
 var backup = localStorage.getItem(STORE_KEY);
 var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
+var secaoInicial = ui.secaoDespesa;
 
 /* A sessão é do utilizador, não da suite. Sai de cena enquanto se testa —
    uma sessão com rascunho faz a aplicação abrir o diálogo de recuperação
@@ -779,7 +781,11 @@ S = backup ? normalizar(JSON.parse(backup)) : estadoVazio();
 limparCacheCredito();
 MES = mesInicial;
 ui.donutFoco = null; ui.simAtivo = null; ui.abertos = {}; ordem = {};
-filtros = {texto:"", categoria:"", membro:"", tipo:""};
+ui.fechoDispensado = null; ui.corteAlvo = 0; ui.corteAjustes = {};
+ui.secaoDespesa = secaoInicial;
+// Os filtros são do utilizador: devolvem-se como estavam, não vazios.
+filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
+filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
 editando = {};
 irPara(vistaInicial);
 /* Cancelar as gravações adiadas que a repintura acima agendou, senão

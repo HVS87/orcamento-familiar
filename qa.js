@@ -2090,6 +2090,120 @@ G("previsão de fecho do mês");
   MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
 })();
 
+G("previsão: rubricas já lançadas não contam duas vezes");
+(function(){
+  /* «Lançar plano deste mês» cria um movimento por rubrica. Sem ligar o
+     movimento à rubrica, a previsão somava a rubrica outra vez ao que ela
+     própria gerou, e ainda tomava esse movimento por despesa variável —
+     inflando o ritmo diário. Era o caso de quem usa o botão de lançar. */
+  var guardado = JSON.stringify(S);
+  var mesGuardado = MES;
+  S = estadoVazio(); MES = isoMes(hoje());
+  var cat = catPorNome("Alimentação"), rest = catPorNome("Restauração");
+  var catR = S.categorias.filter(function(c){ return c.tipo === "rendimento"; })[0].id;
+  var hj = hoje().getDate();
+  var ultimo = new Date(+MES.split("-")[0], +MES.split("-")[1], 0).getDate();
+  var diaPassado = Math.max(1, hj - 3), diaFuturo = Math.min(ultimo, hj + 5);
+
+  S.recorrentes.push({id:"rp", tipo:"despesa", nome:"Já saiu", valor:200, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:diaPassado});
+  S.recorrentes.push({id:"rf", tipo:"despesa", nome:"Ainda falta", valor:300, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:diaFuturo});
+  S.recorrentes.push({id:"rs", tipo:"despesa", nome:"Sem dia nenhum", valor:80, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:""});
+  for (var i = 1; i <= 3; i++){
+    var m = mesShift(MES, -i);
+    S.movimentos.push({id:"h"+i, data:m+"-10", tipo:"despesa", descricao:"G",
+      categoriaId:cat, membroId:"", valor:500});
+    S.movimentos.push({id:"hr"+i, data:m+"-01", tipo:"rendimento", descricao:"S",
+      categoriaId:catR, membroId:"", valor:2000});
+  }
+  S.movimentos.push({id:"rend", data:MES+"-01", tipo:"rendimento", descricao:"Salário",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+
+  // Antes de lançar: as três rubricas contam, incluindo a que não tem dia
+  var f1 = preverFechoMes();
+  eq(f1.fixasPorSair, 580, "por sair conta as três rubricas, com dia ou sem ele", 0.01);
+  eq(f1.despPrev, 580, "e a despesa prevista é a soma delas", 0.01);
+  eq(rubricasLancadas(MES).size, 0, "nenhuma está lançada ainda");
+
+  // Depois de lançar: os movimentos existem, e nada é contado duas vezes
+  S.movimentos.push({id:"m1", data:MES+"-"+String(diaPassado).padStart(2,"0"), tipo:"despesa",
+    descricao:"Já saiu", categoriaId:cat, membroId:"", valor:200});
+  S.movimentos.push({id:"m2", data:MES+"-"+String(diaFuturo).padStart(2,"0"), tipo:"despesa",
+    descricao:"Ainda falta", categoriaId:cat, membroId:"", valor:300});
+  S.movimentos.push({id:"m3", data:MES+"-02", tipo:"despesa",
+    descricao:"Sem dia nenhum", categoriaId:cat, membroId:"", valor:80});
+  limparCacheCredito();
+
+  eq(rubricasLancadas(MES).size, 3, "as três rubricas ficam ligadas aos seus movimentos");
+  var f2 = preverFechoMes();
+  eq(realMes(MES).desp, 580, "a despesa real é a soma dos movimentos", 0.01);
+  eq(f2.fixasPorSair, 0, "já não falta sair nada");
+  eq(f2.ritmoDia, 0, "e nada disto é despesa variável");
+  eq(f2.despPrev, 580, "a previsão continua a dizer 580 €, não 1160 €", 0.01);
+
+  // Lançamento parcial: só a renda lançada, e jantares por fora
+  S = estadoVazio(); MES = isoMes(hoje());
+  S.recorrentes.push({id:"r1", tipo:"despesa", nome:"Renda", valor:600, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:1});
+  S.recorrentes.push({id:"r2", tipo:"despesa", nome:"Luz", valor:90, frequencia:"mensal",
+    ativo:true, categoriaId:cat, membroId:"", dia:20});
+  for (i = 1; i <= 3; i++){
+    S.movimentos.push({id:"g"+i, data:mesShift(MES,-i)+"-10", tipo:"despesa", descricao:"G",
+      categoriaId:cat, membroId:"", valor:800});
+    S.movimentos.push({id:"gr"+i, data:mesShift(MES,-i)+"-01", tipo:"rendimento", descricao:"S",
+      categoriaId:catR, membroId:"", valor:2000});
+  }
+  S.movimentos.push({id:"p1", data:MES+"-01", tipo:"despesa", descricao:"Renda",
+    categoriaId:cat, membroId:"", valor:600});
+  S.movimentos.push({id:"p2", data:MES+"-05", tipo:"despesa", descricao:"Jantares",
+    categoriaId:rest, membroId:"", valor:150});
+  S.movimentos.push({id:"p3", data:MES+"-01", tipo:"rendimento", descricao:"Salário",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+
+  var lanc = rubricasLancadas(MES);
+  ok(lanc.has("r1"), "a renda lançada fica ligada");
+  ok(!lanc.has("r2"), "a luz por lançar continua por lançar");
+  var f3 = preverFechoMes();
+  eq(f3.fixasPorSair, 90, "falta sair só a luz", 0.01);
+  eq(f3.ritmoDia * hj, 150, "e a despesa variável são só os jantares", 0.5);
+  eq(f3.rendPrev - f3.despPrev, f3.saldoPrev, "as contas fecham", 0.01);
+
+  // O casamento é por descrição e valor: um valor diferente não casa
+  S.movimentos.push({id:"p4", data:MES+"-07", tipo:"despesa", descricao:"Luz",
+    categoriaId:cat, membroId:"", valor:45});
+  limparCacheCredito();
+  ok(!rubricasLancadas(MES).has("r2"), "um movimento com o mesmo nome mas outro valor não casa");
+
+  // E cada movimento casa com uma rubrica só
+  S.movimentos.push({id:"p5", data:MES+"-08", tipo:"despesa", descricao:"Renda",
+    categoriaId:cat, membroId:"", valor:600});
+  limparCacheCredito();
+  var l2 = rubricasLancadas(MES);
+  eq(l2.get("r1"), 600, "a renda conta uma vez, mesmo com dois movimentos iguais");
+  eq(l2.size, 1, "e não aparecem rubricas a mais");
+
+  // Uma rubrica de valor negativo não faz o mês fechar abaixo do já gasto
+  S = estadoVazio(); MES = isoMes(hoje());
+  S.recorrentes.push({id:"neg", tipo:"despesa", nome:"Estranha", valor:-5000,
+    frequencia:"mensal", ativo:true, categoriaId:cat, membroId:"", dia:""});
+  S.movimentos.push({id:"n1", data:MES+"-03", tipo:"despesa", descricao:"Real",
+    categoriaId:cat, membroId:"", valor:900});
+  S.movimentos.push({id:"n2", data:MES+"-01", tipo:"rendimento", descricao:"S",
+    categoriaId:catR, membroId:"", valor:2000});
+  limparCacheCredito();
+  var f4 = preverFechoMes();
+  ok(f4.fixasPorSair >= 0, "o que falta sair nunca é negativo", f4.fixasPorSair);
+  ok(f4.despPrev >= realMes(MES).desp - 0.01,
+     "e a previsão nunca fica abaixo do que já se gastou",
+     f4.despPrev + " vs " + realMes(MES).desp);
+
+  MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
+})();
+
 G("anomalias com sazonalidade");
 (function(){
   var guardado = JSON.stringify(S);

@@ -81,18 +81,45 @@ function hover(el){
 var backup = localStorage.getItem(STORE_KEY);
 var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
+var secaoInicial = ui.secaoDespesa;
 
 /* A sessão é do utilizador, não da suite: sai de cena enquanto se testa.
    E se ficou um diálogo aberto (recuperação de rascunho, por exemplo),
    fecha-se — senão o primeiro grupo mede o diálogo em vez da aplicação. */
 localStorage.removeItem(SESSAO_KEY);
 if (q("#modalHost .overlay")) q("#modalHost").innerHTML = "";
+if (q("#paleta")) q("#paleta").innerHTML = "";
+
+/* Contexto volátil reposto antes de começar. Um filtro herdado do
+   restauro de sessão esconde linhas da tabela, e um teste que procura o
+   botão de uma linha escondida falha sem que nada esteja partido — uma
+   falha que depende do que o utilizador estava a filtrar não se
+   reproduz e não se depura. */
+function contextoLimpo(){
+  filtros.texto = ""; filtros.categoria = ""; filtros.membro = ""; filtros.tipo = "";
+  editando = {};
+  ui.secaoDespesa = "plano";
+  ui.essencial = false;
+  ui.privado = false;
+  ui.relatorio = false;
+  ui.simAtivo = null;
+  ui.donutFoco = null;
+  ui.movSel = {};
+  ui.fechoDispensado = null;
+  ui.corteAlvo = 0;
+  ui.corteAjustes = {};
+  ui.planPrefill = null;
+  ui.abertos = {};
+  document.body.classList.remove("privado");
+}
 
 function comExemplo(){
   localStorage.removeItem(STORE_KEY);
   S = estadoVazio();
   carregarExemplo();
   MES = isoMes(hoje());
+  contextoLimpo();
   render();
 }
 
@@ -3124,8 +3151,13 @@ else localStorage.removeItem(SESSAO_KEY);
 S = backup ? normalizar(JSON.parse(backup)) : estadoVazio();
 limparCacheCredito();
 MES = mesInicial;
-ui.donutFoco = null; ui.simAtivo = null; ordem = {}; filtros = {texto:"", categoria:"", membro:"", tipo:""};
-editando = {};
+ordem = {};
+contextoLimpo();
+/* Os filtros e a secção são do utilizador: devolvem-se como estavam, e não
+   no estado neutro em que a suite trabalhou. */
+filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
+filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
+ui.secaoDespesa = secaoInicial;
 irPara(vistaInicial);
 /* A repintura agenda gravações adiadas (400 ms nos dados, 600 ms na
    sessão). Sem as cancelar, disparavam depois desta limpeza e voltavam a

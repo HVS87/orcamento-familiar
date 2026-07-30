@@ -2849,8 +2849,6 @@ const catRotulo = (id) => {
 };
 const membro = (id) => S.membros.find(m => m.id === id);
 const membroNome = (id) => { const m = membro(id); return m ? m.nome : ""; };
-const membroIcone = (id) => { const m = membro(id); return (m && m.icone) || ""; };
-const membroCor = (id) => { const m = membro(id); return (m && m.cor) || "var(--muted)"; };
 /** Nome com o rosto à frente, para seletores e etiquetas de texto. */
 const membroRotulo = (id) => {
   const m = membro(id);
@@ -5824,12 +5822,6 @@ function mediana(vals){
   return v.length % 2 ? v[meio] : (v[meio-1] + v[meio]) / 2;
 }
 
-/** Despesa real de uma categoria num mês (0 quando o mês não tem movimentos). */
-function gastoCategoriaMes(catId, mes){
-  const r = realMes(mes);
-  return (r.rend > 0 || r.desp > 0) ? (r.porCat[catId] || 0) : 0;
-}
-
 /**
  * Quanto se espera gastar numa categoria neste mês — com sazonalidade.
  *
@@ -6113,11 +6105,36 @@ function cartaoLinhaMes(){
 }
 
 /**
- * Previsão de fecho do mês. O que já aconteceu é real; o que falta
- * estima-se de duas maneiras somadas: as rubricas fixas que ainda não
- * saíram (essas sabem-se) e a despesa variável ao ritmo diário observado.
- * A banda vem da dispersão dos últimos três meses — sem histórico, não se
- * inventa banda nenhuma.
+ * Rubricas mensais que já têm movimento correspondente neste mês.
+ *
+ * «Lançar plano deste mês» cria um movimento por rubrica; sem esta ligação,
+ * a previsão somava a rubrica outra vez ao que ela própria já gerou, e ainda
+ * tomava esse movimento por despesa variável — inflando o ritmo diário. O
+ * critério de igualdade é o mesmo que a cópia do mês anterior usa: descrição
+ * sem acentos e valor. Cada movimento casa com uma rubrica só.
+ */
+function rubricasLancadas(mes){
+  const m = mes || MES;
+  const doMes = S.movimentos.filter(x => mesDoDia(x.data) === m);
+  const usados = new Set();
+  const lancadas = new Map();     // id da rubrica -> valor do movimento
+  S.recorrentes.filter(x => recAtiva(x, m) && x.frequencia === "mensal").forEach(rec => {
+    const chave = semAcento(rec.nome || "");
+    const alvo = Math.abs(recMensal(rec)).toFixed(2);
+    const mv = doMes.find(x => !usados.has(x.id) &&
+      semAcento(x.descricao || "") === chave &&
+      Math.abs(parseNum(x.valor)).toFixed(2) === alvo);
+    if (mv){ usados.add(mv.id); lancadas.set(rec.id, Math.abs(parseNum(mv.valor))); }
+  });
+  return lancadas;
+}
+
+/**
+ * Previsão de fecho do mês. O que já aconteceu é real; o que falta são as
+ * rubricas mensais ainda por pagar (essas sabem-se ao cêntimo), as compras
+ * planeadas marcadas e a despesa variável ao ritmo diário observado. A banda
+ * vem da dispersão dos últimos três meses — sem histórico, não se inventa
+ * banda nenhuma.
  */
 function preverFechoMes(){
   const m = MES;
@@ -6129,22 +6146,36 @@ function preverFechoMes(){
   const decorrido = hj / ultimo;
   if (r.rend <= 0 && r.desp <= 0) return null; // sem movimentos, nada a prever
 
-  // Fixas que ainda faltam: rubricas com dia marcado depois de hoje
-  const fixasPorSair = S.recorrentes
-    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) > hj)
-    .reduce((s,x) => s + (x.tipo === "rendimento" ? 0 : recMensal(x)), 0);
-  const rendPorEntrar = S.recorrentes
-    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) > hj)
-    .reduce((s,x) => s + (x.tipo === "rendimento" ? recMensal(x) : 0), 0);
+  const lancadas = rubricasLancadas(m);
+  const mensais = S.recorrentes.filter(x => recAtiva(x, m) && x.frequencia === "mensal");
+
+  /* Por pagar é o que ainda não tem movimento — tenha dia marcado ou não.
+     Uma rubrica sem dia continua a ser dinheiro que vai sair; ignorá-la
+     deixava a previsão curta para quem ainda não preencheu os dias. */
+  /* O que falta sair nunca é negativo. Uma rubrica com valor negativo — só
+     chega assim de um ficheiro editado à mão, porque o formulário guarda o
+     valor absoluto — punha a previsão a fechar o mês abaixo do que já se
+     tinha gasto, o que não é previsão nenhuma. */
+  const porPagar = mensais.filter(x => !lancadas.has(x.id));
+  const fixasPorSair  = porPagar.reduce((s,x) =>
+    s + (x.tipo === "rendimento" ? 0 : Math.max(0, recMensal(x))), 0);
+  const rendPorEntrar = porPagar.reduce((s,x) =>
+    s + (x.tipo === "rendimento" ? Math.max(0, recMensal(x)) : 0), 0);
+
   // Compras planeadas marcadas para este mês e ainda não realizadas
   const comprasPorFazer = (S.planeadas || [])
-    .filter(x => !x.feitaEm && x.mes === m).reduce((s,x) => s + parseNum(x.valor), 0);
+    .filter(x => !x.feitaEm && x.mes === m)
+    .reduce((s,x) => s + Math.max(0, parseNum(x.valor)), 0);
 
-  // Variável: o que se gastou até hoje fora das fixas com dia, ao ritmo diário
-  const jaFixasComDia = S.recorrentes
-    .filter(x => recAtiva(x, m) && x.frequencia === "mensal" && x.dia && diaNoMes(x.dia, m) <= hj)
-    .reduce((s,x) => s + (x.tipo === "rendimento" ? 0 : recMensal(x)), 0);
-  const variavelAteHoje = Math.max(0, r.desp - jaFixasComDia);
+  /* Variável é o que sobra depois de tirar as rubricas já lançadas — e são
+     as lançadas que se tiram, não as que «já deviam ter saído»: é o
+     movimento que conta, não o calendário. */
+  let fixasJaLancadas = 0;
+  mensais.forEach(x => {
+    if (x.tipo === "rendimento") return;
+    if (lancadas.has(x.id)) fixasJaLancadas += lancadas.get(x.id);
+  });
+  const variavelAteHoje = Math.max(0, r.desp - fixasJaLancadas);
   const ritmoDia = hj > 0 ? variavelAteHoje / hj : 0;
   const variavelPorVir = ritmoDia * (ultimo - hj);
 

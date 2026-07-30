@@ -28,6 +28,8 @@ function ok(c, nome, det){
 var backup = localStorage.getItem(STORE_KEY);
 var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
+var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
+var secaoInicial = ui.secaoDespesa;
 
 /* Como nas outras suites: a sessão do utilizador sai de cena, para que um
    rascunho por recuperar não abra um diálogo por cima dos testes. */
@@ -60,8 +62,12 @@ function agregadoAleatorio(sem){
   var especies = Object.keys(ESPECIES), freqs = Object.keys(FREQ), classes = Object.keys(CLASSES);
   var i;
 
+  /* Rostos por vezes em falta de propósito: um orçamento vindo de uma versão
+     anterior tem membros sem emoji nem cor, e é `normalizar` que lhos dá. */
   var nm = esc(4);
-  for (i = 0; i < nm; i++) S.membros.push({id:"m"+i, nome:"M"+i});
+  for (i = 0; i < nm; i++) S.membros.push(rnd() < 0.3
+    ? {id:"m"+i, nome:"M"+i}
+    : {id:"m"+i, nome:"M"+i, icone: umDe(EMOJIS_MEMBRO), cor:"#4a75db"});
 
   var nr = esc(5);
   for (i = 0; i < nr; i++) S.rendimentos.push({id:"rd"+i, nome:"R"+i,
@@ -70,9 +76,13 @@ function agregadoAleatorio(sem){
     componentes:[{id:"c"+i, nome:"C"+i, especie: umDe(especies), valor: num(),
       frequencia: umDe(freqs), categoriaId: umDe(catsR).id}]});
 
+  /* O dia do mês entra com valores hostis à mistura — 0, 31, 40, texto — e
+     em boa parte das rubricas fica vazio, que é o estado de quem nunca o
+     preencheu. */
   var nd = esc(9);
   for (i = 0; i < nd; i++) S.recorrentes.push({id:"r"+i, tipo:"despesa", nome:"D"+i,
     valor: num(), frequencia: umDe(freqs), ativo: rnd() < 0.85, categoriaId: umDe(cats).id, membroId:"",
+    dia: rnd() < 0.45 ? "" : umDe([1, 5, 15, 28, 29, 30, 31, 0, 40, -3, "abc", null]),
     inicio: rnd() < 0.3 ? mesShift(MES, -esc(24))+"-01" : "",
     fim:    rnd() < 0.2 ? mesShift(MES,  esc(24))+"-01" : ""});
 
@@ -109,13 +119,31 @@ function agregadoAleatorio(sem){
     objetivoId: (no && rnd() < 0.4) ? "ob"+esc(no) : "",
     feitaEm: rnd() < 0.2 ? isoDia(hoje()) : "", membroId:"", criadoEm:""});
 
+  /* Notas, meses fechados e instantâneos do património — com meses
+     inválidos e valores impossíveis pelo meio, que é o que um ficheiro
+     editado à mão traz. */
+  var nn = esc(8);
+  for (i = 0; i < nn; i++){
+    var mesNota = rnd() < 0.15 ? umDe(["2026-13", "abc", "", "2026-1"]) : mesShift(MES, -esc(18));
+    S.notas[mesNota] = rnd() < 0.1 ? "" : "Nota "+i+(rnd() < 0.1 ? new Array(400).join("x") : "");
+  }
+  var nf = esc(8);
+  for (i = 0; i < nf; i++){
+    var mesF = rnd() < 0.15 ? umDe(["2026-13", "xx", ""]) : mesShift(MES, -(i+1));
+    S.fechados[mesF] = rnd() < 0.2 ? {} : {em: isoDia(hoje())};
+  }
+  var nh = esc(14);
+  for (i = 0; i < nh; i++) S.patrimonioHist.push({
+    mes: rnd() < 0.12 ? umDe(["2026-13", "", "abc"]) : mesShift(MES, -(i+1)),
+    ativo: num(), divida: num(), liquido: num()});
+
   cats.forEach(function(c){ if (rnd() < 0.4) S.limites[c.id] = num(); });
   S.fiscal.regiao = umDe(["continente","acores","madeira"]);
   S.fiscal.estadoCivil = umDe(["nao_casado","casado_unico","casado_dois"]);
   S.fiscal.dependentes = esc(5);
   S.fiscal.contarIRS = rnd() < 0.8;
   return {membros:nm, rendimentos:nr, rubricas:nd, movimentos:nv, ativos:na,
-          creditos:nc, objetivos:no, planeadas:np};
+          creditos:nc, objetivos:no, planeadas:np, notas:nn, fechados:nf, instantaneos:nh};
 }
 
 var VISTAS_TODAS = ["painel","rendimentos","despesas","ativos","creditos","objetivos","estrategias","config"];
@@ -175,6 +203,76 @@ G("estados aleatórios — invariantes");
       ok(typeof ver.txt === "string" && ver.txt.length > 10, etq + ": o veredicto tem texto");
       ok(!LIXO.test(ver.txt), etq + ": e o texto não traz lixo", ver.txt);
     });
+
+    // 4b. As funcionalidades do mês por dentro, sob dados hostis
+    try {
+      var ev = eventosDoMes(MES);
+      var ultimoDia = new Date(+MES.split("-")[0], +MES.split("-")[1], 0).getDate();
+      ok(ev.dias.every(function(d){ return d.dia >= 1 && d.dia <= ultimoDia; }),
+         etq + ": a linha do mês nunca sai do mês", ultimoDia);
+      ok(ev.dias.every(function(d){ return isFinite(d.despesa) && isFinite(d.rendimento); }),
+         etq + ": e os totais de cada dia são finitos");
+      ok(isFinite(ev.totalDespesa) && isFinite(ev.totalRendimento), etq + ": totais da linha do mês finitos");
+      for (var d2 = 1; d2 < ev.dias.length; d2++)
+        ok(ev.dias[d2-1].dia < ev.dias[d2].dia, etq + ": os dias saem por ordem e sem repetidos");
+
+      var prox = proximoPagamento();
+      if (prox) ok(prox.dia >= hoje().getDate() && prox.faltam >= 0,
+        etq + ": o próximo pagamento não está no passado");
+
+      var f = preverFechoMes();
+      if (f){
+        ok(isFinite(f.despPrev) && isFinite(f.rendPrev) && isFinite(f.saldoPrev),
+           etq + ": a previsão dá números finitos");
+        ok(Math.abs((f.rendPrev - f.despPrev) - f.saldoPrev) <= 0.02,
+           etq + ": e o saldo previsto fecha as contas");
+        ok(f.despPrev >= realMes(MES).desp - 0.02,
+           etq + ": a despesa prevista nunca é menor do que a já feita",
+           f.despPrev + " vs " + realMes(MES).desp);
+        ok(f.margem >= 0 && isFinite(f.margem), etq + ": a margem é finita e não negativa");
+        ok(f.ritmoDia >= 0 && isFinite(f.ritmoDia), etq + ": o ritmo diário não é negativo");
+        // Cada rubrica conta uma vez: ou está lançada, ou está por pagar
+        var lanc = rubricasLancadas(MES);
+        var mensais = S.recorrentes.filter(function(x){ return recAtiva(x, MES) && x.frequencia === "mensal"; });
+        ok(lanc.size <= mensais.length, etq + ": não há mais rubricas lançadas do que rubricas");
+      }
+    } catch(e){ ok(false, etq + ": o mês por dentro não rebenta", e.message); }
+
+    // 4c. Insight e rituais
+    try {
+      anomaliasMes(MES).forEach(function(a){
+        ok(isFinite(a.pct) && isFinite(a.dif) && isFinite(a.esperado),
+           etq + ": anomalia de «" + a.cat.nome + "» com números finitos");
+        ok(Math.abs(a.pct) >= ANOMALIA_PCT && Math.abs(a.dif) >= ANOMALIA_EUR,
+           etq + ": e passa as duas fasquias");
+        ok(BASE_ANOMALIA[a.base] != null, etq + ": com base conhecida", a.base);
+      });
+      subscricoes().forEach(function(x){
+        ok(isFinite(x.anual) && Math.abs(x.anual - x.mensal * 12) <= 0.02,
+           etq + ": subscrição anual = mensal × 12");
+      });
+      var inf = inflacaoPessoal(MES);
+      if (inf) ok(isFinite(inf.taxa), etq + ": inflação pessoal finita", inf.taxa);
+      sequencias().forEach(function(s){
+        ok(Number.isInteger(s.n) && s.n >= 0, etq + ": sequência com contagem inteira", s.n);
+        ok(typeof s.txt === "string" && s.txt.length > 0, etq + ": e com texto");
+      });
+      var pf = passosFecho(mesShift(MES, -1));
+      ok(pf.passos.length === 4, etq + ": o fecho tem quatro passos");
+      ok(pf.passos.every(function(x){ return typeof x.d === "string" && !LIXO.test(x.d); }),
+         etq + ": e nenhum passo escreve lixo");
+      [60, 500, 99999].forEach(function(meta){
+        var pc = planoDeCorte(meta);
+        if (!pc) return;
+        ok(pc.conseguido <= pc.meta + 0.5, etq + ": o corte nunca passa a meta", pc.conseguido);
+        ok(pc.linhas.every(function(x){ return x.corte <= x.gasto * CORTE_MAX_FRACAO + 0.01; }),
+           etq + ": nem deixa categoria abaixo de metade");
+        ok(pc.linhas.every(function(x){ return (x.cat.grupo || "") !== "poupanca"; }),
+           etq + ": nem toca na poupança");
+        ok(pc.linhas.every(function(x){ return CATS_NAO_CORTAVEIS.indexOf(x.cat.nome) < 0; }),
+           etq + ": nem em juros, prestações ou impostos");
+      });
+    } catch(e){ ok(false, etq + ": insight e rituais não rebentam", e.message); }
 
     // 5. Gravar e reler devolve o mesmo agregado. Compara-se a partir do
     //    estado já normalizado: o estado cru sofre uma passagem legítima
@@ -427,6 +525,21 @@ G("migração de formas antigas e malformadas");
     {version:999, criadoEm:"data inválida", tema:"arco-íris"},
     {recorrenciasIgnoradas:"x", dicasOcultas:{}, tutorialVisto:"sim"},
     {limites:{"cat-inexistente":"abc"}},
+    // Campos das funcionalidades novas, malformados
+    {notas:{"2026-13":"mês que não existe", "abc":"chave inválida", "2026-06":"   ",
+            "2026-05":"boa nota"}},
+    {notas:"não é objeto"},
+    {notas:{"2026-05": new Array(500).join("x")}},
+    {fechados:{"xx":{em:"?"}, "2026-06":{em:"2026-07-01"}, "2026-04":null}},
+    {fechados:[1,2,3]},
+    {patrimonioHist:[{mes:"2026-13", ativo:1}, {mes:"2026-05", ativo:"abc", divida:null, liquido:NaN},
+                     {mes:"2026-05", ativo:2, divida:1, liquido:1}, null, {semMes:true}]},
+    {patrimonioHist:"não é lista"},
+    {membros:[{id:"m1", nome:"Sem rosto"}, {id:"m2", nome:"Com", icone:"👩", cor:"#fff"}]},
+    {recorrentes:[{id:"r1", nome:"Dia impossível", valor:10, frequencia:"mensal", dia:40},
+                  {id:"r2", nome:"Dia texto", valor:10, frequencia:"mensal", dia:"abc"},
+                  {id:"r3", nome:"Dia zero", valor:10, frequencia:"mensal", dia:0},
+                  {id:"r4", nome:"Dia bom", valor:10, frequencia:"mensal", dia:"15"}]},
   ];
   var LISTAS = ["membros","categorias","rendimentos","recorrentes","movimentos",
                 "objetivos","creditos","ativos","planeadas","cenarios","regrasCategoria"];
@@ -465,6 +578,37 @@ G("migração de formas antigas e malformadas");
     });
     st.painel.ocultos.concat(st.painel.ordem, st.painel.fechados).forEach(function(k){
       ok(!!CARTOES_PAINEL[k], etq + ": o painel só cita cartões que existem", k); });
+
+    // Os campos das funcionalidades novas saem saneados
+    ok(st.notas && typeof st.notas === "object" && !Array.isArray(st.notas),
+       etq + ": as notas são um mapa");
+    Object.keys(st.notas).forEach(function(m){
+      ok(/^\d{4}-(0[1-9]|1[0-2])$/.test(m), etq + ": nota com mês válido", m);
+      ok(typeof st.notas[m] === "string" && st.notas[m].trim().length > 0,
+         etq + ": nota com texto a sério");
+      ok(st.notas[m].length <= NOTA_MAX, etq + ": nota dentro do tecto", st.notas[m].length);
+    });
+    ok(st.fechados && typeof st.fechados === "object" && !Array.isArray(st.fechados),
+       etq + ": os meses fechados são um mapa");
+    Object.keys(st.fechados).forEach(function(m){
+      ok(/^\d{4}-(0[1-9]|1[0-2])$/.test(m), etq + ": mês fechado válido", m);
+      ok(typeof st.fechados[m].em === "string", etq + ": com data de fecho em texto");
+    });
+    ok(Array.isArray(st.patrimonioHist), etq + ": o histórico do património é lista");
+    st.patrimonioHist.forEach(function(x, j){
+      ok(/^\d{4}-(0[1-9]|1[0-2])$/.test(x.mes), etq + ": instantâneo com mês válido", x.mes);
+      ok(isFinite(x.ativo) && isFinite(x.divida) && isFinite(x.liquido),
+         etq + ": instantâneo com números finitos");
+      if (j > 0) ok(st.patrimonioHist[j-1].mes < x.mes,
+        etq + ": instantâneos por ordem e sem meses repetidos");
+    });
+    st.membros.forEach(function(mb){
+      ok(!!mb.icone && !!mb.cor, etq + ": todo o membro sai com rosto e cor");
+    });
+    st.recorrentes.forEach(function(rc){
+      ok(rc.dia === "" || (Number.isInteger(rc.dia) && rc.dia >= 1 && rc.dia <= 31),
+         etq + ": o dia da rubrica é vazio ou 1–31", rc.dia);
+    });
 
     // E tem de renderizar
     S = st; limparCacheCredito(); MES = isoMes(hoje());
@@ -520,7 +664,21 @@ else localStorage.removeItem(STORE_KEY);
 if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao);
 else localStorage.removeItem(SESSAO_KEY);
 limparCacheCredito();
-MES = mesInicial; VIEW = vistaInicial; ui.relatorio = false;
+MES = mesInicial; VIEW = vistaInicial;
+/* O contexto volátil também é do utilizador. O macaco carrega em tudo, e
+   ações como «ver movimento» de uma compra planeada escrevem no filtro de
+   texto — sem isto, quem corresse a suite ficava com a lista filtrada pelo
+   nome de uma compra inventada ao acaso. */
+filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
+filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
+editando = {};
+ui.relatorio = false; ui.simAtivo = null; ui.donutFoco = null; ui.movSel = {};
+ui.essencial = false; ui.privado = false; ui.fechoDispensado = null;
+ui.corteAlvo = 0; ui.corteAjustes = {}; ui.planPrefill = null;
+ui.secaoDespesa = secaoInicial;
+document.body.classList.remove("privado");
+var _mh = document.getElementById("modalHost"); if (_mh) _mh.innerHTML = "";
+var _pl = document.getElementById("paleta"); if (_pl) _pl.innerHTML = "";
 try { render(); } catch(e){}
 /* Cancelar as gravações adiadas que a repintura agendou, e repor a sessão
    depois delas: caso contrário voltavam a escrever no disco o que se
