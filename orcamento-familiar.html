@@ -751,6 +751,40 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 
 /* A largura entra como rede: nem todos os navegadores reportam o
    ponteiro com fiabilidade, e um ecrã de 640 px é um telemóvel. */
+/* Os alvos de toque dependiam de `pointer:coarse` e da largura. Nenhum dos
+   dois é fiável sozinho: há aparelhos de toque que dizem ter ponteiro fino,
+   e um telemóvel deitado tem 812 px de largura. A classe do aparelho, que
+   se mede pelo lado menor, é o sinal honesto — e junta-se aos outros dois. */
+[data-dispositivo="telemovel"] .btn,
+[data-dispositivo="tablet"] .btn{min-height:44px;padding:10px 14px}
+[data-dispositivo="telemovel"] .btn.sm,
+[data-dispositivo="tablet"] .btn.sm{min-height:40px;padding:8px 12px;font-size:13px}
+[data-dispositivo="telemovel"] .btn.icon,
+[data-dispositivo="tablet"] .btn.icon{min-width:44px;min-height:44px;padding:10px}
+[data-dispositivo="telemovel"] input,
+[data-dispositivo="telemovel"] select,
+[data-dispositivo="telemovel"] textarea,
+[data-dispositivo="tablet"] input,
+[data-dispositivo="tablet"] select,
+[data-dispositivo="tablet"] textarea{min-height:44px}
+[data-dispositivo="telemovel"] .seg button,
+[data-dispositivo="tablet"] .seg button{min-height:42px;padding:9px 14px}
+[data-dispositivo="telemovel"] .cabPainel button,
+[data-dispositivo="tablet"] .cabPainel button{min-width:38px;min-height:38px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+[data-dispositivo="telemovel"] .pega,
+[data-dispositivo="tablet"] .pega{display:none}
+[data-dispositivo="telemovel"] .ordenar,
+[data-dispositivo="tablet"] .ordenar{display:inline-flex;gap:4px}
+/* Deitado a altura é preciosa, mas o dedo continua do mesmo tamanho: os
+   botões pequenos encolhem no que é horizontal, nunca abaixo do alcançável. */
+[data-deitado="telemovel"] .btn{min-height:40px;padding:8px 12px}
+[data-deitado="telemovel"] .btn.sm{min-height:36px;padding:6px 10px}
+[data-deitado="telemovel"] input,
+[data-deitado="telemovel"] select,
+[data-deitado="telemovel"] textarea{min-height:40px}
+[data-deitado="telemovel"] .seg button{min-height:38px;padding:7px 12px}
+
 @media (pointer:coarse), (max-width:640px){
   .btn{min-height:44px;padding:10px 14px}
   .btn.sm{min-height:40px;padding:8px 12px;font-size:13px}
@@ -763,6 +797,11 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
   .amostra{min-height:44px}
   #paleta li{padding:13px 12px}
   .perfil{min-height:76px}
+  /* Abrir e fechar um cartão do painel tinha 19 px de alvo — um chevron
+     desenhado para o ponteiro. Ao dedo, cresce sem crescer o desenho:
+     o botão fica transparente à volta do sinal. */
+  .cabPainel button{min-width:38px;min-height:38px;display:inline-flex;
+    align-items:center;justify-content:center;padding:0}
   /* A pega de arrasto dá lugar aos botões de subir e descer */
   .pega{display:none}
   .ordenar{display:inline-flex;gap:4px}
@@ -826,6 +865,83 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
   #folhaMais button[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
   #tutorial .tutcard{bottom:84px}
 }
+
+/* ---------------------------------------------------------------
+   Telemóvel deitado
+
+   O caso que a largura sozinha não via: 812 px de largo, 375 de alto.
+   Pelo critério antigo era «ecrã grande» e recebia o desenho de
+   computador — cabeçalho de 156 px, separadores no topo, fita de meses
+   numa linha só sua — dentro de 375 px de altura. Sobravam 219.
+
+   Aqui a altura é que é escassa e a largura é que sobra, e o desenho
+   troca em conformidade: tudo o que é vertical encolhe, e o que ganha
+   com a largura espalha-se.
+   --------------------------------------------------------------- */
+[data-deitado="telemovel"] header .brand h1,
+[data-deitado="telemovel"] header .brand small{display:none}
+[data-deitado="telemovel"] .topbar{padding:4px 10px;gap:5px}
+/* A fita sai: há o seletor de mês, as setas e o deslizar */
+[data-deitado="telemovel"] #fitaMeses{display:none}
+[data-deitado="telemovel"] #mesPrev,
+[data-deitado="telemovel"] #mesNext{display:inline-flex}
+[data-deitado="telemovel"] header .secundario{display:none}
+[data-deitado="telemovel"] #btnMaisAcoes{display:inline-flex}
+[data-deitado="telemovel"] header{transition:transform .22s ease}
+[data-deitado="telemovel"] header.recolhido{transform:translateY(-100%)}
+
+/* A navegação vai para baixo, como em retrato: no topo roubaria mais uma
+   faixa de altura, e em baixo o polegar alcança-a com o aparelho deitado. */
+[data-deitado="telemovel"] nav.tabs{display:none}
+[data-deitado="telemovel"] #tabsMovel{display:flex;position:fixed;left:0;right:0;bottom:0;
+  z-index:70;background:var(--surface);border-top:1px solid var(--border);
+  padding:2px max(6px,env(safe-area-inset-left)) max(2px,env(safe-area-inset-bottom))}
+/* Deitado, o ícone e o texto cabem lado a lado — poupa uma linha inteira */
+[data-deitado="telemovel"] #tabsMovel button{flex:1 1 0;background:none;border:0;
+  color:var(--muted);font-size:10px;display:flex;flex-direction:row;align-items:center;
+  justify-content:center;gap:5px;padding:5px 2px;border-radius:9px;cursor:pointer;min-height:38px}
+[data-deitado="telemovel"] #tabsMovel button .ticon{font-size:15px}
+[data-deitado="telemovel"] #tabsMovel button[aria-selected="true"]{color:var(--accent)}
+[data-deitado="telemovel"] #folhaMais{position:fixed;left:8px;right:8px;bottom:46px;z-index:71;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:4px;padding:6px}
+[data-deitado="telemovel"] #folhaMais button{flex:1 1 30%;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:9px;color:var(--text);padding:8px;
+  font-size:12.5px;cursor:pointer}
+[data-deitado="telemovel"] #botaoRapido{bottom:calc(50px + env(safe-area-inset-bottom));
+  right:12px;width:44px;height:44px;font-size:22px}
+[data-deitado="telemovel"] #tutorial .tutcard{bottom:56px}
+
+/* Menos ar na vertical, em todo o lado */
+[data-deitado="telemovel"] main{padding:8px 12px 56px}
+[data-deitado="telemovel"] .card{padding:10px 13px}
+[data-deitado="telemovel"] .card-head{margin-bottom:7px}
+[data-deitado="telemovel"] .kpi{padding:8px 10px}
+[data-deitado="telemovel"] .kpi .val{font-size:18px}
+[data-deitado="telemovel"] h2{font-size:14.5px}
+[data-deitado="telemovel"] th,
+[data-deitado="telemovel"] td{padding:5px 8px}
+
+/* A largura é que sobra: os indicadores espalham-se em vez de empilhar */
+[data-deitado="telemovel"] .grid.g2,
+[data-deitado="telemovel"] .grid.g3,
+[data-deitado="telemovel"] .grid.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+
+/* ---------------------------------------------------------------
+   Tablet — de pé e deitado
+
+   Um tablet tem espaço a sério nas duas orientações; o que muda é o
+   formato. De pé, um cartão largo lê-se melhor do que dois estreitos;
+   deitado, emparelham à vontade.
+   --------------------------------------------------------------- */
+[data-dispositivo="tablet"][data-orientacao="retrato"] .grid.g4,
+[data-dispositivo="tablet"][data-orientacao="retrato"] .grid.g3{
+  grid-template-columns:repeat(2,minmax(0,1fr))}
+[data-dispositivo="tablet"][data-orientacao="retrato"] .grid.g2{
+  grid-template-columns:minmax(0,1fr)}
+[data-dispositivo="tablet"][data-orientacao="paisagem"] main{padding:16px 20px}
+[data-dispositivo="tablet"][data-orientacao="paisagem"] .grid.g4{
+  grid-template-columns:repeat(4,minmax(0,1fr))}
 
 /* Tabelas em cartões, nos ecrãs estreitos */
 @media (max-width:480px){
@@ -2404,6 +2520,7 @@ let ui = {
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
   fechoDispensado: null,     // mês cujo fecho se dispensou nesta sessão
+  ecra: null,                // {orientacao, dispositivo, larg, alt} — ver aplicarOrientacao
   cenarioVida: {eventos: [], meses: 24},   // simulação «E se…?», nunca gravada
   rapido: null,              // estado do registo em dois toques, enquanto aberto
   corteAlvo: 0,              // meta do plano de corte (€/mês)
@@ -13546,9 +13663,115 @@ document.addEventListener("click", (e) => {
 /* O cabeçalho recolhe ao descer e volta ao subir. Só em ecrã estreito,
    onde os seus 190 px pesam de facto; e nunca com um diálogo aberto ou
    com o cabeçalho no topo, para não esconder o que se está a usar. */
+/* ---------------------------------------------------------------
+   Orientação e classe de aparelho
+
+   A aplicação decidia o desenho só pela largura, e isso engana-se num
+   caso concreto e comum: um telemóvel deitado tem 812 px de largura —
+   larguíssimo pelo critério antigo — mas 375 px de *altura*, dos quais o
+   cabeçalho comia 156. Ficavam 219 px para o orçamento inteiro.
+
+   A largura sozinha não distingue «telemóvel deitado» de «tablet de
+   pé». O que os distingue é o lado *menor* do ecrã, que não muda ao
+   rodar: é essa a medida que classifica o aparelho, e a orientação
+   trata-se à parte. As duas ficam em atributos no <html>, para o CSS e
+   o JS lerem o mesmo.
+   --------------------------------------------------------------- */
+const LIMIAR_TELEMOVEL = 500;   // lado menor abaixo disto é telemóvel
+const LIMIAR_TABLET    = 900;   // e abaixo disto, tablet
+
+/**
+ * Classifica o ecrã. Aceita medidas por argumento para se poder verificar
+ * cada quadrante — telemóvel de pé e deitado, tablet de pé e deitado —
+ * sem depender do aparelho em que os testes calham correr.
+ */
+function classificarEcra(medidas){
+  const m = medidas || {};
+  const larg = m.larg != null ? m.larg
+    : (window.innerWidth || document.documentElement.clientWidth || 0);
+  const alt  = m.alt != null ? m.alt
+    : (window.innerHeight || document.documentElement.clientHeight || 0);
+  const menor = Math.min(larg, alt), maior = Math.max(larg, alt);
+  const toque = m.toque != null ? !!m.toque
+    : !!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+  /* Numa janela sem dimensões (separador oculto, impressão) não se
+     classifica nada: mudar o desenho com base em zero seria pior do que
+     deixar como está. */
+  const valido = larg > 0 && alt > 0;
+  let dispositivo = "desktop";
+  if (valido){
+    if (menor < LIMIAR_TELEMOVEL) dispositivo = "telemovel";
+    else if (menor < LIMIAR_TABLET && toque) dispositivo = "tablet";
+  }
+  const orientacao = !valido ? "" : (alt >= larg ? "retrato" : "paisagem");
+  return {
+    larg, alt, menor, maior, toque, valido, dispositivo, orientacao,
+    /* O caso apertado: pouca altura e largura a sobrar. É o telemóvel
+       deitado, e também o tablet pequeno virado — o desenho que serve um
+       serve o outro, porque o problema é o mesmo. */
+    deitado: valido && orientacao === "paisagem" && alt < 500,
+  };
+}
+
+function aplicarOrientacao(){
+  const e = classificarEcra();
+  const raiz = document.documentElement;
+  const mudouOrientacao = ui.ecra && ui.ecra.orientacao !== e.orientacao;
+  const mudouDispositivo = ui.ecra && ui.ecra.dispositivo !== e.dispositivo;
+  ui.ecra = e;
+
+  if (!e.valido){ raiz.removeAttribute("data-orientacao"); raiz.removeAttribute("data-dispositivo"); return e; }
+  raiz.setAttribute("data-orientacao", e.orientacao);
+  raiz.setAttribute("data-dispositivo", e.dispositivo);
+  /* Um atributo só para o caso que muda o desenho todo — telemóvel
+     deitado —, para o CSS não ter de o compor a cada regra. Vale também
+     para um tablet pequeno virado, que sofre do mesmo: altura escassa. */
+  if (e.deitado) raiz.setAttribute("data-deitado", "telemovel");
+  else raiz.removeAttribute("data-deitado");
+
+  if (mudouOrientacao || mudouDispositivo){
+    /* Ao rodar, o cabeçalho tem de voltar: recolhido em retrato, ficaria
+       recolhido em paisagem sem que nenhum gesto o trouxesse de volta. */
+    const h = document.querySelector("header");
+    if (h) h.classList.remove("recolhido");
+    fecharFolhaAcoes();
+    const fm = $("#folhaMais"); if (fm) fm.hidden = true;
+    /* Repintar: a fita de meses, a linha do mês e os cartões do painel
+       calculam-se com a largura em mão. Só depois de o browser assentar
+       nas medidas novas — daí o adiamento. */
+    clearTimeout(_orientT);
+    _orientT = setTimeout(() => { try { render(); } catch(err){} }, 60);
+  }
+  return e;
+}
+let _orientT = null;
+
+/* Três fontes para o mesmo acontecimento, porque nenhuma é fiável em todo
+   o lado: o `matchMedia` da orientação, o `resize` (que também apanha
+   janelas redimensionadas no computador) e a API `screen.orientation`,
+   quando existe. `aplicarOrientacao` é idempotente, por isso repetir não
+   custa nada. */
+if (window.matchMedia){
+  const mq = window.matchMedia("(orientation: portrait)");
+  const ouvir = () => aplicarOrientacao();
+  if (mq.addEventListener) mq.addEventListener("change", ouvir);
+  else if (mq.addListener) mq.addListener(ouvir);
+}
+let _resizeT = null;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(aplicarOrientacao, 120);
+}, {passive:true});
+if (screen && screen.orientation && screen.orientation.addEventListener){
+  screen.orientation.addEventListener("change", () => setTimeout(aplicarOrientacao, 60));
+}
+window.addEventListener("orientationchange", () => setTimeout(aplicarOrientacao, 60));
+
 let _ultimoScroll = 0;
 window.addEventListener("scroll", () => {
-  if (window.innerWidth > 640) return;
+  // O cabeçalho recolhe onde a altura é escassa: telemóvel de pé ou deitado
+  const e = ui.ecra || classificarEcra();
+  if (!(e.dispositivo === "telemovel" || window.innerWidth <= 640)) return;
   const h = document.querySelector("header");
   const y = window.scrollY;
   if (y < 90 || $("#modalHost").innerHTML || $("#folhaAcoes").classList.contains("aberta")){
@@ -14985,6 +15208,7 @@ document.addEventListener("click", (e) => {
    --------------------------------------------------------------- */
 carregar();
 aplicarTema();
+aplicarOrientacao();
 restaurarSessao();
 render();
 aplicarAjudas();

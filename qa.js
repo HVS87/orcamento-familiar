@@ -2616,6 +2616,70 @@ G("provisões, saúde financeira e alavancas do défice");
   MES = mesGuardado; S = JSON.parse(guardado); limparCacheCredito();
 })();
 
+G("orientação e classe de aparelho");
+(function(){
+  /* A largura sozinha não distingue um telemóvel deitado (812×375) de um
+     tablet de pé (768×1024): ambos são «largos». O que os distingue é o
+     lado menor, que não muda ao rodar. */
+  var casos = [
+    {n:"telemóvel de pé",        larg:375,  alt:812,  toque:true,  d:"telemovel", o:"retrato",  deitado:false},
+    {n:"telemóvel deitado",      larg:812,  alt:375,  toque:true,  d:"telemovel", o:"paisagem", deitado:true},
+    {n:"telemóvel pequeno de pé",larg:320,  alt:568,  toque:true,  d:"telemovel", o:"retrato",  deitado:false},
+    {n:"telemóvel pequeno deit.",larg:568,  alt:320,  toque:true,  d:"telemovel", o:"paisagem", deitado:true},
+    {n:"tablet de pé",           larg:768,  alt:1024, toque:true,  d:"tablet",    o:"retrato",  deitado:false},
+    {n:"tablet deitado",         larg:1024, alt:768,  toque:true,  d:"tablet",    o:"paisagem", deitado:false},
+    {n:"tablet grande de pé",    larg:834,  alt:1194, toque:true,  d:"tablet",    o:"retrato",  deitado:false},
+    {n:"computador",             larg:1440, alt:900,  toque:false, d:"desktop",   o:"paisagem", deitado:false},
+    {n:"janela estreita, rato",  larg:700,  alt:900,  toque:false, d:"desktop",   o:"retrato",  deitado:false},
+  ];
+  casos.forEach(function(c){
+    var e = classificarEcra(c);
+    eq(e.dispositivo, c.d, c.n+": é "+c.d);
+    eq(e.orientacao, c.o, c.n+": está em "+c.o);
+    eq(e.deitado, c.deitado, c.n+": "+(c.deitado ? "é o caso apertado" : "não é o caso apertado"));
+    ok(e.valido, c.n+": a medição é válida");
+    eq(e.menor, Math.min(c.larg, c.alt), c.n+": o lado menor é o que classifica");
+  });
+
+  // O lado menor não muda ao rodar — é essa a razão de ser dele
+  ["telemovel","tablet"].forEach(function(tipo){
+    var pe = tipo === "telemovel" ? {larg:390, alt:844, toque:true} : {larg:820, alt:1180, toque:true};
+    var deitado = {larg: pe.alt, alt: pe.larg, toque:true};
+    eq(classificarEcra(pe).dispositivo, classificarEcra(deitado).dispositivo,
+       tipo+": rodar não muda a classe do aparelho");
+    ok(classificarEcra(pe).orientacao !== classificarEcra(deitado).orientacao,
+       tipo+": mas muda a orientação");
+  });
+
+  // Um ecrã quadrado conta como retrato — não há razão para o contrário,
+  // e uma regra arbitrária é melhor do que uma indefinida
+  eq(classificarEcra({larg:800, alt:800, toque:true}).orientacao, "retrato",
+     "um ecrã quadrado conta como retrato");
+
+  // Sem dimensões não se classifica nada: mudar o desenho com base em zero
+  // seria pior do que deixar como está
+  var nulo = classificarEcra({larg:0, alt:0, toque:false});
+  ok(!nulo.valido, "uma janela sem dimensões não é válida");
+  eq(nulo.orientacao, "", "e não tem orientação");
+  eq(nulo.deitado, false, "nem é o caso apertado");
+
+  // As fronteiras dos limiares
+  eq(classificarEcra({larg:LIMIAR_TELEMOVEL-1, alt:900, toque:true}).dispositivo, "telemovel",
+     "mesmo abaixo do limiar, é telemóvel");
+  eq(classificarEcra({larg:LIMIAR_TELEMOVEL, alt:900, toque:true}).dispositivo, "tablet",
+     "no limiar, já é tablet");
+  eq(classificarEcra({larg:LIMIAR_TABLET, alt:1200, toque:true}).dispositivo, "desktop",
+     "acima do limiar do tablet, é computador");
+  ok(LIMIAR_TELEMOVEL < LIMIAR_TABLET, "os limiares estão por ordem");
+
+  // O caso apertado é da altura, não da largura: um tablet deitado tem
+  // altura de sobra e não entra nele
+  ok(!classificarEcra({larg:1024, alt:768, toque:true}).deitado,
+     "um tablet deitado tem altura de sobra");
+  ok(classificarEcra({larg:900, alt:440, toque:true}).deitado,
+     "mas um ecrã largo e baixo é o caso apertado");
+})();
+
 G("saúde financeira: melhorar nunca baixa a nota");
 (function(){
   /* A propriedade que dá sentido à pontuação: se um componente melhora e

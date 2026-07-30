@@ -2001,6 +2001,59 @@ G("ritmo, mapa anual e tesouraria");
   ok(/Tesouraria a 12 meses/.test(texto()), "e mostra-se no painel");
 })();
 
+G("rotação: atributos, reposição e repintura");
+(function(){
+  comExemplo();
+  var raiz = document.documentElement;
+  var estadoAntes = ui.ecra;
+
+  // Ao aplicar, o <html> fica marcado com o que o CSS precisa de saber
+  aplicarOrientacao();
+  ok(["retrato","paisagem",""].indexOf(raiz.getAttribute("data-orientacao")||"") >= 0,
+     "o <html> declara a orientação", raiz.getAttribute("data-orientacao"));
+  ok(["telemovel","tablet","desktop"].indexOf(raiz.getAttribute("data-dispositivo")||"desktop") >= 0,
+     "e a classe do aparelho", raiz.getAttribute("data-dispositivo"));
+  ok(ui.ecra != null, "e fica registado em ui.ecra para o JS ler o mesmo");
+
+  // Chamar duas vezes seguidas não muda nada — é idempotente
+  var depois1 = raiz.getAttribute("data-orientacao");
+  aplicarOrientacao(); aplicarOrientacao();
+  eq(raiz.getAttribute("data-orientacao"), depois1, "aplicar duas vezes dá o mesmo");
+
+  /* Rodar tem de repor o cabeçalho: recolhido em retrato, ficaria recolhido
+     em paisagem sem que nenhum gesto o trouxesse de volta. Só se verifica
+     com uma janela medível — sem dimensões, `aplicarOrientacao` sai cedo de
+     propósito, e bem: mudar o desenho com base em zero seria pior. */
+  var medivel = classificarEcra().valido;
+  ok(true, medivel ? "a janela é medível ("+window.innerWidth+"×"+window.innerHeight+")"
+                   : "janela sem dimensões: a reposição ao rodar fica de fora");
+  if (medivel){
+    var h = q("header");
+    h.classList.add("recolhido");
+    ui.ecra = {orientacao: (raiz.getAttribute("data-orientacao") === "retrato" ? "paisagem" : "retrato"),
+               dispositivo: "telemovel", larg:1, alt:1, valido:true, deitado:false};
+    aplicarOrientacao();
+    ok(!h.classList.contains("recolhido"), "ao rodar, o cabeçalho volta");
+
+    // E fecha as folhas que ficariam mal colocadas
+    var fm = q("#folhaMais");
+    fm.hidden = false;
+    ui.ecra = {orientacao:"nenhuma", dispositivo:"telemovel", larg:1, alt:1, valido:true, deitado:false};
+    aplicarOrientacao();
+    ok(fm.hidden, "e a folha «Mais» fecha-se");
+  }
+
+  // O atributo do caso apertado só existe quando é mesmo o caso
+  var e = classificarEcra();
+  if (e.deitado) eq(raiz.getAttribute("data-deitado"), "telemovel",
+    "num ecrã largo e baixo, o atributo está lá");
+  else ok(raiz.getAttribute("data-deitado") == null,
+    "fora do caso apertado, o atributo não existe");
+
+  ui.ecra = estadoAntes;
+  aplicarOrientacao();
+})();
+
 G("E se…? — eventos de vida");
 (function(){
   comExemplo();
