@@ -2536,9 +2536,14 @@ function th(tabela, col, rotulo, classe){
   const o = ordem[tabela];
   const ativo = o && o.col === col;
   const seta = ativo ? (o.dir === 1 ? " ▲" : " ▼") : "";
+  /* `aria-sort` diz por onde está ordenado a quem não vê a seta; e o th fica
+     cabeçalho de coluna em vez de botão, senão o leitor de ecrã perde a
+     ligação entre a célula e a coluna a que ela pertence. A seta é desenho:
+     lida em voz alta seria «triângulo apontando para cima». */
+  const arias = ativo ? (o.dir === 1 ? "ascending" : "descending") : "none";
   return '<th class="sortable '+(classe || "")+(ativo ? " on" : "")+
-    '" data-sort="'+esc(tabela)+'" data-col="'+esc(col)+'" role="button" tabindex="0">'+
-    esc(rotulo)+'<span class="seta">'+seta+'</span></th>';
+    '" data-sort="'+esc(tabela)+'" data-col="'+esc(col)+'" aria-sort="'+arias+'" tabindex="0">'+
+    esc(rotulo)+'<span class="seta" aria-hidden="true">'+seta+'</span></th>';
 }
 /** Ordena uma lista segundo o estado da tabela; `cols` são os extratores. */
 function ordenado(lista, tabela, cols, omissao){
@@ -13736,11 +13741,15 @@ function aplicarOrientacao(){
     if (h) h.classList.remove("recolhido");
     fecharFolhaAcoes();
     const fm = $("#folhaMais"); if (fm) fm.hidden = true;
-    /* Repintar: a fita de meses, a linha do mês e os cartões do painel
-       calculam-se com a largura em mão. Só depois de o browser assentar
-       nas medidas novas — daí o adiamento. */
+    /* Repintar só o que depende mesmo da largura — a fita de meses e os
+       emblemas. Uma repintura completa reconstruiria o `#app`, e com ele
+       os formulários: quem rodasse o telemóvel a meio de escrever um
+       movimento perdia o que tinha escrito. O resto do desenho é CSS, e
+       trata de si sozinho com os atributos que se acabaram de pôr. */
     clearTimeout(_orientT);
-    _orientT = setTimeout(() => { try { render(); } catch(err){} }, 60);
+    _orientT = setTimeout(() => {
+      try { pintarFita(); pintarEmblemas(); } catch(err){}
+    }, 60);
   }
   return e;
 }

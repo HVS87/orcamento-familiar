@@ -2043,6 +2043,45 @@ G("rotação: atributos, reposição e repintura");
     ok(fm.hidden, "e a folha «Mais» fecha-se");
   }
 
+  /* Regressão: rodar repintava a vista inteira, e com ela os formulários.
+     Quem rodasse o telemóvel a meio de escrever um movimento perdia o que
+     tinha escrito — e rodar a meio de preencher é coisa que se faz. Só se
+     repinta o que depende mesmo da largura; o resto do desenho é CSS. */
+  if (classificarEcra().valido){
+    comExemplo();
+    ui.secaoDespesa = "movimentos"; irA("despesas");
+    clicar('[data-act="secDespesa"][data-v="movimentos"]');
+    var campoV = q("#mvValor"), campoD = q("#mvDesc");
+    if (campoV && campoD){
+      campoV.value = "47,80";
+      campoD.value = "Jantar com os pais";
+      ui.ecra = {orientacao:"paisagem", dispositivo:"telemovel",
+                 larg:812, alt:375, valido:true, deitado:true};
+      aplicarOrientacao();
+      // A repintura é adiada; o que interessa é que não destrua o formulário
+      eq((q("#mvValor")||{}).value, "47,80", "rodar não apaga o valor por gravar");
+      eq((q("#mvDesc")||{}).value, "Jantar com os pais", "nem a descrição");
+    }
+
+    // Um diálogo aberto também não desaparece por se rodar o aparelho
+    confirmar("Teste", "texto", function(){}, "Ok");
+    ui.ecra = {orientacao:"retrato", dispositivo:"telemovel",
+               larg:375, alt:812, valido:true, deitado:false};
+    aplicarOrientacao();
+    ok(q('[data-dlg="yes"]') != null, "e um diálogo aberto sobrevive à rotação");
+    q("#modalHost").innerHTML = "";
+
+    // Rodar muitas vezes seguidas não parte nada nem acumula trabalho
+    var rodadas = 0;
+    for (var k = 0; k < 10; k++){
+      ui.ecra = {orientacao: k % 2 ? "retrato" : "paisagem", dispositivo:"telemovel",
+                 larg: k % 2 ? 375 : 812, alt: k % 2 ? 812 : 375, valido:true, deitado: !(k % 2)};
+      try { aplicarOrientacao(); rodadas++; } catch(err){ /* contado abaixo */ }
+    }
+    eq(rodadas, 10, "dez rotações seguidas não rebentam");
+    ok(q("#app").innerText.length > 200, "e a aplicação continua de pé");
+  }
+
   // O atributo do caso apertado só existe quando é mesmo o caso
   var e = classificarEcra();
   if (e.deitado) eq(raiz.getAttribute("data-deitado"), "telemovel",
@@ -3163,7 +3202,42 @@ G("acessibilidade e relatório");
   eq(normalizar({texto:"gigante"}).texto, "normal", "tamanho desconhecido cai no normal");
   eq(normalizar({contraste:"medio"}).contraste, "normal", "contraste desconhecido cai no normal");
 
+  /* Cabeçalhos ordenáveis: a seta ▲ é desenho, e quem ouve a página precisa
+     de saber por onde está ordenado. `aria-sort` di-lo; e o cabeçalho fica
+     cabeçalho de coluna, não botão, senão perde-se a que coluna pertence
+     cada célula. */
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  /* `ordem` é global e sobrevive aos grupos: guarda-se para a devolver, senão
+     os grupos seguintes recebem a tabela ordenada por outra coluna. */
+  var ordemMovAntes = JSON.stringify(ordem.mov || null);
+  var cabs = qq("#app thead th.sortable");
+  ok(cabs.length >= 4, "a tabela de movimentos tem cabeçalhos ordenáveis");
+  eq(qq('#app th[role="button"]').length, 0, "nenhum se disfarça de botão");
+  ok(cabs.every(function(c){ return c.getAttribute("tabindex") === "0"; }),
+     "todos se alcançam por tabulação");
+  ok(cabs.every(function(c){ return /^(none|ascending|descending)$/.test(c.getAttribute("aria-sort") || ""); }),
+     "e todos declaram o sentido da ordenação");
+  ok(qq("#app thead .seta").every(function(s){ return s.getAttribute("aria-hidden") === "true"; }),
+     "a seta não é lida em voz alta");
+
+  var alvo = cabs.filter(function(c){ return /Valor/i.test(c.innerText); })[0];
+  var sentido = function(){
+    var c = qq("#app thead th.sortable").filter(function(x){ return /Valor/i.test(x.innerText); })[0];
+    return c ? c.getAttribute("aria-sort") : null;
+  };
+  alvo.dispatchEvent(new KeyboardEvent("keydown", {key:" ", bubbles:true}));
+  eq(sentido(), "ascending", "espaço ordena e anuncia crescente");
+  qq("#app thead th.sortable").filter(function(x){ return /Valor/i.test(x.innerText); })[0]
+    .dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", bubbles:true}));
+  eq(sentido(), "descending", "e Enter inverte, também anunciado");
+  eq(qq("#app thead th.sortable").filter(function(c){ return c.getAttribute("aria-sort") !== "none"; }).length,
+     1, "só uma coluna está ordenada de cada vez");
+  ordem.mov = JSON.parse(ordemMovAntes);
+  if (ordem.mov == null) delete ordem.mov;
+
   // Relatório
+  irA("config");
   ui.relatorio = true; render();
   ok(q(".relatorio .capa") != null, "o relatório tem capa");
   ok(/Orçamento familiar/.test(texto()), "com o título");
@@ -3384,6 +3458,37 @@ G("indicador de gravação");
   ok(/guardado/.test(q("#estadoGuardado").textContent), "diz que guardou",
      q("#estadoGuardado").textContent);
   ok(!_guardado.erro, "sem erro de gravação");
+
+  /* Armazenamento cheio: falhar em silêncio seria o pior dos casos — quem
+     continuasse a trabalhar perderia tudo ao recarregar. Tem de avisar, e
+     tem de deixar a marca no cabeçalho enquanto a gravação não voltar. */
+  var setItemReal = Storage.prototype.setItem;
+  var guardadoAntes = localStorage.getItem(STORE_KEY);
+  Storage.prototype.setItem = function(k){
+    if (k === STORE_KEY){ var err = new Error("cheio"); err.name = "QuotaExceededError"; throw err; }
+    return setItemReal.apply(this, arguments);
+  };
+  var rebentou = false;
+  try { guardar(); } catch(e){ rebentou = true; }
+  Storage.prototype.setItem = setItemReal;
+  ok(!rebentou, "o armazenamento cheio não deixa escapar a exceção");
+  ok(_guardado.erro, "mas fica registado que falhou");
+  ok(/por guardar/i.test(q("#estadoGuardado").textContent),
+     "e o cabeçalho di-lo", q("#estadoGuardado").textContent);
+  ok(/exporte|cópia/i.test(q("#estadoGuardado").title || ""),
+     "sugerindo exportar uma cópia antes de perder o trabalho");
+  /* O toast pode estar em fila atrás de outro, e só chega ao DOM na sua vez:
+     vale tanto o que está no ecrã como o que está à espera. */
+  var noEcra = (q("#toast") || {}).textContent || "";
+  var naFila = (typeof _filaToast !== "undefined" ? _filaToast : [])
+    .map(function(t){ return t.msg; }).join(" | ");
+  ok(/não foi possível guardar/i.test(noEcra + " | " + naFila),
+     "e o aviso passou pelo toast", noEcra + " || fila: " + naFila);
+  eq(localStorage.getItem(STORE_KEY), guardadoAntes, "sem tocar no que já estava gravado");
+
+  guardar();
+  ok(!_guardado.erro, "e uma gravação boa limpa o aviso");
+  ok(/guardado/.test(q("#estadoGuardado").textContent), "o cabeçalho volta ao normal");
 })();
 
 G("toque — o que o rato fazia e o dedo não faz");
