@@ -3012,6 +3012,42 @@ G("escalas de dinheiro dos deslizadores");
   S.estrategia = JSON.parse(guardado);
 })();
 
+G("marca da família de demonstração");
+(function(){
+  /* A aplicação só se oferece para apagar o exemplo enquanto ele for mesmo
+     o exemplo. A partir do primeiro movimento de alguém, aquilo é trabalho —
+     e trabalho não se propõe deitar fora. */
+  S = estadoVazio();
+  eq(S.exemploDemo, false, "um orçamento vazio não é demonstração nenhuma");
+  carregarExemplo();
+  eq(S.exemploDemo, true, "o exemplo nasce marcado");
+
+  // A marca sobrevive ao disco: fechar o navegador não a apaga
+  var lido = normalizar(JSON.parse(JSON.stringify(S)));
+  eq(lido.exemploDemo, true, "e sobrevive à ida e volta pelo disco");
+  eq(normalizar({}).exemploDemo, false, "um ficheiro sem a chave não é demonstração");
+  eq(normalizar({exemploDemo:"talvez"}).exemploDemo, true, "e a chave lê-se como sim ou não");
+
+  // O que distingue mexer no orçamento de mexer na aplicação
+  var base = JSON.stringify({movimentos:[], paleta:"meianoite", dicasOcultas:[],
+                             painel:{ordem:[]}, texto:"normal", tutorialVisto:false});
+  var so = function(m){ var o = JSON.parse(base); m(o); return JSON.stringify(o); };
+  ok(!mexeuNoOrcamento(base, so(function(o){ o.paleta = "oceano"; })),
+     "mudar a paleta não mexe no orçamento");
+  ok(!mexeuNoOrcamento(base, so(function(o){ o.dicasOcultas = ["visita"]; })),
+     "nem arrumar uma sugestão");
+  ok(!mexeuNoOrcamento(base, so(function(o){ o.painel.ordem = ["kpis"]; })),
+     "nem reordenar os cartões do painel");
+  ok(!mexeuNoOrcamento(base, so(function(o){ o.tutorialVisto = true; })),
+     "nem dar a visita por vista");
+  ok(mexeuNoOrcamento(base, so(function(o){ o.movimentos.push({id:"x"}); })),
+     "mas lançar um movimento mexe");
+  ok(mexeuNoOrcamento(base, so(function(o){ o.membros = [{id:"m"}]; })),
+     "e acrescentar um membro também");
+  ok(mexeuNoOrcamento("{isto não é json", base),
+     "e perante lixo assume-se o pior: já não é demonstração");
+})();
+
 G("coerência do exemplo");
 (function(){
   /* O exemplo é a primeira coisa que alguém vê. Se contradisser a si

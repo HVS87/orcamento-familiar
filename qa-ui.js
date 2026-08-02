@@ -1645,6 +1645,82 @@ G("visita guiada");
   eq(qq(".tut-alvo").length, 0, "sem destaques órfãos");
   ok(q("#tutFundo") == null, "sem pano de fundo órfão");
 
+  /* Ao concluir com a família de demonstração ainda por tocar, pergunta-se
+     o que lhe fazer — e explica-se o caminho para começar um orçamento novo,
+     que é a dúvida que fica de quem acabou de ver uma apresentação. */
+  var dlg = q("#modalHost .dialog");
+  ok(dlg != null, "concluir pergunta o que fazer ao exemplo");
+  if (dlg){
+    var td = dlg.innerText;
+    ok(/exemplo|demonstra/i.test(td), "diz que aquela família é de exemplo");
+    ok(/Ana/.test(td) && /Bruno/.test(td), "e chama-lhe pelos nomes");
+    ok(/Dados/.test(td) && /Apagar tudo/.test(td),
+       "explica onde se apaga para começar de novo");
+    ok(/ponto/i.test(td) && /partida/i.test(td),
+       "e que a seguir aparecem os pontos de partida");
+    ok(q('#modalHost [data-dlg="ficar"]') != null, "há a saída de continuar a explorar");
+    ok(q('#modalHost [data-dlg="apagar"]') != null, "e a de apagar e começar o seu");
+    /* Num telemóvel deitado sobram 375 px de altura: um diálogo mais alto do
+       que o ecrã tem de se deslocar por dentro, senão os botões ficam fora
+       de alcance e não há como responder à pergunta. */
+    var est = getComputedStyle(dlg);
+    ok(/auto|scroll/.test(est.overflowY), "o diálogo desloca-se se não couber", est.overflowY);
+    ok(est.maxHeight !== "none", "porque tem altura máxima", est.maxHeight);
+    // Fechar pelo lado de fora nunca pode apagar: apagar tem de ser dito
+    q("#modalHost .overlay").dispatchEvent(new MouseEvent("click", {bubbles:true}));
+    ok(temDados(), "clicar fora do diálogo não apaga nada");
+    ok(q("#modalHost .dialog") == null, "mas fecha-o");
+    despedidaDaVisita();   // reabre para continuar o teste
+  }
+
+  // Continuar a explorar: fica tudo, e mostra-se onde é que depois se apaga
+  clicar('#modalHost [data-dlg="ficar"]');
+  ok(q("#modalHost .dialog") == null, "escolher continuar fecha o diálogo");
+  ok(temDados(), "e os dados ficam");
+  eq(S.exemploDemo, true, "ainda marcados como demonstração");
+  ok(q("#menuBtn").classList.contains("aponta"), "o menu Dados fica apontado");
+  irA("painel");
+  ok(/família de exemplo/i.test(texto()),
+     "e o painel passa a lembrar que aqueles números não são de ninguém");
+
+  // Apagar: leva ao ecrã de boas-vindas com os pontos de partida à vista
+  var paletaAntes = S.paleta;
+  S.paleta = "oceano"; S.texto = "grande";
+  clicar('.dica [data-act="demoApagar"]');
+  eq(temDados(), 0, "apagar leva mesmo a família");
+  eq(S.exemploDemo, false, "e a marca de demonstração vai com ela");
+  eq(S.tutorialVisto, true, "a visita continua dada por vista");
+  eq(S.paleta, "oceano", "o tema é escolha de quem cá está, e fica");
+  eq(S.texto, "grande", "o tamanho de texto também");
+  ok(q(".perfis") != null, "o ecrã de boas-vindas volta com os pontos de partida");
+  ok(q(".perfis.aponta") != null, "e são eles que ficam apontados");
+  ok(podeDesfazer(), "um engano desfaz-se");
+  desfazer();
+  ok(temDados(), "e desfazer devolve a família");
+  eq(S.exemploDemo, true, "com a marca e tudo");
+  S.paleta = paletaAntes; S.texto = "normal"; aplicarTema();
+
+  /* Mexer no orçamento tira a marca — nunca se oferece apagar o que já é
+     trabalho de alguém. Mexer só na interface não conta. */
+  comExemplo();
+  eq(S.exemploDemo, true, "o exemplo acabado de carregar está intacto");
+  alterar(function(){ S.paleta = "floresta"; });
+  eq(S.exemploDemo, true, "mudar a paleta não faz dele um orçamento a sério");
+  alterar(function(){ S.dicasOcultas = ["seja qual for"]; });
+  eq(S.exemploDemo, true, "arrumar uma sugestão também não");
+  alterar(function(){ S.movimentos.push({id:"mvX", data: MES+"-05", descricao:"Meu café",
+    valor:-1.2, categoriaId: S.categorias[0].id, membroId:"", tipo:"despesa"}); });
+  eq(S.exemploDemo, false, "mas lançar um movimento sim");
+  clicar('header [data-act="tutorialIniciar"]');
+  for (var j = 0; j < total; j++) clicar('[data-act="tutorialSeguinte"]');
+  ok(q("#modalHost .dialog") == null,
+     "e com dados tocados a visita já não se oferece para os apagar");
+  q("#modalHost").innerHTML = "";
+  S.paleta = paletaAntes; aplicarTema();
+
+  comExemplo();
+  S.tutorialVisto = false;
+
   // Anterior recua; Esc sai
   clicar('header [data-act="tutorialIniciar"]');
   clicar('[data-act="tutorialSeguinte"]');

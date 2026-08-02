@@ -324,6 +324,11 @@ label.field.temAjuda:hover{text-decoration-color:var(--accent)}
 .dialog{
   background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
   max-width:440px;width:100%;padding:20px;border:1px solid var(--border);
+  /* Um diálogo mais alto do que o ecrã — num telemóvel deitado sobram 375 px
+     de altura — ficaria cortado nas duas pontas, botões incluídos, sem gesto
+     que lá chegasse. Desloca-se por dentro, e o gesto não passa para a
+     página que está por trás. */
+  max-height:calc(100vh - 32px);overflow:auto;overscroll-behavior:contain;
 }
 .dialog h3{font-size:16px;margin-bottom:8px}
 .dialog p{margin:0 0 16px;color:var(--muted);font-size:14px}
@@ -725,6 +730,12 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 #tutFundo{position:fixed;inset:0;background:rgba(9,14,22,.62);z-index:90;animation:surgirOverlay .16s ease-out}
 .tut-alvo{position:relative;z-index:91;outline:3px solid var(--accent);outline-offset:4px;
   border-radius:8px;pointer-events:none}
+/* «É aqui» — mostra onde fica um comando sem o tirar do alcance, ao
+   contrário do realce da visita, que é para ver e não para tocar. */
+@keyframes apontar{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}50%{box-shadow:0 0 0 6px var(--accent-soft)}}
+.aponta{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px;
+  animation:apontar 1.1s ease-in-out 3}
+@media (prefers-reduced-motion:reduce){.aponta{animation:none}}
 @keyframes poparTutorial{from{opacity:0;transform:translate(-50%,8px) scale(.98)}}
 #tutorial .tutcard{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:95;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
@@ -2380,6 +2391,8 @@ const AJUDAS_ACAO = {
   tutorialSeguinte:["Passo seguinte", "Avança na visita guiada. A seta direita do teclado faz o mesmo.", ""],
   tutorialAnterior:["Passo anterior", "Recua na visita guiada. A seta esquerda do teclado faz o mesmo.", ""],
   tutorialSair:   ["Sair da visita", "Termina a visita guiada. Pode retomá-la a qualquer momento no botão 🎓 do cabeçalho.", ""],
+  demoApagar:     ["Apagar o exemplo", "Elimina a família de demonstração e devolve o ecrã de boas-vindas, com os pontos de partida. Guarda o tema e as preferências, e dá seis segundos para anular.", ""],
+  demoFicar:      ["Continuar a explorar", "Fica com o exemplo mais um pouco. O lembrete no painel mostra como começar do zero quando quiser.", ""],
   estObjetivo:["Escolher objetivo", "Cada objetivo traz os instrumentos e o horizonte que costumam fazer-lhe sentido.", ""],
   estUsarEsforco:["Usar o esforço necessário", "Ajusta a poupança mensal para o valor que atinge a meta no prazo definido.", ""],
   estExecutar:["Executar no orçamento", "Cria a rubrica de poupança no plano, o ativo que cresce no balanço e — se houver meta — o objetivo com prazo.", ""],
@@ -2491,6 +2504,10 @@ function estadoVazio(){
     patrimonioHist: [], // [{mes, ativo, divida, liquido}] — instantâneos mensais
     dicasOcultas: [],   // sugestões de próximo passo já dispensadas
     tutorialVisto: false,
+    /* Verdadeiro enquanto os dados forem a família de demonstração tal como
+       foi semeada. A primeira alteração a sério limpa-o: a partir daí já há
+       ali trabalho de alguém, e ninguém oferece apagar o trabalho de alguém. */
+    exemploDemo: false,
     paleta: "meianoite",   // paleta de cor da interface
     densidade: "conforto", // conforto | compacta
     comparar: false,       // comparação com o mês homólogo no painel
@@ -2823,6 +2840,7 @@ function normalizar(d){
   });
   out.dicasOcultas = Array.isArray(d.dicasOcultas) ? d.dicasOcultas : [];
   out.tutorialVisto = !!d.tutorialVisto;
+  out.exemploDemo = !!d.exemploDemo;
   out.paleta = PALETAS[d.paleta] ? d.paleta : "meianoite";
   out.densidade = d.densidade === "compacta" ? "compacta" : "conforto";
   out.comparar = !!d.comparar;
@@ -3044,12 +3062,34 @@ function refazer(){
  * `rotulo` é o que aparece no aviso ao desfazer — se faltar, usa-se um
  * genérico. Alterações que não mudam nada não sujam o histórico.
  */
+/* Chaves que descrevem a aplicação e não o orçamento: mudar a paleta,
+   arrumar uma sugestão ou reordenar os cartões do painel não faz de uns
+   dados de demonstração um orçamento de alguém. */
+const CHAVES_INTERFACE = ["paleta", "densidade", "texto", "contraste", "painel",
+  "dicasOcultas", "tutorialVisto", "comparar", "exemploDemo",
+  "recorrenciasIgnoradas"];
+/** Alguma coisa mudou para lá da interface, entre estas duas fotografias? */
+function mexeuNoOrcamento(antesJson, depoisJson){
+  try{
+    const a = JSON.parse(antesJson), b = JSON.parse(depoisJson);
+    CHAVES_INTERFACE.forEach(k => { delete a[k]; delete b[k]; });
+    return JSON.stringify(a) !== JSON.stringify(b);
+  }catch(e){
+    return true;   // na dúvida, deixou de ser demonstração
+  }
+}
+
 function alterar(fn, rotulo){
   const antes = JSON.stringify(S);
   fn();
   limparCacheCredito();
   const depois = JSON.stringify(S);
   if (antes !== depois){
+    /* Mexeu-se nos dados: deixaram de ser a família de demonstração intacta.
+       A fotografia guardada acima ainda traz a marca, de modo que desfazer
+       devolve também esta condição — como devolve tudo o resto.
+       Só se pergunta enquanto a marca durar, que é pouco tempo e raro. */
+    if (S.exemploDemo && mexeuNoOrcamento(antes, depois)) S.exemploDemo = false;
     historico.atras.push({json: antes, rotulo: rotulo || "última alteração"});
     historico.frente.length = 0;   // um caminho novo apaga o futuro antigo
     _histAparar();
@@ -5345,6 +5385,12 @@ const DICAS_PASSO = [
   {k:"visita", falta: () => !S.tutorialVisto,
    txt:"Novo por aqui? A visita guiada percorre todos os módulos em dois minutos.",
    btn:"🎓 Começar a visita", act:"tutorialIniciar"},
+  /* Enquanto os dados forem a demonstração intacta, o lembrete fica: é
+     fácil esquecer que aqueles números não são de ninguém, e pior é
+     descobri-lo depois de tomar decisões a olhar para eles. */
+  {k:"exemplo", falta: () => !!S.exemploDemo,
+   txt:"Está a explorar com a família de exemplo — estes números não são seus.",
+   btn:"Apagar e começar o meu", act:"demoApagar"},
   {k:"rendimentos", falta: () => !S.rendimentos.length,
    txt:"Ainda não definiu rendimentos — é o ponto de partida de tudo o resto.",
    btn:"Definir rendimentos", vista:"rendimentos"},
@@ -12117,6 +12163,10 @@ function carregarExemplo(){
   s.limites[byName("Lazer e cultura")] = 90;
   s.limites[byName("Vestuário")] = 80;
 
+  // Marca de nascença: enquanto ninguém lhe tocar, isto é a demonstração
+  // e a aplicação pode oferecer-se para a varrer sem receio.
+  s.exemploDemo = true;
+
   S = s;
   MES = mesAtual;
   guardar(); render();
@@ -13220,13 +13270,35 @@ const ACOES = {
   tutorialIniciar(){
     if (!temDados()){
       carregarExemplo();
-      toast("Carregámos o exemplo para a visita — apague-o no fim em Dados ▾, se quiser.");
+      toast("Carregámos uma família de exemplo para a visita — no fim perguntamos se fica.");
     }
     tutorialIr(0);
   },
   tutorialSeguinte(){ tutorialIr(tutorialPasso + 1); },
   tutorialAnterior(){ tutorialIr(tutorialPasso - 1); },
   tutorialSair(){ tutorialFim(false); },
+
+  /* --- a família de demonstração, depois da visita --- */
+  /* Apaga sem diálogo de confirmação — a pergunta já foi feita — mas com
+     seis segundos para anular, porque um toque enganado não deve custar
+     uma repetição da visita. Cai no ecrã de boas-vindas com os pontos de
+     partida apontados: é mostrar em vez de dizer. */
+  demoApagar(){
+    /* Apaga a família, não a aplicação: o tema, a densidade, o tamanho de
+       texto e a visita já vista são escolhas de quem está do lado de cá, e
+       não têm nada que ver com os dados de demonstração. (O «Apagar tudo»
+       do menu Dados é que apaga mesmo tudo — é outro pedido.) */
+    const meu = {paleta:S.paleta, densidade:S.densidade, texto:S.texto,
+                 contraste:S.contraste, tutorialVisto:S.tutorialVisto};
+    apagarComAnulacao("Exemplo apagado — o orçamento é seu a partir daqui.",
+      () => { S = Object.assign(estadoVazio(), meu); }, "apagar o exemplo");
+    irPara("painel");
+    apontarPara(".perfis");
+  },
+  demoFicar(){
+    toast("À vontade. Quando quiser começar o seu: Dados ▾ → Apagar tudo.");
+    apontarPara("#menuBtn");
+  },
 
   /* --- arranque por perfil --- */
   perfilAgregado(el){ ui.perfil.agregado = el.dataset.k; render(); },
@@ -14571,7 +14643,7 @@ const TUTORIAL_PASSOS = [
   {vista:"config", sel:null, titulo:"Definições — o quadro fiscal e os dados",
    texto:"Os <strong>membros</strong> do agregado, a <strong>fiscalidade</strong> (região, situação familiar e dependentes para as tabelas de retenção, IAS, PPR, IMI, taxas das rendas — tudo editável e com os valores de 2026 por omissão), as <strong>categorias</strong> e os grupos 50/30/20. E as <strong>cópias de segurança</strong>: exporte JSON/CSV com regularidade — limpar os dados do navegador apaga o orçamento."},
   {vista:"painel", sel:null, titulo:"Atalhos finais 🎓",
-   texto:"<strong>Ctrl+K</strong> abre a paleta de comandos; o botão <strong>?</strong> liga os explicadores ao passar o ponteiro; eliminar dá sempre <strong>6 segundos para anular</strong>; no telemóvel a navegação fica em baixo; e imprimir gera uma folha limpa. Pode repetir esta visita no botão <strong>🎓</strong> do cabeçalho. Se carregámos o exemplo para a visita, apague-o em <strong>Dados ▾ → Apagar tudo</strong> quando quiser começar do zero. Bom orçamento!"},
+   texto:"<strong>Ctrl+K</strong> abre a paleta de comandos; o botão <strong>?</strong> liga os explicadores ao passar o ponteiro; eliminar dá sempre <strong>6 segundos para anular</strong>; no telemóvel a navegação fica em baixo; e imprimir gera uma folha limpa. Pode repetir esta visita no botão <strong>🎓</strong> do cabeçalho. Carregue em <strong>Concluir</strong> — e, se a visita trouxe a família de exemplo, decide-se ali o que lhe fazer. Bom orçamento!"},
 ];
 
 let tutorialPasso = -1;
@@ -14622,8 +14694,74 @@ function tutorialFim(concluido){
     guardar();
     render();
   }
+  /* Quem chegou ao fim com a família de demonstração ainda intacta fica com
+     uma pergunta por responder: e isto agora, apaga-se ou não? Perguntar é
+     melhor do que deixar o exemplo instalado à espera de ser confundido com
+     dados a sério — e é a altura certa, que é quando se acabou de ver. */
+  if (concluido && S.exemploDemo){ despedidaDaVisita(); return; }
   toast(concluido ? "Visita concluída — bom orçamento! 🎉"
                   : "Visita terminada. Pode retomá-la no botão 🎓.");
+}
+
+/**
+ * Fim da visita, com o exemplo ainda por tocar: apagar ou continuar a
+ * explorar. Em qualquer dos casos fica explicado — e apontado — o caminho
+ * para começar um orçamento novo de raiz.
+ */
+function despedidaDaVisita(){
+  const host = $("#modalHost");
+  const n = S.membros.length;
+  // «Ana e Bruno», «Ana, Bruno e Carla» — e não «Ana e Bruno e Carla».
+  const ns = S.membros.map(m => m.nome);
+  const nomes = ns.length > 1
+    ? ns.slice(0, -1).join(", ") + " e " + ns[ns.length - 1]
+    : (ns[0] || "A família");
+  host.innerHTML =
+    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" '+
+      'aria-label="Fim da visita guiada">'+
+      '<h3>Visita concluída 🎉 — e a família de exemplo?</h3>'+
+      '<p>'+esc(nomes)+', e os números todos que acabou de ver, foram '+
+        '<strong>gerados para a apresentação</strong>: '+n+' membros, vencimentos, '+
+        'creche, crédito à habitação, um PPR e meses de movimentos inventados, '+
+        'para haver com que mexer. Não é nada seu — e vive só neste navegador.</p>'+
+      '<div class="note" style="margin:4px 0 12px">'+
+        '<strong>Para começar o seu, em qualquer altura:</strong>'+
+        '<ol style="margin:7px 0 0 18px;padding:0;line-height:1.65">'+
+          '<li><strong>Dados ▾</strong>, no cabeçalho → <strong>Apagar tudo</strong></li>'+
+          '<li>Volta o ecrã de boas-vindas com os <strong>pontos de partida</strong> — '+
+            'sozinho/a, casal, com filhos… e casa própria ou arrendada</li>'+
+          '<li><strong>Começar assim</strong> semeia membros, despesas fixas típicas '+
+            'e limites, já com valores para ajustar</li>'+
+        '</ol></div>'+
+      '<div class="actions">'+
+        '<button class="btn ghost" data-dlg="ficar">Continuar a explorar</button>'+
+        '<button class="btn primary" data-dlg="apagar">Apagar e começar o meu</button>'+
+      '</div>'+
+    '</div></div>';
+  const fechar = () => { host.innerHTML = ""; };
+  host.querySelector('[data-dlg="apagar"]').onclick = () => { fechar(); ACOES.demoApagar(); };
+  host.querySelector('[data-dlg="ficar"]').onclick  = () => { fechar(); ACOES.demoFicar(); };
+  // Fechar pelo lado de fora é «continuar a explorar»: apagar exige dizê-lo.
+  host.querySelector(".overlay").onclick = (e) => {
+    if (e.target === e.currentTarget){ fechar(); ACOES.demoFicar(); }
+  };
+  host.querySelector('[data-dlg="ficar"]').focus();
+}
+
+/**
+ * Aponta para um comando durante uns segundos — o «é ali» que uma frase
+ * sozinha não dá. Não bloqueia o que aponta: quem quiser, carrega já.
+ */
+let _apontaT = null;
+function apontarPara(sel){
+  clearTimeout(_apontaT);
+  $$(".aponta").forEach(e => e.classList.remove("aponta"));
+  const el = typeof sel === "string" ? $(sel) : sel;
+  if (!el) return false;
+  el.classList.add("aponta");
+  el.scrollIntoView({block:"center", behavior:"instant"});
+  _apontaT = setTimeout(() => el.classList.remove("aponta"), 3600);
+  return true;
 }
 
 $("#mesSel").addEventListener("change", (e) => {
