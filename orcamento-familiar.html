@@ -86,7 +86,16 @@ html[data-theme="dark"][data-paleta="pastel"]{--bg:#171219;--surface:#211a23;--s
 html,body{margin:0;padding:0}
 body{
   background:var(--bg); color:var(--text);
-  font-family:"Segoe UI","Avenir Next",system-ui,-apple-system,Roboto,sans-serif;
+  /* `system-ui` à frente, para que cada aparelho use o seu próprio tipo de
+     letra de interface — Segoe UI no Windows, San Francisco no iPhone e no
+     iPad, Roboto no Android. A ordem antiga punha «Avenir Next» antes, e
+     como o macOS traz esse tipo instalado sem ser o da interface, todo o
+     Apple ficava com um tipo decorativo, de algarismos piores em tabelas,
+     onde devia estar o do sistema. Os nomes que se seguem são recurso para
+     navegadores sem `system-ui`, e os de emoji existem porque os ícones da
+     aplicação são emoji: sem eles, há Linux onde saem quadrados. */
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+    sans-serif,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";
   font-size:15px; line-height:1.5; -webkit-text-size-adjust:100%;
 }
 h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
@@ -137,6 +146,12 @@ input,select,textarea{
 }
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 input[type=checkbox]{width:auto}
+/* Coluna de seleção das tabelas. A largura estava no HTML, em `style`, e a
+   26 px espremia a caixa de 22 para 19 e deixava-a um retângulo em vez de um
+   quadrado. Estando em CSS, pode alargar ao dedo — e a etiqueta faz da
+   célula inteira um alvo, que é o que se quer acertar a correr. */
+.colSel{width:26px;padding-left:3px;padding-right:3px}
+.celSel{display:flex;align-items:center;justify-content:center;cursor:pointer}
 label.field{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
 
 /* Separadores */
@@ -336,6 +351,10 @@ label.field.temAjuda:hover{text-decoration-color:var(--accent)}
 
 /* Gráficos */
 .chart{width:100%;height:auto;display:block;overflow:visible}
+/* Os rótulos de um gráfico são quase todos números, e empilham-se uns por
+   cima dos outros num eixo: com algarismos de larguras diferentes, a coluna
+   sai desalinhada. É a mesma regra do resto da aplicação. */
+svg text{font-variant-numeric:tabular-nums}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:13px}
 .legend div{display:flex;align-items:center;gap:6px}
 .legend .v{color:var(--muted);font-variant-numeric:tabular-nums}
@@ -368,8 +387,7 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 .fielderr{color:var(--neg);font-size:12px;margin-top:3px}
 
 /* Anel de progresso dos objetivos */
-.anel{flex:0 0 auto}
-.anel text{font-variant-numeric:tabular-nums}
+.anel{flex:0 0 auto}   /* os algarismos vêm da regra geral de `svg text` */
 
 /* Tendência nos KPIs */
 .kpi .delta{display:inline-block;font-size:11.5px;font-weight:650;padding:1px 8px;border-radius:999px;
@@ -780,9 +798,32 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 [data-dispositivo="tablet"] textarea{min-height:44px}
 [data-dispositivo="telemovel"] .seg button,
 [data-dispositivo="tablet"] .seg button{min-height:42px;padding:9px 14px}
+/* 44 px é o alvo que a Apple e a Google recomendam, e estes botões estão no
+   canto do cartão — o sítio onde o polegar chega pior. De pé há altura para
+   os dar; deitado não há, e aí a regra de baixo encolhe-os. O sinal ▾ não
+   cresce: o que cresce é a área transparente à volta dele. */
 [data-dispositivo="telemovel"] .cabPainel button,
-[data-dispositivo="tablet"] .cabPainel button{min-width:38px;min-height:38px;
+[data-dispositivo="tablet"] .cabPainel button{min-width:44px;min-height:44px;
   display:inline-flex;align-items:center;justify-content:center;padding:0}
+/* A coluna de seleção pelo atributo de aparelho, e não só pela media query:
+   um telemóvel deitado tem 844 px de largura e há aparelhos de toque que
+   declaram ponteiro fino — em qualquer desses casos a media query não
+   dispara, e a caixa ficava com 20 px de alvo. */
+[data-dispositivo="telemovel"] .colSel,
+[data-dispositivo="tablet"] .colSel{width:44px;padding-left:0;padding-right:0}
+[data-dispositivo="telemovel"] .celSel,
+[data-dispositivo="tablet"] .celSel{min-width:44px;min-height:44px}
+[data-dispositivo="telemovel"] input[type=checkbox],
+[data-dispositivo="telemovel"] input[type=radio],
+[data-dispositivo="tablet"] input[type=checkbox],
+[data-dispositivo="tablet"] input[type=radio]{width:22px;height:22px;min-height:0}
+/* A fita de meses é um mini-mapa: as colunas são estreitas de propósito, para
+   caberem doze. Ao dedo, 26 px não se acerta — alarga-se o suficiente sem
+   deixar de caber o ano, e é a fita que rola se não couber. */
+[data-dispositivo="telemovel"] #fitaMeses button,
+[data-dispositivo="tablet"] #fitaMeses button{width:34px;padding:4px 2px}
+[data-dispositivo="telemovel"] #fitaMeses,
+[data-dispositivo="tablet"] #fitaMeses{overflow-x:auto;scrollbar-width:none}
 [data-dispositivo="telemovel"] .pega,
 [data-dispositivo="tablet"] .pega{display:none}
 [data-dispositivo="telemovel"] .ordenar,
@@ -795,13 +836,20 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 [data-deitado="telemovel"] select,
 [data-deitado="telemovel"] textarea{min-height:40px}
 [data-deitado="telemovel"] .seg button{min-height:38px;padding:7px 12px}
+[data-deitado="telemovel"] .cabPainel button{min-width:38px;min-height:38px}
+/* Deitado escasseia a altura, não a largura: o alvo encolhe só na vertical. */
+[data-deitado="telemovel"] .celSel{min-height:38px}
 
 @media (pointer:coarse), (max-width:640px){
   .btn{min-height:44px;padding:10px 14px}
   .btn.sm{min-height:40px;padding:8px 12px;font-size:13px}
   .btn.icon{min-width:44px;min-height:44px;padding:10px}
   input,select,textarea{min-height:44px}
-  input[type=checkbox],input[type=radio]{width:22px;height:22px}
+  /* `min-height:0` porque a regra dos campos acima estica a caixa para 44 de
+     altura e deixa-a 22 de largura: um retângulo onde devia estar um quadrado. */
+  input[type=checkbox],input[type=radio]{width:22px;height:22px;min-height:0}
+  .colSel{width:44px;padding-left:0;padding-right:0}
+  .celSel{min-width:44px;min-height:44px}
   .seg button{min-height:42px;padding:9px 14px}
   th.sortable{padding-top:12px;padding-bottom:12px}
   .alerta{padding:12px 10px}
@@ -7549,8 +7597,8 @@ function viewMovimentos(){
           ' <span class="muted">· '+doDia.length+'</span></span></td></tr>';
     }
     return cabec + '<tr data-mov="'+esc(m.id)+'"'+(sel[m.id] ? ' class="selecionada"' : '')+' tabindex="-1">'+
-      '<td class="no-print" style="width:26px"><input type="checkbox" data-act="movSel" data-id="'+esc(m.id)+'"'+
-        (sel[m.id] ? " checked" : "")+' aria-label="Selecionar movimento"></td>'+
+      '<td class="no-print colSel"><label class="celSel"><input type="checkbox" data-act="movSel" data-id="'+esc(m.id)+'"'+
+        (sel[m.id] ? " checked" : "")+' aria-label="Selecionar movimento"></label></td>'+
       '<td class="num" data-lbl="Data" style="white-space:nowrap">'+esc((m.data || "").split("-").reverse().join("/"))+'</td>'+
       '<td data-lbl="Descrição" data-edit="descricao" data-id="'+esc(m.id)+'" title="Clique duplo para editar">'+
         esc(m.descricao || "—")+'</td>'+
@@ -7587,8 +7635,8 @@ function viewMovimentos(){
 
   const tabela = lista.length
     ? barraLote+seletorOrdem+'<div class="tblwrap tblcards"><table><thead><tr>'+
-      '<th class="no-print" style="width:26px"><input type="checkbox" data-act="movSelTodos" '+
-        (nSel === lista.length ? "checked" : "")+' aria-label="Selecionar todos"></th>'+
+      '<th class="no-print colSel"><label class="celSel"><input type="checkbox" data-act="movSelTodos" '+
+        (nSel === lista.length ? "checked" : "")+' aria-label="Selecionar todos"></label></th>'+
       th("mov","data","Data")+th("mov","descricao","Descrição")+th("mov","categoria","Categoria")+
       th("mov","membro","Membro")+th("mov","valor","Valor","r")+
       '<th class="no-print"></th></tr></thead><tbody>'+linhas+'</tbody>'+
@@ -8129,7 +8177,7 @@ function viewPlano(){
     if (!itens.length) return '<div class="empty">Sem '+esc(titulo.toLowerCase())+' no plano.</div>';
     const total = itens.filter(r => recAtiva(r, MES)).reduce((s,r) => s + recMensal(r), 0);
     return '<div class="tblwrap"><table><thead><tr>'+
-      '<th class="no-print" style="width:26px"></th>'+
+      '<th class="no-print colSel"></th>'+
       '<th>Designação</th><th>Categoria</th><th>Membro</th><th>Periodicidade</th>'+
       '<th class="r">Valor</th><th class="r">Equiv./mês</th><th class="no-print"></th></tr></thead><tbody>'+
       itens.map(r => {
@@ -10715,7 +10763,7 @@ function viewConfig(){
     '<div class="card"><div class="card-head"><div class="t"><h2>Categorias</h2>'+
     '<div class="sub">Organize as rubricas. O grupo determina a repartição 50/30/20.</div></div></div>'+
     formCat+
-    '<div class="tblwrap"><table><thead><tr><th class="no-print" style="width:26px"></th>'+
+    '<div class="tblwrap"><table><thead><tr><th class="no-print colSel"></th>'+
     '<th>Categoria</th><th>Tipo</th><th>Grupo</th>'+
     '<th class="r">Utilizações</th><th class="no-print"></th></tr></thead><tbody>'+
     S.categorias.map(c =>

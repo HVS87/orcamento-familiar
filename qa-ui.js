@@ -3258,6 +3258,97 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("tipografia: sem rede, do sistema, e algarismos que alinham");
+(function(){
+  comExemplo();
+  /* A aplicação é um ficheiro só e tem de funcionar sem rede. Um tipo de
+     letra pedido a um servidor estraga isso em silêncio: o texto aparece,
+     mas primeiro fica invisível ou noutro tipo, e num avião não chega. */
+  var fonte = document.documentElement.outerHTML;
+  eq((fonte.match(/@font-face/g) || []).length, 0, "não há tipos de letra embutidos por descarregar");
+  ok(!/@import/.test(fonte), "nem folhas de estilo importadas");
+  eq(qq('link[rel~="stylesheet"], link[rel="preconnect"]').length, 0, "nem ligações a servidores de tipos");
+  var externos = performance.getEntriesByType("resource")
+    .map(function(e){ return e.name; })
+    .filter(function(n){ return !/^(blob|data):/.test(n) && n.indexOf(location.origin) !== 0; });
+  eq(externos.length, 0, "e nenhum pedido saiu para fora", externos.slice(0, 3).join(", "));
+
+  /* `system-ui` à frente: cada aparelho usa o seu tipo de interface. Um nome
+     concreto antes dele impõe o mesmo tipo em todo o lado — e há tipos que
+     estão instalados sem serem o do sistema, como o Avenir Next no macOS. */
+  var pilha = getComputedStyle(document.body).fontFamily;
+  ok(/^\s*system-ui/.test(pilha), "a pilha começa em system-ui", pilha);
+  ok(!/Avenir/.test(pilha), "sem tipos que não sejam de interface em nenhum sistema");
+  ok(/Emoji/.test(pilha), "e com recurso de emoji, porque os ícones são emoji");
+
+  /* Algarismos de largura fixa onde há números a alinhar em coluna. */
+  irA("painel");
+  var svgTexto = q("#app svg text");
+  if (svgTexto) eq(getComputedStyle(svgTexto).fontVariantNumeric, "tabular-nums",
+     "os rótulos dos gráficos têm algarismos de largura fixa");
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  var valor = qq("#app td.num")[0];
+  if (valor) eq(getComputedStyle(valor).fontVariantNumeric, "tabular-nums",
+     "e as colunas de dinheiro também");
+  var dia = q("#app tr.diaCabec .dv");
+  if (dia) eq(getComputedStyle(dia).fontVariantNumeric, "tabular-nums",
+     "e os subtotais de cada dia");
+})();
+
+G("alvos de dedo: a coluna de seleção");
+(function(){
+  comExemplo();
+  irA("despesas");
+  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  var td = q("#app td.colSel");
+  ok(td != null, "os movimentos têm coluna de seleção");
+  if (td){
+    var lab = td.querySelector("label.celSel"), cx = td.querySelector('input[type="checkbox"]');
+    ok(lab != null, "com uma etiqueta a envolver a caixa");
+    ok(cx != null, "e a caixa lá dentro");
+    /* A etiqueta faz da célula inteira um alvo: quem toca ao lado da caixa
+       ainda marca a linha. Sem ela, o alvo era a caixa e mais nada. */
+    if (lab && cx){
+      var antes = Object.keys(ui.movSel || {}).length;
+      lab.click();
+      ok(Object.keys(ui.movSel || {}).length !== antes, "tocar na célula, e não na caixa, marca a linha");
+      lab.click();
+
+      var rc = cx.getBoundingClientRect();
+      if (rc.width > 0){
+        ok(Math.abs(rc.width - rc.height) <= 1,
+           "a caixa é quadrada, e não um retângulo esticado", Math.round(rc.width)+"×"+Math.round(rc.height));
+      }
+      /* Ao dedo o alvo cresce; ao rato a coluna não rouba espaço à tabela.
+         A regra tem de estar no atributo de aparelho e não só na media query:
+         um telemóvel deitado tem 844 px de largura, e há aparelhos de toque
+         que declaram ponteiro fino — em qualquer dos casos ela não dispara. */
+      var raiz = document.documentElement, antesDisp = raiz.getAttribute("data-dispositivo");
+      raiz.setAttribute("data-dispositivo", "telemovel");
+      var comDedo = td.getBoundingClientRect().width;
+      raiz.setAttribute("data-dispositivo", "desktop");
+      var comRato = td.getBoundingClientRect().width;
+      if (antesDisp) raiz.setAttribute("data-dispositivo", antesDisp);
+      else raiz.removeAttribute("data-dispositivo");
+      if (comRato > 0){
+        ok(comDedo >= 44, "ao dedo a coluna dá 44 px de alvo", Math.round(comDedo));
+        ok(comRato < comDedo, "ao rato encolhe e devolve a largura à tabela", Math.round(comRato));
+      }
+    }
+  }
+
+  // A fita de meses é estreita de propósito, mas não ao ponto de não se acertar
+  var raiz = document.documentElement, antes = raiz.getAttribute("data-dispositivo");
+  raiz.setAttribute("data-dispositivo", "telemovel");
+  var mes = q("#fitaMeses button");
+  if (mes && mes.getBoundingClientRect().width > 0)
+    ok(mes.getBoundingClientRect().width >= 32, "os meses da fita alargam ao dedo",
+       Math.round(mes.getBoundingClientRect().width));
+  if (antes) raiz.setAttribute("data-dispositivo", antes); else raiz.removeAttribute("data-dispositivo");
+  aplicarOrientacao();
+})();
+
 G("acessibilidade e relatório");
 (function(){
   comExemplo();

@@ -563,6 +563,177 @@ G("escolha da tabela pela situação familiar");
   });
 })();
 
+G("todas as espécies de rendimento, uma por uma");
+(function(){
+  /* Cada espécie declara se entra na Segurança Social, no IRS, se é isenta,
+     se é prestação social ou se é tributada noutra categoria. Uma espécie
+     que não obedeça à sua própria declaração dá um líquido errado — e o
+     líquido é o número por que as pessoas se guiam. */
+  reporEstado(); carregarExemplo();
+  var chaves = Object.keys(ESPECIES);
+  ok(chaves.length >= 17, "há espécies que cheguem para cobrir um agregado", chaves.length);
+
+  var freqs = ["mensal", "anual", "trimestral", "semestral", "14x"];
+  var mausSS = 0, mausIRS = 0, mausIsento = 0, mausSocial = 0, mausAut = 0, naoFecha = 0, casos = 0;
+  chaves.forEach(function(k){
+    var esp = ESPECIES[k];
+    freqs.forEach(function(fq){
+      casos++;
+      var rd = {id:"rdT", nome:"T", membroId:"", ativo:true, regime:"dependente", componentes:[
+        {id:"cpT", especie:k, nome:"c", valor:1000, frequencia:fq, categoriaId:"", ss:null, irs:null}]};
+      var r = calcularFiscalRendimento(rd);
+      var mensal = compMensal(rd.componentes[0]);
+      if (Math.abs(r.bruto - mensal) > 0.005) naoFecha++;
+      if (Math.abs(r.liquido - (r.bruto - r.carga)) > 0.005) naoFecha++;
+      if (Math.abs(r.carga - (r.ss + r.irs + r.autonomo)) > 0.005) naoFecha++;
+      if (r.carga < -0.005 || r.carga > r.bruto + 0.005) naoFecha++;
+      if (esp.aut){
+        if (r.baseSS > 0.005 || r.baseIRS > 0.005) mausAut++;
+      } else if (esp.isento && k !== "alimentacao"){
+        if (r.baseSS > 0.005 || r.baseIRS > 0.005) mausIsento++;
+        if (Math.abs(r.isento - mensal) > 0.005) mausIsento++;
+        if (Math.abs(r.liquido - r.bruto) > 0.005) mausIsento++;
+      } else if (k !== "alimentacao"){
+        if (esp.ss !== (r.baseSS > 0.005)) mausSS++;
+        if (esp.irs !== (r.baseIRS > 0.005)) mausIRS++;
+      }
+      if (!!esp.social !== (r.social > 0.005)) mausSocial++;
+    });
+  });
+  eq(casos, chaves.length * freqs.length, "cada espécie testada em cada periodicidade", casos);
+  eq(naoFecha, 0, "o líquido fecha sempre com o bruto menos a carga");
+  eq(mausSS, 0, "cada espécie entra na Segurança Social se e só se o declarar");
+  eq(mausIRS, 0, "e no IRS pela mesma regra");
+  eq(mausIsento, 0, "as isentas não pagam nada e contam como isentas");
+  eq(mausSocial, 0, "e as prestações sociais são somadas como tal");
+  eq(mausAut, 0, "rendas e capitais não entram nas bases da categoria A");
+
+  // Subsídio de alimentação: isento até ao limite diário, o resto é remuneração
+  var f = S.fiscal;
+  var tetoC = f.subsAlimCartao * f.diasUteis, tetoD = f.subsAlimIsento * f.diasUteis;
+  var alim = function(v, cartao){
+    return calcularFiscalRendimento({id:"r", regime:"dependente", ativo:true, componentes:[
+      {id:"c", especie:"alimentacao", nome:"a", valor:v, frequencia:"mensal", cartao:cartao}]});
+  };
+  eq(alim(tetoC, true).baseSS, 0, "no limite exato do cartão, nada é tributado");
+  eq(alim(tetoC + 100, true).baseSS, 100, "acima do limite, o excedente é remuneração");
+  eq(alim(tetoC + 100, true).isento, tetoC, "e o resto continua isento");
+  eq(alim(tetoD, false).baseSS, 0, "em numerário o limite é outro, e também é exato");
+  eq(alim(tetoD + 50, false).baseSS, 50, "com o mesmo tratamento do excedente");
+  ok(tetoC > tetoD, "o cartão-refeição isenta mais do que o numerário");
+
+  // Taxa contributiva pelo regime, e a pensão que não paga TSU
+  var comRegime = function(reg){
+    return calcularFiscalRendimento({id:"r", regime:reg, ativo:true, componentes:[
+      {id:"c", especie: reg === "pensao" ? "pensao" : "base", nome:"b", valor:1000, frequencia:"mensal"}]});
+  };
+  eq(comRegime("dependente").taxaContrib, f.ssTrabalhador, "o trabalhador dependente desconta à sua taxa");
+  eq(comRegime("independente").taxaContrib, f.ssIndependente, "e o independente à dele");
+  eq(comRegime("dependente").ss, 1000 * f.ssTrabalhador / 100, "sobre a base toda");
+  eq(comRegime("pensao").ss, 0, "uma pensão não desconta para a Segurança Social");
+  ok(comRegime("pensao").irs > 0, "mas é retida pela tabela das pensões");
+})();
+
+G("as 33 tabelas de retenção, região a região");
+(function(){
+  reporEstado(); carregarExemplo();
+  var regioes = Object.keys(TABELAS_RF.regioes);
+  eq(regioes.length, 3, "três regiões fiscais");
+  eq(TABELAS_RF._meta.ano, 2026, "com as tabelas de 2026");
+
+  var rends = [0, 1, 100, 760, 870, 1000, 1200, 1500, 2000, 2500, 4000, 8000, 20000, 100000, 1e6];
+  var nTabelas = 0, desce = 0, negativa = 0, acimaDoGanho = 0, taxaAbsurda = 0,
+      depAumenta = 0, regiaoRetemMais = 0;
+  regioes.forEach(function(reg){
+    Object.keys(TABELAS_RF.regioes[reg].t).forEach(function(k){
+      nTabelas++;
+      var ant = -1;
+      rends.forEach(function(v){
+        var ret = retencaoRF(v, k, 0, reg);
+        if (!isFinite(ret) || ret < -0.005) negativa++;
+        if (ret > v + 0.005) acimaDoGanho++;
+        if (ret < ant - 0.005) desce++;
+        ant = ret;
+        if (v > 0 && taxaRF(v, k, 0, reg) > 55) taxaAbsurda++;
+      });
+      for (var d = 1; d <= 5; d++){
+        if (retencaoRF(2000, k, d, reg) > retencaoRF(2000, k, d - 1, reg) + 0.005) depAumenta++;
+      }
+      if (reg !== "continente"){
+        [1000, 2000, 5000].forEach(function(v){
+          if (retencaoRF(v, k, 0, reg) > retencaoRF(v, k, 0, "continente") + 0.005) regiaoRetemMais++;
+        });
+      }
+    });
+  });
+  eq(nTabelas, 33, "onze tabelas em cada região", nTabelas);
+  eq(negativa, 0, "nenhuma retenção é negativa: é imposto, não é crédito");
+  eq(acimaDoGanho, 0, "e nenhuma retém mais do que o pagamento");
+  eq(desce, 0, "ganhar mais nunca faz reter menos");
+  eq(taxaAbsurda, 0, "e a taxa efetiva nunca passa dos 55%");
+  eq(depAumenta, 0, "cada dependente a mais nunca faz reter mais");
+  eq(regiaoRetemMais, 0, "as Regiões Autónomas nunca retêm mais do que o Continente");
+
+  // A escolha da tabela cobre todas as situações, incluindo as impossíveis
+  var semTabela = 0, pensaoComDep = 0, combinacoes = 0;
+  ["A","H"].forEach(function(cat){
+    Object.keys(ESTADOS_CIVIS).concat(["inexistente", "", null]).forEach(function(ec){
+      [0, 1, 2, 5, -3, "x"].forEach(function(dep){
+        [false, true].forEach(function(def){
+          combinacoes++;
+          var t = tabRF(tabelaRF(cat, ec, dep, def));
+          if (!t || !Array.isArray(t.e) || !t.e.length) semTabela++;
+          else if (cat === "H" && t.dep === "dep") pensaoComDep++;
+        });
+      });
+    });
+  });
+  eq(combinacoes, 144, "todas as situações familiares cruzadas com dependentes e deficiência");
+  eq(semTabela, 0, "nenhuma cai fora das tabelas, nem as impossíveis");
+  eq(pensaoComDep, 0, "e as tabelas de pensões não têm parcela por dependente");
+})();
+
+G("licença parental: nove modalidades e as suas extensões");
+(function(){
+  reporEstado(); carregarExemplo();
+  var mods = PARENTALIDADE.modalidades;
+  eq(mods.length, 9, "nove modalidades de licença");
+
+  var diasErrados = 0, internErrado = 0, valorMexeu = 0, semMinimo = 0, internNao100 = 0;
+  mods.forEach(function(md){
+    var base = subsidioParental(50, md.k, {});
+    [[1,0],[2,0],[3,0],[1,20],[2,45]].forEach(function(par){
+      var bebes = par[0], intern = par[1];
+      var x = subsidioParental(50, md.k, {numBebes:bebes, internamento:intern});
+      if (x.diasBase !== md.dias + (bebes - 1) * PARENTALIDADE.diasPorBebeExtra) diasErrados++;
+      if (x.diasInternamento !== (intern > 0 ? intern + PARENTALIDADE.diasAposAltaInternamento : 0)) internErrado++;
+      if (x.diasTotal !== x.diasBase + x.diasInternamento) diasErrados++;
+      // as extensões alongam a licença; não mexem no valor diário
+      if (Math.abs(x.diario - base.diario) > 0.005) valorMexeu++;
+    });
+    var min = subsidioParental(0.01, md.k, {});
+    var esperado = md.alargado ? minimoAlargado() : minimoParental();
+    if (Math.abs(min.diario - esperado) > 0.005 || !min.noMinimo) semMinimo++;
+    if (md.pct < 100){
+      var extra = subsidioParental(50, md.k, {internamento:10}).total - subsidioParental(50, md.k, {}).total;
+      if (Math.abs(extra - 50 * 40) > 0.01) internNao100++;
+    }
+  });
+  eq(diasErrados, 0, "cada bebé além do primeiro acrescenta 30 dias, e as contas fecham");
+  eq(internErrado, 0, "o internamento acrescenta os seus dias e mais 30 após a alta");
+  eq(valorMexeu, 0, "as extensões alongam a licença sem mexer no valor diário");
+  eq(semMinimo, 0, "e uma referência ridícula não desce abaixo do mínimo legal");
+  eq(internNao100, 0, "os dias de internamento são pagos a 100%, mesmo nas licenças reduzidas");
+  ok(minimoAlargado() < minimoParental(), "o mínimo da licença alargada é o mais baixo dos dois");
+
+  var rebentou = 0;
+  [-100, NaN, null, 1e12].forEach(function(v){
+    try { var x = subsidioParental(v, "inicial120", {}); if (!isFinite(x.diario) || x.diario < 0) rebentou++; }
+    catch(e){ rebentou++; }
+  });
+  eq(rebentou, 0, "e uma remuneração de referência impossível não parte a conta");
+})();
+
 G("retenção aplicada a uma fonte de rendimento");
 (function(){
   reporEstado();
