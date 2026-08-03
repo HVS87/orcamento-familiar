@@ -1583,6 +1583,50 @@ G("melhorias visuais");
   ok(q("#btnMais") != null, "e o botão «Mais»");
   eq(qq("#folhaMais button[data-view]").length, 5, "a folha traz as restantes cinco");
 
+  /* A folha «Mais» esteve permanentemente aberta no telemóvel: o JS punha-lhe
+     `hidden`, mas a regra de CSS que lhe dá `display:flex` traz um `id`, e um
+     `id` ganha ao `[hidden]{display:none}` que vem da folha do navegador.
+     O atributo dizia uma coisa e o desenho fazia outra — e ficava a tapar o
+     conteúdo para sempre. Testa-se o desenho, não só o atributo. */
+  (function(){
+    var f = q("#folhaMais"), btn = q("#btnMais");
+    var raiz = document.documentElement, antesDisp = raiz.getAttribute("data-dispositivo");
+    raiz.setAttribute("data-dispositivo", "telemovel");
+    var mostrada = function(){ return getComputedStyle(f).display !== "none"; };
+
+    f.hidden = true;
+    ok(!mostrada(), "com `hidden` posto, a folha «Mais» não se vê", getComputedStyle(f).display);
+
+    btn.click();
+    ok(!f.hidden && mostrada(), "o botão abre-a");
+    eq(btn.getAttribute("aria-expanded"), "true", "e anuncia-a aberta");
+
+    btn.click();
+    ok(f.hidden && !mostrada(), "e volta a fechá-la");
+    eq(btn.getAttribute("aria-expanded"), "false", "anunciando-a fechada");
+
+    /* Uma folha que paira por cima do conteúdo tem de sair ao primeiro toque
+       ao lado — senão fica no caminho até se voltar ao botão que a abriu. */
+    btn.click();
+    q("#app").click();
+    ok(f.hidden && !mostrada(), "tocar fora fecha-a");
+
+    btn.click();
+    f.click();
+    ok(!f.hidden, "tocar dentro, sem ser num botão, não a fecha");
+
+    document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+    ok(f.hidden && !mostrada(), "e o Esc fecha-a");
+
+    btn.click();
+    q("#folhaMais button[data-view]").click();
+    ok(f.hidden && !mostrada(), "escolher uma vista fecha-a também");
+
+    if (antesDisp) raiz.setAttribute("data-dispositivo", antesDisp);
+    else raiz.removeAttribute("data-dispositivo");
+    aplicarOrientacao();
+  })();
+
   // Ícones nos separadores — um por separador, sejam quantos forem
   eq(qq("nav.tabs .ticon").length, qq("nav.tabs button[data-view]").length,
      "cada separador tem ícone");

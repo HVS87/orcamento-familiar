@@ -916,9 +916,13 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
      dela, tapava o último separador — e a navegação vem primeiro. */
   #botaoRapido{bottom:calc(72px + env(safe-area-inset-bottom));width:50px;height:50px;font-size:25px}
   #tabsMovel button:focus-visible{outline:2px solid var(--accent)}
-  #folhaMais{position:fixed;left:8px;right:8px;bottom:64px;z-index:71;background:var(--surface);
-    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
-    display:flex;flex-wrap:wrap;gap:4px;padding:8px}
+  /* `:not([hidden])` não é enfeite: o `display:none` que o atributo `hidden`
+     traz vem da folha do navegador e perde para qualquer regra de autor com
+     um `id`. Sem isto, a folha «Mais» ficava aberta para sempre — o JS punha
+     `hidden`, e o CSS mandava mostrar à mesma. */
+  #folhaMais:not([hidden]){position:fixed;left:8px;right:8px;bottom:64px;z-index:71;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:4px;padding:8px}
   #folhaMais button{flex:1 1 40%;background:var(--surface-2);border:1px solid var(--border);
     border-radius:9px;color:var(--text);padding:10px;font-size:13px;cursor:pointer}
   #folhaMais button[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
@@ -961,8 +965,8 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
   justify-content:center;gap:5px;padding:5px 2px;border-radius:9px;cursor:pointer;min-height:38px}
 [data-deitado="telemovel"] #tabsMovel button .ticon{font-size:15px}
 [data-deitado="telemovel"] #tabsMovel button[aria-selected="true"]{color:var(--accent)}
-[data-deitado="telemovel"] #folhaMais{position:fixed;left:8px;right:8px;bottom:46px;z-index:71;
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+[data-deitado="telemovel"] #folhaMais:not([hidden]){position:fixed;left:8px;right:8px;bottom:46px;
+  z-index:71;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:4px;padding:6px}
 [data-deitado="telemovel"] #folhaMais button{flex:1 1 30%;background:var(--surface-2);
   border:1px solid var(--border);border-radius:9px;color:var(--text);padding:8px;
@@ -13956,6 +13960,15 @@ $("#folhaMais").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-view]");
   if (b){ fecharFolhaMais(); irPara(b.dataset.view); }
 });
+/* Uma folha que paira por cima do conteúdo tem de sair do caminho ao primeiro
+   toque ao lado — é assim que se fecha uma folha, e sem isso ficava a tapar o
+   que se quer ver até se voltar ao botão que a abriu. */
+document.addEventListener("click", (e) => {
+  const f = $("#folhaMais");
+  if (f.hidden) return;
+  if (e.target.closest("#folhaMais") || e.target.closest("#btnMais")) return;
+  fecharFolhaMais();
+});
 
 /* ---------------------------------------------------------------
    Paleta de comandos (Ctrl+K) — saltar para uma vista ou disparar
@@ -14330,6 +14343,8 @@ document.addEventListener("keydown", (e) => {
     else if (e.key === "ArrowLeft"){ e.preventDefault(); tutorialIr(tutorialPasso - 1); }
     return;
   }
+  // O Esc fecha o que estiver por cima — e a folha «Mais» está por cima.
+  if (e.key === "Escape" && !$("#folhaMais").hidden){ e.preventDefault(); fecharFolhaMais(); return; }
   if (!paletaAberta()) return;
   if (e.key === "Escape"){ e.preventDefault(); fecharPaleta(); }
   else if (e.key === "ArrowDown"){ e.preventDefault(); paletaSel++; pintarPaleta($("#paletaIn").value); }
