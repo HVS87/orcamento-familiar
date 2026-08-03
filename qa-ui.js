@@ -3302,6 +3302,115 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("texto do utilizador não parte o desenho");
+(function(){
+  comExemplo();
+  /* Os nomes vêm de quem usa isto: o número de uma apólice, uma referência de
+     contrato, um nome de objetivo escrito de enfiada. Uma palavra comprida sem
+     espaços que não caiba alarga o contentor, e com ele a página inteira — num
+     telemóvel a página passa a andar de lado e o desenho todo deriva. */
+  var LONGO = "Supercalifragilisticexpialidocious";
+  var FRASE = "Pagamento mensal referente ao contrato de fornecimento de energia "+
+              "elétrica da residência principal do agregado familiar";
+  var SEM = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  S.membros[0].nome = LONGO + " " + LONGO;
+  S.categorias[0].nome = LONGO;
+  if (S.movimentos[0]) S.movimentos[0].descricao = FRASE;
+  if (S.movimentos[1]) S.movimentos[1].descricao = SEM + SEM;
+  if (S.recorrentes[0]) S.recorrentes[0].nome = FRASE;
+  if (S.objetivos[0]) S.objetivos[0].nome = SEM;
+  if (S.ativos[0]) S.ativos[0].nome = FRASE;
+  if (S.creditos[0]) S.creditos[0].nome = SEM;
+  S.notas[MES] = SEM;
+  guardar();
+
+  var raiz = document.documentElement;
+  ok(/anywhere|break-word/.test(getComputedStyle(q("#app")).overflowWrap),
+     "o texto do utilizador pode partir palavras que não caibam",
+     getComputedStyle(q("#app")).overflowWrap);
+
+  var transbordos = [];
+  ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
+    .forEach(function(v){
+      irA(v);
+      var x = raiz.scrollWidth - raiz.clientWidth;
+      if (x > 1) transbordos.push(v + ": " + x + "px");
+    });
+  eq(transbordos.length, 0, "e a página não passa a andar de lado em vista nenhuma",
+     transbordos.join("; "));
+  comExemplo();
+})();
+
+G("detalhe por categoria alcançável sem rato");
+(function(){
+  comExemplo();
+  irA("painel");
+  /* As fatias do donut só respondem ao ponteiro — são desenho. O comando é a
+     legenda, e era feita de `div`: a função de ver só uma categoria não
+     existia para quem navega por teclado. */
+  var bts = qq("#app .legend button[data-foco]");
+  ok(bts.length > 0, "a legenda do donut é feita de botões", bts.length);
+  if (!bts.length) return;
+  eq(bts.filter(function(b){ return b.tabIndex >= 0; }).length, bts.length,
+     "todos alcançáveis por tabulação");
+  ok(/ver só esta categoria/i.test(bts[0].getAttribute("aria-label") || ""),
+     "e cada um diz o que faz", bts[0].getAttribute("aria-label"));
+  ok(/^(true|false)$/.test(bts[0].getAttribute("aria-pressed") || ""),
+     "anunciando se está ou não aplicado");
+
+  var nome = bts[0].dataset.foco;
+  bts[0].click();
+  ok(ui.donutFoco && ui.donutFoco.nome === nome, "carregar aplica o detalhe da categoria");
+  var marcado = qq("#app .legend button[data-foco]").filter(function(b){ return b.dataset.foco === nome; })[0];
+  eq(marcado ? marcado.getAttribute("aria-pressed") : "", "true", "e fica marcado");
+  marcado.click();
+  ok(!ui.donutFoco, "carregar outra vez tira o detalhe");
+
+  // O gráfico continua a servir quem usa ponteiro
+  var fatia = q("#app svg [data-foco]");
+  ok(fatia != null, "as fatias do gráfico continuam lá");
+  if (fatia){
+    fatia.dispatchEvent(new MouseEvent("click", {bubbles:true}));
+    ok(!!ui.donutFoco, "e continuam a responder ao ponteiro");
+    ui.donutFoco = null; render();
+  }
+})();
+
+G("ida e volta pela cópia de segurança");
+(function(){
+  comExemplo();
+  /* O que a exportação escreve é `JSON.stringify(S, null, 2)`, e o que a
+     importação faz é `normalizar(JSON.parse(...))`. Entre um e outro tem de
+     passar tudo o que as pessoas escrevem — aspas, barras, acentos, emoji,
+     quebras de linha — sem se estragar pelo caminho. */
+  S.membros[0].nome = 'Aspas "duplas" e \'simples\' & <tags> \\barras';
+  S.categorias[0].nome = "Acentuação: ãõçéêà — travessão, «aspas», emoji 🛒";
+  S.notas[MES] = "Linha 1\nLinha 2\tcom tabulação";
+  if (S.objetivos[0]) S.objetivos[0].nome = "Meta   com nulo";
+  guardar();
+
+  var exportado = JSON.stringify(S, null, 2);
+  var nomeMembro = S.membros[0].nome, nomeCat = S.categorias[0].nome, nota = S.notas[MES];
+
+  // Apagar tudo e reimportar pelo mesmo caminho do importador
+  S = estadoVazio(); guardar();
+  eq(temDados(), 0, "apagou-se tudo antes de reimportar");
+  S = normalizar(JSON.parse(exportado)); limparCacheCredito(); guardar(); render();
+
+  eq(S.membros[0].nome, nomeMembro, "as aspas, os apóstrofos e as barras voltam intactos");
+  eq(S.categorias[0].nome, nomeCat, "os acentos, o travessão e o emoji também");
+  eq(S.notas[MES], nota, "e as quebras de linha e tabulações dentro das notas");
+  ok(S.objetivos[0] == null || S.objetivos[0].nome.indexOf(" ") >= 0,
+     "até um carácter nulo atravessa sem partir a leitura");
+
+  /* A primeira volta acrescenta o que `normalizar` completa; da segunda em
+     diante tem de ser ponto fixo, senão cada cópia mudava o ficheiro. */
+  var primeira = JSON.stringify(S);
+  S = normalizar(JSON.parse(JSON.stringify(S, null, 2))); limparCacheCredito();
+  eq(JSON.stringify(S), primeira, "exportar e importar outra vez devolve o mesmo, ao byte");
+  comExemplo();
+})();
+
 G("aviso de uso responsável ao criar um perfil");
 (function(){
   /* Quem está a semear o seu primeiro orçamento é quem mais precisa de saber

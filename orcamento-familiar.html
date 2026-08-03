@@ -104,6 +104,15 @@ html[data-theme="dark"][data-paleta="pastel"]{--bg:#171219;--surface:#211a23;--s
    ============================================================ */
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* O texto vem de quem usa a ferramenta: nomes de objetivos, de créditos, de
+   ativos, descrições de movimentos. Pode vir comprido e sem um único espaço
+   — o número de uma apólice, uma referência de contrato — e uma palavra que
+   não caiba alarga o contentor, e com ele a página. Num telemóvel isso vê-se
+   logo: a página passa a andar de lado, e o desenho todo deriva com ela.
+   `anywhere` parte a palavra em vez de partir a página, e ao contrário de
+   `break-word` também encolhe a largura mínima, que é o que faz a diferença
+   dentro de grelhas e flexbox. */
+#app, .dialog, #tip, #paleta, #folhaAcoes, header{overflow-wrap:anywhere}
 body{
   background:var(--bg); color:var(--text);
   /* `system-ui` à frente, para que cada aparelho use o seu próprio tipo de
@@ -317,9 +326,16 @@ label.field.temAjuda:hover{text-decoration-color:var(--accent)}
 .chart .hit:hover{fill:currentColor;fill-opacity:.05}
 .chart .guia{opacity:0;transition:opacity .1s}
 .chart .hit:hover ~ .guia{opacity:1}
-.legend div[data-foco]{cursor:pointer;border-radius:6px;padding:1px 5px;margin:-1px -5px;transition:background .12s}
-.legend div[data-foco]:hover{background:var(--surface-2)}
-.legend div[data-foco].on{background:var(--accent-soft)}
+/* As linhas da legenda são o comando de detalhe por categoria. Eram `div`, e
+   ficavam fora do alcance de quem navega por teclado: as fatias do gráfico
+   também, de modo que a função não existia sem rato. Sendo botões, ganham o
+   Tab, o Enter e o espaço de graça, e anunciam-se como o que são. */
+.legend button[data-foco]{cursor:pointer;border-radius:6px;padding:1px 5px;margin:-1px -5px;
+  transition:background .12s;background:none;border:0;font:inherit;color:inherit;
+  display:flex;align-items:center;gap:6px;text-align:left}
+.legend button[data-foco]:hover{background:var(--surface-2)}
+.legend button[data-foco][aria-pressed="true"]{background:var(--accent-soft)}
+.legend button[data-foco]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* Etiquetas */
 .tag{
@@ -4477,10 +4493,13 @@ function donut(dados, total, legendaMax, chave){
     '</svg>';
   const lim = legendaMax || 99;
   const leg = itens.slice(0, lim).map(d =>
-    '<div data-foco="'+esc(d.nome)+'" data-donut="'+esc(id)+'"'+(foco === d.nome ? ' class="on"' : "")+'>'+
-    '<span class="dot" style="background:'+esc(d.cor)+'"></span>'+
+    '<button type="button" data-foco="'+esc(d.nome)+'" data-donut="'+esc(id)+'"'+
+    ' aria-pressed="'+(foco === d.nome)+'"'+
+    ' aria-label="'+esc(d.nome)+': '+esc(eur(d.valor))+', '+esc(pct(d.valor/soma*100))+
+    ' — ver só esta categoria">'+
+    '<span class="dot" style="background:'+esc(d.cor)+'" aria-hidden="true"></span>'+
     '<span>'+esc(d.nome)+'</span>'+
-    '<span class="v">'+esc(eur(d.valor))+' · '+esc(pct(d.valor/soma*100))+'</span></div>'
+    '<span class="v">'+esc(eur(d.valor))+' · '+esc(pct(d.valor/soma*100))+'</span></button>'
   ).join("");
   const resto = itens.length > lim
     ? '<div><span class="dot" style="background:var(--muted)"></span><span>Outras ('+(itens.length-lim)+')</span></div>' : "";
