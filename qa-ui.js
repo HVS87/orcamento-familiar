@@ -3302,6 +3302,95 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("custo de trabalhar com um orçamento grande");
+(function(){
+  comExemplo();
+  /* Cinco anos de movimentos é o que um agregado que use isto a sério tem ao
+     fim de cinco anos. Tudo o que se segue é medido com esse peso em cima,
+     porque é aí que as folgas se acabam — e num telemóvel modesto os tempos
+     daqui multiplicam-se por três ou quatro. */
+  var cats = S.categorias.map(function(c){ return c.id; });
+  var base = new Date(2021, 7, 1), muitos = [];
+  for (var d = 0; d < 365 * 5; d++){
+    var dia = new Date(base.getTime() + d * 86400000);
+    for (var k = 0; k < 1 + (d % 3); k++){
+      muitos.push({id:"mvG"+d+"_"+k, data: dia.toISOString().slice(0,10),
+        descricao:"Movimento "+d+"/"+k, valor:-(5 + ((d*7 + k*13) % 120)),
+        categoriaId: cats[(d+k) % cats.length], membroId:"", tipo:"despesa"});
+    }
+  }
+  S.movimentos = S.movimentos.concat(muitos);
+  guardar();
+  var estadoKB = Math.round(JSON.stringify(S).length / 1024);
+  ok(estadoKB > 400, "o estado de cinco anos pesa o que se espera", estadoKB + " KB");
+
+  /* O histórico guarda fotografias do estado inteiro. A 550 KB cada, quarenta
+     passos seriam vinte e dois megabytes — o tecto de bytes tem de cortar
+     muito antes disso, e sem deixar de haver o que desfazer. */
+  historico = {atras: [], frente: []};
+  for (var i = 0; i < 50; i++){
+    alterar(function(){ S.projecao.anos = (S.projecao.anos % 30) + 1; }, "medida " + i);
+  }
+  var bytes = historico.atras.reduce(function(s, h){ return s + h.json.length; }, 0);
+  ok(historico.atras.length < 50, "o histórico corta antes dos cinquenta passos",
+     historico.atras.length + " passos");
+  ok(bytes <= HIST_MAX_BYTES, "e fica dentro do tecto de bytes",
+     Math.round(bytes/1048576) + " MB de " + Math.round(HIST_MAX_BYTES/1048576));
+  ok(podeDesfazer(), "sem deixar de haver o que desfazer");
+
+  /* `alterar` serializa o estado para o comparar; `guardar` voltava a
+     serializá-lo logo a seguir, e com este peso são 550 KB percorridos duas
+     vezes por cada alteração, mais o lixo que isso deixa. */
+  var pedidos = 0;
+  var real = guardar;
+  window.guardar = function(j){ if (j == null) pedidos++; return real.apply(this, arguments); };
+  alterar(function(){ S.projecao.inflacao = 2.5; });
+  window.guardar = real;
+  eq(pedidos, 0, "uma alteração normal não manda serializar o estado outra vez");
+  eq(localStorage.getItem(STORE_KEY), JSON.stringify(S), "e o que fica no disco é o estado tal e qual");
+
+  // Sem nada dado, `guardar` continua a serializar por si
+  S.projecao.inflacao = 4;
+  guardar();
+  eq(JSON.parse(localStorage.getItem(STORE_KEY)).projecao.inflacao, 4,
+     "e quem chamar `guardar` sem texto nenhum é servido na mesma");
+  comExemplo();
+})();
+
+G("desenhar mil vezes não deixa lixo para trás");
+(function(){
+  comExemplo();
+  /* Cada desenho substitui o conteúdo do `#app`. Se sobrasse alguma coisa —
+     um cartão órfão, um diálogo por fechar, um destaque esquecido — a conta
+     de nós subia a cada passagem, e ao fim de uma sessão longa a página
+     ficava pesada sem razão visível. Compara-se sempre a mesma vista consigo
+     própria: vistas diferentes têm tamanhos diferentes por natureza, e
+     comparar `config` com `despesas` não diria nada sobre fugas. */
+  var vistas = ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"];
+  var cresceram = [];
+  vistas.forEach(function(v){
+    irA(v);
+    var antes = document.querySelectorAll("*").length;
+    for (var i = 0; i < 25; i++) render();
+    var depois = document.querySelectorAll("*").length;
+    if (Math.abs(depois - antes) > 2) cresceram.push(v + ": " + antes + " → " + depois);
+  });
+  eq(cresceram.length, 0, "vinte e cinco desenhos seguidos não engordam vista nenhuma",
+     cresceram.join("; "));
+
+  // E navegar em ciclo volta sempre ao mesmo tamanho na mesma vista
+  irA("painel");
+  var painelAntes = document.querySelectorAll("*").length;
+  for (var j = 0; j < 60; j++) irA(vistas[j % vistas.length]);
+  irA("painel");
+  ok(Math.abs(document.querySelectorAll("*").length - painelAntes) <= 2,
+     "e sessenta navegações devolvem o painel do mesmo tamanho",
+     painelAntes + " → " + document.querySelectorAll("*").length);
+  eq(qq("#modalHost .dialog").length, 0, "sem diálogos órfãos");
+  eq(qq(".tut-alvo").length, 0, "sem destaques órfãos");
+  eq(qq(".aponta").length, 0, "sem indicações órfãs");
+})();
+
 G("guardar como aplicação");
 (function(){
   comExemplo();
@@ -3337,6 +3426,17 @@ G("guardar como aplicação");
   ok(new Set(cores).size === 3, "e muda com a paleta escolhida", cores.join(" "));
   ok(new Set(icones).size === 3, "tal como o ícone, que é redesenhado na cor de acento",
      icones.join(" "));
+
+  /* Desenhar o PNG custa perto de sete milissegundos — quase tudo o que
+     `aplicarTema` gasta — e o desenho só muda quando a cor muda. Repetido à
+     toa, era meio quadro de animação deitado fora a cada toque no tema. */
+  var iconeAntes = q('link[rel="apple-touch-icon"]').href;
+  var t0 = performance.now();
+  for (var i = 0; i < 30; i++) aplicarIconeApp();
+  var repetido = (performance.now() - t0) / 30;
+  ok(repetido < 0.5, "repetir sem mudar de cor não redesenha nada",
+     repetido.toFixed(3) + " ms");
+  eq(q('link[rel="apple-touch-icon"]').href, iconeAntes, "e o ícone é o mesmo");
 
   /* O convite do navegador tem de ser guardado quando aparece — perde-se se
      não for — e gasta-se ao ser usado. Sem convite não há botão: fingir que

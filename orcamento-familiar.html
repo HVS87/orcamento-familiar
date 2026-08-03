@@ -2660,9 +2660,14 @@ function ordenado(lista, tabela, cols, omissao){
 /* Estado da última gravação, para o indicador do cabeçalho. */
 let _guardado = {em: null, erro: false};
 
-function guardar(){
+/**
+ * Grava o estado. `jaSerializado` é o texto de `S` quando quem chama acabou
+ * de o produzir — evita percorrer o orçamento inteiro segunda vez. Quem não
+ * o tiver não passa nada, e a função serializa como sempre.
+ */
+function guardar(jaSerializado){
   try{
-    localStorage.setItem(STORE_KEY, JSON.stringify(S));
+    localStorage.setItem(STORE_KEY, jaSerializado || JSON.stringify(S));
     _guardado = {em: Date.now(), erro: false};
   }catch(e){
     // Só avisa à primeira: um armazenamento cheio falharia a cada tecla.
@@ -3167,12 +3172,19 @@ function alterar(fn, rotulo){
        A fotografia guardada acima ainda traz a marca, de modo que desfazer
        devolve também esta condição — como devolve tudo o resto.
        Só se pergunta enquanto a marca durar, que é pouco tempo e raro. */
-    if (S.exemploDemo && mexeuNoOrcamento(antes, depois)) S.exemploDemo = false;
+    const eraDemo = S.exemploDemo;
+    if (eraDemo && mexeuNoOrcamento(antes, depois)) S.exemploDemo = false;
     historico.atras.push({json: antes, rotulo: rotulo || "última alteração"});
     historico.frente.length = 0;   // um caminho novo apaga o futuro antigo
     _histAparar();
+    /* `depois` é o estado por escrito, acabado de fazer: passá-lo poupa uma
+       serialização inteira — com cinco anos de movimentos são 555 KB que não
+       se voltam a percorrer. Só não serve se a marca de demonstração tiver
+       caído entretanto, porque aí o texto já não descreve o que está em `S`. */
+    guardar(S.exemploDemo === eraDemo ? depois : null);
+  } else {
+    guardar(depois);
   }
-  guardar();
   render();
 }
 
@@ -10954,11 +10966,18 @@ function pintarIconeApp(tamanho, cor){
 }
 
 /** Põe (ou repõe) o ícone de ecrã principal na cor de acento em vigor. */
+let _corDoIcone = null;
 function aplicarIconeApp(){
   const cor = getComputedStyle(document.documentElement)
     .getPropertyValue("--accent").trim() || "#2f5fd0";
+  /* Desenhar um PNG de 180 px custa perto de 4 ms — quase tudo o que
+     `aplicarTema` gasta — e o desenho só muda quando a cor muda. Num
+     telemóvel modesto, repeti-lo à toa é meio quadro de animação deitado
+     fora de cada vez que se toca no tema. */
+  if (cor === _corDoIcone && document.querySelector('link[rel="apple-touch-icon"]')) return true;
   const url = pintarIconeApp(180, cor);
   if (!url) return false;
+  _corDoIcone = cor;
   let l = document.querySelector('link[rel="apple-touch-icon"]');
   if (!l){ l = document.createElement("link"); l.rel = "apple-touch-icon"; document.head.appendChild(l); }
   l.href = url;
@@ -15663,7 +15682,27 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) guard
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
   // Registo opcional: só funciona se existir sw.js junto do ficheiro.
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+  navigator.serviceWorker.register("./sw.js").then((reg) => {
+    if (!reg) return;
+    /* A cache serve primeiro e atualiza por trás: quem já tinha a aplicação
+       aberta continua com a versão antiga sem dar por isso. Dizer-lho é o
+       mínimo — recarregar por conta própria seria pior, que se perderia o
+       que estivesse a ser escrito. */
+    reg.addEventListener("updatefound", () => {
+      const novo = reg.installing;
+      if (!novo) return;
+      novo.addEventListener("statechange", () => {
+        if (novo.state === "installed" && navigator.serviceWorker.controller){
+          toastComBotao("Há uma versão nova da aplicação.", (() => {
+            const b = document.createElement("button");
+            b.type = "button"; b.textContent = "Recarregar";
+            b.onclick = () => location.reload();
+            return b;
+          })());
+        }
+      });
+    });
+  }).catch(() => {});
 }
 
 /* ---------------------------------------------------------------
