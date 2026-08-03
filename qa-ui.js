@@ -3302,6 +3302,160 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("contraste das oito paletas, nos dois modos");
+(function(){
+  comExemplo();
+  var paraRGB = function(c){ var d = document.createElement("div"); d.style.color = c;
+    document.body.appendChild(d); var r = getComputedStyle(d).color; d.remove(); return r; };
+  var lum = function(c){ var m = c.match(/\d+(\.\d+)?/g).map(Number);
+    var f = m.slice(0,3).map(function(v){ v /= 255;
+      return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+    return 0.2126*f[0] + 0.7152*f[1] + 0.0722*f[2]; };
+  var razao = function(a, b){ var l1 = lum(paraRGB(a)), l2 = lum(paraRGB(b));
+    return (Math.max(l1,l2)+0.05) / (Math.min(l1,l2)+0.05); };
+  var cor = function(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
+
+  var paletaAntes = S.paleta, temaAntes = S.tema;
+  var pares = [["texto/fundo","--text","--bg"], ["texto/superfície","--text","--surface"],
+               ["texto/superfície-2","--text","--surface-2"], ["esbatido/superfície","--muted","--surface"],
+               ["acento/superfície","--accent","--surface"], ["positivo/superfície","--pos","--surface"],
+               ["negativo/superfície","--neg","--surface"], ["aviso/superfície","--warn","--surface"]];
+  var fracos = [], semFundoEscuro = [], n = 0, pior = 99, piorNome = "";
+  Object.keys(PALETAS).forEach(function(p){
+    ["light","dark"].forEach(function(modo){
+      S.paleta = p; S.tema = modo; aplicarTema();
+      pares.forEach(function(par){
+        var r = razao(cor(par[1]), cor(par[2])); n++;
+        if (r < pior){ pior = r; piorNome = p+"/"+modo+" "+par[0]; }
+        if (r < 4.5) fracos.push(p+"/"+modo+" "+par[0]+" = "+r.toFixed(2));
+      });
+      /* Uma paleta que se esqueça do fundo no modo escuro fica com o claro
+         da sua própria regra — foi o que aconteceu à Grafite, que dava texto
+         quase branco sobre fundo quase branco: 1,09 de razão. */
+      if (modo === "dark" && lum(paraRGB(cor("--bg"))) > 0.5)
+        semFundoEscuro.push(p+": fundo claro no modo escuro ("+cor("--bg")+")");
+    });
+  });
+  S.paleta = paletaAntes; S.tema = temaAntes; aplicarTema();
+
+  eq(n, Object.keys(PALETAS).length * 2 * pares.length,
+     "cada paleta medida nos dois modos, par a par", n);
+  eq(semFundoEscuro.length, 0, "nenhuma paleta fica com fundo claro no modo escuro",
+     semFundoEscuro.join("; "));
+  eq(fracos.length, 0, "e nenhum par de texto fica abaixo dos 4,5 que a norma pede",
+     fracos.slice(0, 4).join("; "));
+  ok(pior >= 4.5, "o pior par de todos ainda se lê", piorNome+" = "+pior.toFixed(2));
+})();
+
+G("relatório: a impressão pode falhar, o utilizador não pode ficar preso");
+(function(){
+  comExemplo();
+  /* A vista do relatório não tem um único controlo — é uma folha, não um
+     ecrã. A reposição estava depois do `window.print()`, sem rede: onde a
+     impressão rebenta (quiosques, webviews, política de impressão) ficava-se
+     numa página sem saída até recarregar o navegador. */
+  /* A impressão é adiada 120 ms para a folha pintar primeiro. A suite é
+     síncrona, e uma espera ativa bloquearia o próprio temporizador — por
+     isso troca-se o `setTimeout` por um que corre já. */
+  var printReal = window.print, stReal = window.setTimeout, chamadas = 0;
+  window.setTimeout = function(fn){ fn(); return 0; };
+  window.print = function(){ chamadas++; throw new Error("impressão bloqueada"); };
+  semErro(function(){ ACOES.relatorio(); }, "pedir o relatório não lança para fora");
+  window.setTimeout = stReal; window.print = printReal;
+  eq(chamadas, 1, "tentou mesmo imprimir");
+  ok(!ui.relatorio, "e a impressão a rebentar não deixa ninguém preso no relatório");
+  render();
+  ok(qq("#app [data-act]").length > 0, "a aplicação volta logo com os seus botões");
+
+  window.setTimeout = function(fn){ fn(); return 0; };
+  window.print = function(){ chamadas++; throw new Error("bloqueada"); };
+  ACOES.relatorioAno();
+  window.setTimeout = stReal; window.print = printReal;
+  ok(!ui.relatorio, "o retrato do ano também se repõe");
+  eq(chamadas, 2, "e também tentou imprimir");
+
+  // Estado direto: com o `finally`, a bandeira cai mesmo com a exceção
+  ui.relatorio = "ano"; render();
+  ok(q("#app").innerHTML.length > 0, "o retrato do ano desenha-se");
+  eq(qq("#app [data-act]").length, 0, "e não tem controlo nenhum — é uma folha");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+  ok(!ui.relatorio, "por isso o Esc tem de o fechar");
+  render();
+  ok(qq("#app [data-act]").length > 0, "e a aplicação volta com os seus botões");
+})();
+
+G("impressão: o que flutua fica fora do papel");
+(function(){
+  comExemplo();
+  var regras = [];
+  [].slice.call(document.styleSheets).forEach(function(sh){
+    try {
+      [].slice.call(sh.cssRules).forEach(function(r){
+        if (r.media && String(r.media).indexOf("print") >= 0)
+          [].slice.call(r.cssRules).forEach(function(x){ if (x.selectorText) regras.push(x.selectorText); });
+      });
+    } catch(e){}
+  });
+  ok(regras.length > 0, "há folha de impressão");
+  var oculta = regras.join(",").split(",").map(function(s){ return s.trim(); });
+  /* Tudo o que paira por cima da página: o diálogo e a bolha do explicador
+     estavam a faltar — quem tivesse o ponteiro num indicador ao imprimir
+     levava a bolha para o papel. */
+  ["header", "nav.tabs", ".no-print", "#toast", "#tabsMovel", "#folhaMais",
+   "#paleta", "#tutorial", "#modalHost", "#tip"].forEach(function(sel){
+    ok(oculta.indexOf(sel) >= 0, "a impressão esconde "+sel);
+  });
+  ok(q("#botaoRapido") == null || q("#botaoRapido").classList.contains("no-print"),
+     "e o botão de registo rápido leva a marca de não imprimir");
+  ui.relatorio = true; render();
+  var rel = q(".relatorio");
+  ok(rel != null && !rel.classList.contains("no-print") && rel.closest(".no-print") == null,
+     "mas o relatório em si imprime-se");
+  ui.relatorio = false; render();
+})();
+
+G("todas as ações do registo, disparadas uma a uma");
+(function(){
+  comExemplo();
+  /* Cada ação corrida com o orçamento de exemplo por baixo: nenhuma pode
+     deixar o estado num sítio de onde as contas do mês já não se façam. As
+     que abrem diálogos do sistema ficam de fora — não há como as fechar. */
+  var guardado = JSON.stringify(S);
+  var nativas = ["imprimir", "relatorio", "relatorioAno", "exportJSON", "exportJSONCifrado",
+                 "exportCSV", "exportPatrimonioCSV", "importJSON", "csvImportar"];
+  var vistaDe = {rd:"rendimento", cp:"rendimento", comp:"rendimento", mv:"despesas", rec:"despesas",
+    lim:"despesas", corte:"despesas", plan:"despesas", lote:"despesas", regra:"despesas",
+    obj:"objetivos", cr:"credito", amort:"credito", pat:"ativos", fluxo:"ativos", aporte:"ativos",
+    est:"estrategias", sim:"estrategias", cenario:"estrategias", ese:"estrategias",
+    fx:"fiscal", mb:"config", cat:"config", tema:"config", painel:"painel"};
+  var corridas = 0, partiu = 0, quaisPartiu = [];
+  Object.keys(ACOES).forEach(function(nome){
+    if (nativas.indexOf(nome) >= 0) return;
+    var pref = (nome.match(/^[a-z]+/) || [""])[0];
+    try { irA(vistaDe[pref] || "painel"); } catch(e){}
+    var el = document.createElement("button");
+    el.dataset.act = nome; el.dataset.v = "movimentos"; el.dataset.k = "casal";
+    el.dataset.id = (S.movimentos[0] || {}).id || "x"; el.dataset.view = "painel";
+    el.dataset.i = "0"; el.dataset.obj = "reforma"; el.dataset.mes = MES; el.dataset.n = "1";
+    document.body.appendChild(el);
+    try { ACOES[nome](el); } catch(e){ /* formulários fechados: conta-se abaixo */ }
+    el.remove();
+    corridas++;
+    try {
+      var p = planoMes(MES), r = realMes(MES);
+      if (!isFinite(p.desp) || !isFinite(r.desp)){ partiu++; quaisPartiu.push(nome); }
+    } catch(e){ partiu++; quaisPartiu.push(nome+" ("+e.message.slice(0,20)+")"); }
+    S = normalizar(JSON.parse(guardado)); limparCacheCredito();
+  });
+  S = normalizar(JSON.parse(guardado)); limparCacheCredito();
+  q("#modalHost").innerHTML = "";
+  ui.relatorio = false;
+  render();
+  ok(corridas >= 140, "o registo tem ações que cheguem para uma aplicação inteira", corridas);
+  eq(partiu, 0, "e nenhuma deixa o mês por calcular", quaisPartiu.slice(0, 5).join("; "));
+  ok(q("#app").innerText.length > 200, "a aplicação fica de pé no fim de todas");
+})();
+
 G("tipografia: sem rede, do sistema, e algarismos que alinham");
 (function(){
   comExemplo();
