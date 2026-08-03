@@ -2451,7 +2451,7 @@ const AJUDAS_ACAO = {
   perfilAgregado:["Quem vive na casa", "Determina os membros e as despesas do dia a dia. A habitação escolhe-se à parte, porque é independente disto.", ""],
   perfilHabitacao:["Onde vive", "Arrendar traz a renda; casa própria traz o condomínio, a manutenção e os seguros. Combina-se com qualquer agregado.", ""],
   perfilRegime:["Casa paga ou com empréstimo", "Com empréstimo acrescenta-se a prestação e o seguro de vida. Para ver os juros separados do capital, acrescente depois o crédito no separador respetivo.", ""],
-  perfilAplicar:["Começar assim", "Semeia membros, despesas fixas típicas e limites. São valores de exemplo, para ajustar — e pode anular logo a seguir.", ""],
+  perfilAplicar:["Começar assim", "Mostra primeiro o aviso de uso responsável e, aceite este, semeia membros, despesas fixas típicas e limites. São valores de exemplo, para ajustar — e pode anular logo a seguir.", ""],
   movSel:     ["Selecionar movimento", "Marque vários para lhes atribuir a mesma categoria, ou eliminá-los de uma vez.", ""],
   movSelTodos:["Selecionar todos", "Marca ou desmarca todos os movimentos visíveis com os filtros atuais.", ""],
   loteAplicar:["Aplicar em lote", "Atribui a categoria escolhida a todos os movimentos selecionados. Se partilharem um termo, oferece guardá-lo como regra.", ""],
@@ -5013,6 +5013,65 @@ function aplicarPerfil(agregado, habitacao, regime){
   return true;
 }
 
+/* ---------------------------------------------------------------
+   Aviso de uso responsável
+
+   Num sítio só, e num sítio só, para que a versão curta do ecrã e a
+   versão longa do diálogo nunca digam coisas diferentes. Aparece a quem
+   está a começar um orçamento — que é quando ainda se está a decidir o
+   quanto confiar nisto — e tem de ser aceite antes de o ponto de
+   partida ser semeado.
+   --------------------------------------------------------------- */
+const AVISO_CURTO =
+  "Isto é uma ferramenta gratuita e simples, para uso responsável. "+
+  "Tudo o que calcula são sugestões, a confirmar por si.";
+
+const AVISO_LONGO = [
+  ["O que isto é", "Uma ferramenta gratuita e simples de cálculo, feita para ajudar "+
+   "a pôr um orçamento familiar em ordem. Não é aconselhamento financeiro, fiscal "+
+   "ou jurídico, e não substitui quem o dê."],
+  ["Os números são sugestões", "Todas as indicações, projeções e contas que a "+
+   "ferramenta apresenta — incluindo as de IRS, Segurança Social, prestações "+
+   "sociais e crédito — são estimativas feitas sobre os pressupostos que indicar, "+
+   "e devem ser <strong>verificadas de forma independente</strong> junto da "+
+   "Autoridade Tributária, da Segurança Social, do seu banco ou de um profissional, "+
+   "antes de servirem de base a qualquer decisão."],
+  ["Responsabilidade", "O autor não se responsabiliza pelo impacto do uso desta "+
+   "ferramenta, nem por decisões tomadas a partir dos seus resultados. As "+
+   "decisões são suas."],
+  ["Os seus dados", "Ficam neste navegador, neste aparelho. Não há servidor nem "+
+   "conta, e nada é enviado para lado nenhum — o que também quer dizer que as "+
+   "cópias de segurança são da sua conta, em <em>Dados ▾</em>."],
+];
+
+/** O aviso longo em blocos, para o diálogo e para as Definições. */
+const avisoLongoHTML = () => AVISO_LONGO.map(([t, txt]) =>
+  '<div class="note" style="margin-bottom:9px"><strong>'+esc(t)+':</strong> '+txt+'</div>').join("");
+
+/**
+ * Mostra o aviso e só corre `aoAceitar` se for aceite. Fechar pelo lado de
+ * fora, ou com Esc, é não aceitar — nada acontece, e não se perde nada: as
+ * escolhas do ponto de partida ficam onde estavam.
+ */
+function avisarUsoResponsavel(aoAceitar){
+  const host = $("#modalHost");
+  host.innerHTML =
+    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" '+
+      'aria-label="Aviso de uso responsável">'+
+      '<h3>Antes de começar</h3>'+
+      avisoLongoHTML()+
+      '<div class="actions" style="margin-top:4px">'+
+        '<button class="btn ghost" data-dlg="no">Cancelar</button>'+
+        '<button class="btn primary" data-dlg="yes">Compreendi — começar</button>'+
+      '</div>'+
+    '</div></div>';
+  const fechar = () => { host.innerHTML = ""; };
+  host.querySelector('[data-dlg="no"]').onclick = fechar;
+  host.querySelector('[data-dlg="yes"]').onclick = () => { fechar(); aoAceitar(); };
+  host.querySelector(".overlay").onclick = (e) => { if (e.target === e.currentTarget) fechar(); };
+  host.querySelector('[data-dlg="yes"]').focus();
+}
+
 /** Escolha de ponto de partida, no ecrã de boas-vindas. */
 function escolhaPerfil(){
   const p = ui.perfil || (ui.perfil = {agregado:null, habitacao:"arrendada", regime:"credito"});
@@ -5051,6 +5110,8 @@ function escolhaPerfil(){
         return '<div class="note" style="margin-top:11px">Vai criar <strong>'+a.membros.length+
           ' membro(s)</strong> e <strong>'+rs.length+' despesa(s) fixa(s)</strong>, '+
           eur(total)+'/mês no total — valores de exemplo, para ajustar.</div>'+
+          '<div class="note" style="border-left-color:var(--warn);margin-top:9px">'+
+            '<strong>Antes de começar:</strong> '+esc(AVISO_CURTO)+'</div>'+
           '<div class="actions"><button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
       })()
     : '<div class="muted" style="font-size:12px;margin-top:9px">Escolha o agregado para continuar.</div>';
@@ -10891,8 +10952,14 @@ function viewConfig(){
     'âmbar de aviso — mantêm-se em todas as paletas, para que os números se leiam sempre da mesma maneira.</div>'+
     '</div>' + '<div style="height:16px"></div>' + cartaoPainelConfig();
 
+  /* O aviso do arranque fica também aqui, para poder ser relido: um aviso que
+     aparece uma vez e nunca mais não serve de muito a quem o queira consultar
+     seis meses depois. */
+  const sobre = '<div class="card"><h2>Sobre esta ferramenta</h2>'+ avisoLongoHTML() +'</div>';
+
   return aparencia + '<div style="height:16px"></div>' +
          cartaoAplicacao() + '<div style="height:16px"></div>' +
+         sobre + '<div style="height:16px"></div>' +
          cartaoSaudeDados() + '<div style="height:16px"></div>' +
          membros + '<div style="height:16px"></div>' + cartaoFiscalidade() +
          '<div style="height:16px"></div>' + categorias + '<div style="height:16px"></div>' +
@@ -13602,10 +13669,14 @@ const ACOES = {
     const h = PERFIS_HABITACAO[p.habitacao] || PERFIS_HABITACAO.arrendada;
     const rotulo = a.lbl + ", " + h.lbl.toLowerCase() +
       (p.habitacao === "propria" ? " ("+PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].lbl.toLowerCase()+")" : "");
-    apagarComAnulacao("Ponto de partida aplicado: "+rotulo+".", () => {
-      aplicarPerfil(p.agregado, p.habitacao, p.regime);
-    }, "ponto de partida");
-    irPara("despesas");
+    /* O aviso vem antes de semear seja o que for: quem está a criar o seu
+       orçamento é quem mais precisa de saber o que isto é, e o que não é. */
+    avisarUsoResponsavel(() => {
+      apagarComAnulacao("Ponto de partida aplicado: "+rotulo+".", () => {
+        aplicarPerfil(p.agregado, p.habitacao, p.regime);
+      }, "ponto de partida");
+      irPara("despesas");
+    });
   },
 
   /* --- dica do próximo passo --- */

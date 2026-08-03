@@ -3302,6 +3302,67 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("aviso de uso responsável ao criar um perfil");
+(function(){
+  /* Quem está a semear o seu primeiro orçamento é quem mais precisa de saber
+     o que isto é — e o que não é. O aviso vem antes de ser criado seja o que
+     for, e tem de ser aceite: fechá-lo não cria nada. */
+  localStorage.removeItem(STORE_KEY);
+  S = estadoVazio(); MES = isoMes(hoje()); contextoLimpo(); irPara("painel");
+  eq(temDados(), 0, "parte-se de um orçamento vazio");
+
+  clicar('[data-act="perfilAgregado"]');
+  var texto = q("#app").innerText;
+  ok(/gratuita e simples/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é simples e gratuita");
+  ok(/uso responsável/i.test(texto), "e que se destina a uso responsável");
+  ok(/confirmar por si/i.test(texto), "e que os números são para confirmar");
+
+  clicar('[data-act="perfilAplicar"]');
+  var d = q("#modalHost .dialog");
+  ok(d != null, "«Começar assim» abre o aviso antes de semear");
+  eq(temDados(), 0, "e nada foi criado ainda");
+  if (d){
+    var t = d.innerText;
+    ok(/não é aconselhamento/i.test(t), "o aviso diz que não é aconselhamento");
+    ok(/verificadas de forma independente/i.test(t), "que os cálculos se verificam de forma independente");
+    ok(/Autoridade Tribut/i.test(t) && /Segurança Social/i.test(t),
+       "e diz junto de quem — não deixa a verificação como boa intenção vaga");
+    ok(/não se responsabiliza/i.test(t), "declina responsabilidade pelo impacto do uso");
+    ok(/decisões são suas/i.test(t), "e devolve a decisão a quem a toma");
+    ok(/neste navegador/i.test(t), "e aproveita para dizer onde ficam os dados");
+  }
+
+  // Cancelar não cria nada, e não faz perder a escolha já feita
+  clicar('#modalHost [data-dlg="no"]');
+  ok(q("#modalHost .dialog") == null, "cancelar fecha o aviso");
+  eq(temDados(), 0, "sem criar nada");
+  ok(ui.perfil && ui.perfil.agregado, "e sem esquecer o agregado que já estava escolhido");
+
+  // Clicar fora é não aceitar — criar dados exige dizer que sim
+  clicar('[data-act="perfilAplicar"]');
+  q("#modalHost .overlay").dispatchEvent(new MouseEvent("click", {bubbles:true}));
+  eq(temDados(), 0, "fechar pelo lado de fora também não cria nada");
+
+  // Aceite, o ponto de partida é semeado como dantes
+  clicar('[data-act="perfilAplicar"]');
+  clicar('#modalHost [data-dlg="yes"]');
+  ok(q("#modalHost .dialog") == null, "aceitar fecha o aviso");
+  ok(S.membros.length > 0, "e aí sim, semeia os membros");
+  ok(S.recorrentes.length > 0, "e as despesas fixas típicas");
+  ok(podeDesfazer(), "continuando a poder desfazer-se");
+
+  /* Um aviso que aparece uma vez e nunca mais não serve a quem o queira
+     reler seis meses depois. */
+  irA("config");
+  var sobre = qq("#app .card").filter(function(c){ return /Sobre esta ferramenta/.test(c.textContent); })[0];
+  ok(sobre != null, "o aviso fica relegível nas Definições");
+  if (sobre){
+    ok(/não se responsabiliza/i.test(sobre.innerText), "com o mesmo texto do arranque");
+    ok(/verificadas de forma independente/i.test(sobre.innerText), "e a mesma exigência de verificação");
+  }
+  comExemplo();
+})();
+
 G("custo de trabalhar com um orçamento grande");
 (function(){
   comExemplo();
