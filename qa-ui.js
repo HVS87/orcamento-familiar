@@ -3302,6 +3302,79 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("guardar como aplicação");
+(function(){
+  comExemplo();
+  irA("config");
+  var cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  ok(cartao != null, "há cartão de instalação nas Definições");
+  if (!cartao) return;
+
+  ok(/ícone próprio|já está instalada|a partir do disco/i.test(cartao.innerText),
+     "que diz o que a instalação dá, ou o estado em que está");
+  ok(/não copia nada/i.test(cartao.innerText),
+     "e tranquiliza sobre os dados, que é a primeira dúvida de quem instala");
+
+  /* O iPhone e o iPad não leem o manifesto para o ícone do ecrã principal:
+     querem um `apple-touch-icon`, e só em PNG. A aplicação não tem ficheiros
+     de imagem, por isso o ícone é desenhado num `canvas` em tempo de execução. */
+  var l = q('link[rel="apple-touch-icon"]');
+  ok(l != null, "há ícone de ecrã principal para o Safari");
+  if (l) ok(/^data:image\/png/.test(l.href), "e é PNG, que é o único que o Safari aceita ali",
+            l.href.slice(0, 24));
+
+  // A cor da barra do sistema segue a paleta, senão fica azul por cima de verde
+  var meta = q('meta[name="theme-color"]');
+  ok(meta != null, "a barra do sistema tem cor declarada");
+  var paletaAntes = S.paleta;
+  var cores = [], icones = [];
+  ["meianoite", "floresta", "areia"].forEach(function(p){
+    S.paleta = p; aplicarTema();
+    cores.push(meta.getAttribute("content"));
+    icones.push(q('link[rel="apple-touch-icon"]').href.length);
+  });
+  S.paleta = paletaAntes; aplicarTema();
+  ok(new Set(cores).size === 3, "e muda com a paleta escolhida", cores.join(" "));
+  ok(new Set(icones).size === 3, "tal como o ícone, que é redesenhado na cor de acento",
+     icones.join(" "));
+
+  /* O convite do navegador tem de ser guardado quando aparece — perde-se se
+     não for — e gasta-se ao ser usado. Sem convite não há botão: fingir que
+     há dava um botão que não faz nada. */
+  var conviteAntes = _conviteInstalar;
+  _conviteInstalar = null; render();
+  ok(q('[data-act="appInstalar"]') == null, "sem convite do navegador, não há botão");
+
+  var pediu = 0;
+  var ev = new Event("beforeinstallprompt");
+  ev.prompt = function(){ pediu++; };
+  ev.userChoice = Promise.resolve({outcome:"dismissed"});
+  window.dispatchEvent(ev);
+  ok(_conviteInstalar != null, "o convite é guardado quando o navegador o dá");
+  irA("config");
+  ok(q('[data-act="appInstalar"]') != null, "e aí aparece o botão");
+  clicar('[data-act="appInstalar"]');
+  eq(pediu, 1, "carregar pede a instalação ao navegador");
+  ok(_conviteInstalar == null, "e o convite gasta-se: só serve uma vez");
+  _conviteInstalar = conviteAntes;
+
+  // Requisitos do Chrome e do Android, listados para quem não vê o botão
+  ok(typeof verificarRequisitos === "function", "há verificação dos requisitos de instalação");
+  var estadoAntes = JSON.parse(JSON.stringify(_requisitos));
+  _requisitos = {feito:true, https:false, manifesto:true, icones:false, sw:true};
+  irA("config");
+  cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  ok(/https/i.test(cartao.innerText), "com o endereço em falta, di-lo");
+  ok(/Ícone de 192/i.test(cartao.innerText), "e o ícone também");
+  ok(!/Service worker ativo/i.test(cartao.innerText), "e não acusa o que está cumprido");
+  _requisitos = {feito:true, https:true, manifesto:true, icones:true, sw:true};
+  irA("config");
+  cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  ok(/tudo pronto/i.test(cartao.innerText), "com tudo cumprido, di-lo em vez de listar faltas");
+  _requisitos = estadoAntes;
+  render();
+})();
+
 G("contraste das oito paletas, nos dois modos");
 (function(){
   comExemplo();

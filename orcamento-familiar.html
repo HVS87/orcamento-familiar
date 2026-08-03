@@ -5,9 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orçamento Familiar</title>
 <meta name="description" content="Ferramenta de cálculo e gestão do orçamento familiar — rendimentos, despesas, poupança, objetivos e créditos.">
-<meta name="theme-color" content="#0f172a">
+<!-- A cor da barra do sistema acompanha a paleta escolhida: `aplicarTema` reescreve
+     este conteúdo. O valor aqui é o do arranque, antes de haver preferências lidas. -->
+<meta name="theme-color" content="#2f5fd0">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💶</text></svg>">
+<!-- Instalação no iPhone e no iPad: o Safari não lê o manifesto para isto.
+     O ícone com que fica no ecrã principal é desenhado em tempo de execução
+     (o Safari só aceita PNG aqui, e a aplicação não tem ficheiros de imagem). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Orçamento">
 <style>
 /* ============================================================
    Paleta e temas
@@ -2460,6 +2468,7 @@ const AJUDAS_ACAO = {
   tutorialSeguinte:["Passo seguinte", "Avança na visita guiada. A seta direita do teclado faz o mesmo.", ""],
   tutorialAnterior:["Passo anterior", "Recua na visita guiada. A seta esquerda do teclado faz o mesmo.", ""],
   tutorialSair:   ["Sair da visita", "Termina a visita guiada. Pode retomá-la a qualquer momento no botão 🎓 do cabeçalho.", ""],
+  appInstalar:    ["Instalar", "Guarda a ferramenta como aplicação: ícone próprio, janela sem barra de endereço e arranque sem rede. Os dados são os mesmos, no mesmo sítio — instalar não copia nada para lado nenhum.", ""],
   demoApagar:     ["Apagar o exemplo", "Elimina a família de demonstração e devolve o ecrã de boas-vindas, com os pontos de partida. Guarda o tema e as preferências, e dá seis segundos para anular.", ""],
   demoFicar:      ["Continuar a explorar", "Fica com o exemplo mais um pouco. O lembrete no painel mostra como começar do zero quando quiser.", ""],
   estObjetivo:["Escolher objetivo", "Cada objetivo traz os instrumentos e o horizonte que costumam fazer-lhe sentido.", ""],
@@ -10871,10 +10880,184 @@ function viewConfig(){
     '</div>' + '<div style="height:16px"></div>' + cartaoPainelConfig();
 
   return aparencia + '<div style="height:16px"></div>' +
+         cartaoAplicacao() + '<div style="height:16px"></div>' +
          cartaoSaudeDados() + '<div style="height:16px"></div>' +
          membros + '<div style="height:16px"></div>' + cartaoFiscalidade() +
          '<div style="height:16px"></div>' + categorias + '<div style="height:16px"></div>' +
          cartaoRegras() + '<div style="height:16px"></div>' + dados;
+}
+
+/* ---------------------------------------------------------------
+   Guardar como aplicação
+
+   Instalada, a ferramenta ganha janela própria sem barra de endereço,
+   ícone no ecrã principal ou no menu, e abre offline. Os dados são os
+   mesmos — o armazenamento é do mesmo sítio — mas convém dizê-lo, que é
+   a primeira dúvida de quem instala.
+
+   Cada navegador convida à sua maneira, e nenhum deixa a aplicação
+   convidar sozinha: o Chrome e o Edge disparam `beforeinstallprompt`, e
+   aí há botão; o Safari não tem convite nenhum e só resta explicar o
+   caminho. Onde não se pode, diz-se o que fazer em vez de fingir.
+   --------------------------------------------------------------- */
+let _conviteInstalar = null;   // o convite adiado, quando o navegador o dá
+let _instalada = false;        // confirmada nesta sessão
+
+const emAplicacao = () =>
+  _instalada ||
+  (window.matchMedia && matchMedia("(display-mode: standalone)").matches) ||
+  (window.matchMedia && matchMedia("(display-mode: window-controls-overlay)").matches) ||
+  navigator.standalone === true;   // Safari no iPhone e no iPad
+
+/** Que navegador é, só para dizer o caminho certo a quem não tem botão. */
+function caminhoDeInstalacao(){
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iOS) return {nome:"Safari", passos:["Partilhar (o quadrado com a seta)",
+    "Adicionar ao ecrã principal", "Adicionar"]};
+  if (/Firefox/.test(ua)) return {nome:"Firefox", passos:["Menu ⋯",
+    "Instalar", "no computador, o Firefox só instala com uma extensão"]};
+  if (/Edg\//.test(ua)) return {nome:"Edge", passos:["Menu ⋯",
+    "Aplicações", "Instalar este site como uma aplicação"]};
+  if (/Chrome|Chromium/.test(ua)) return {nome:"Chrome", passos:["Menu ⋮",
+    "Transmitir, guardar e partilhar", "Instalar página como aplicação"]};
+  return {nome:"navegador", passos:["procure «Instalar» ou «Adicionar ao ecrã principal» no menu"]};
+}
+
+/**
+ * Ícone do ecrã principal, desenhado aqui e agora. O Safari só aceita PNG
+ * nesta ligação — e a aplicação é um ficheiro só, sem imagens ao lado. Sai
+ * do desenho para um `canvas` e daí para uma data: URI.
+ */
+function pintarIconeApp(tamanho, cor){
+  try{
+    const c = document.createElement("canvas");
+    c.width = c.height = tamanho;
+    const g = c.getContext("2d");
+    if (!g) return null;
+    const r = Math.round(tamanho * 0.22);
+    g.fillStyle = cor;
+    // Rectângulo de cantos redondos, à mão: `roundRect` é recente de mais
+    g.beginPath();
+    g.moveTo(r, 0); g.lineTo(tamanho - r, 0); g.quadraticCurveTo(tamanho, 0, tamanho, r);
+    g.lineTo(tamanho, tamanho - r); g.quadraticCurveTo(tamanho, tamanho, tamanho - r, tamanho);
+    g.lineTo(r, tamanho); g.quadraticCurveTo(0, tamanho, 0, tamanho - r);
+    g.lineTo(0, r); g.quadraticCurveTo(0, 0, r, 0);
+    g.closePath(); g.fill();
+    g.fillStyle = "#ffffff";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "600 " + Math.round(tamanho * 0.56) + "px system-ui, sans-serif";
+    g.fillText("€", tamanho / 2, tamanho * 0.54);
+    return c.toDataURL("image/png");
+  }catch(e){ return null; }
+}
+
+/** Põe (ou repõe) o ícone de ecrã principal na cor de acento em vigor. */
+function aplicarIconeApp(){
+  const cor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent").trim() || "#2f5fd0";
+  const url = pintarIconeApp(180, cor);
+  if (!url) return false;
+  let l = document.querySelector('link[rel="apple-touch-icon"]');
+  if (!l){ l = document.createElement("link"); l.rel = "apple-touch-icon"; document.head.appendChild(l); }
+  l.href = url;
+  return true;
+}
+
+/* Estado dos requisitos de instalação. O Chrome e o Android só oferecem a
+   instalação se todos estiverem cumpridos, e não dizem qual falta — por isso
+   diz-se aqui. Preenche-se sozinho, e a vista repinta quando fica pronto. */
+let _requisitos = {feito:false, https:false, manifesto:false, icones:false, sw:false};
+
+function verificarRequisitos(){
+  const r = {feito:true, https:false, manifesto:false, icones:false, sw:false, detalhe:{}};
+  r.https = location.protocol === "https:" || location.hostname === "localhost" ||
+            location.hostname === "127.0.0.1";
+  const promessas = [];
+
+  promessas.push(fetch("./manifest.json").then(res => res.ok ? res.json() : null).then(m => {
+    if (!m) return;
+    r.manifesto = !!(m.name || m.short_name) && !!m.start_url &&
+      ["standalone","fullscreen","minimal-ui"].indexOf(m.display) >= 0;
+    r.detalhe.nome = m.name;
+    // O Chrome exige um ícone de 192 px ou mais que exista mesmo
+    const grandes = (m.icons || []).filter(i => /\b(192|512)x(192|512)\b/.test(i.sizes || ""));
+    return Promise.all(grandes.map(i =>
+      fetch(i.src).then(res => res.ok).catch(() => false)
+    )).then(oks => { r.icones = oks.length > 0 && oks.some(Boolean);
+                     r.detalhe.icones = oks.filter(Boolean).length + "/" + oks.length; });
+  }).catch(() => {}));
+
+  if ("serviceWorker" in navigator){
+    promessas.push(navigator.serviceWorker.getRegistrations()
+      .then(rs => { r.sw = rs.some(x => x.active); }).catch(() => {}));
+  }
+
+  return Promise.all(promessas).then(() => {
+    _requisitos = r;
+    if (VIEW === "config") render();
+    return r;
+  });
+}
+
+/** Cartão de instalação, nas Definições. */
+function cartaoAplicacao(){
+  const dentro = emAplicacao();
+  const via = caminhoDeInstalacao();
+  const podeJa = !!_conviteInstalar;
+  const deDisco = location.protocol === "file:";
+
+  let corpo;
+  if (dentro){
+    corpo = '<div class="note" style="border-left-color:var(--pos)">'+
+      '<strong>Já está instalada.</strong> Abre em janela própria e funciona sem rede. '+
+      'Os dados são os mesmos de sempre — ficam neste aparelho, no armazenamento deste navegador.</div>';
+  } else if (deDisco){
+    corpo = '<div class="note"><strong>Aberta a partir do disco.</strong> Para instalar, o ficheiro '+
+      'tem de ser servido por um endereço — ponha-o num servidor, ou abra-o pelo endereço da rede local. '+
+      'Nenhum navegador instala uma página aberta com <code>file://</code>.</div>';
+  } else if (podeJa){
+    corpo = '<p class="sub">Fica com ícone próprio, abre em janela sem barra de endereço, '+
+      'e continua a funcionar sem rede.</p>'+
+      '<div class="actions"><button class="btn primary" data-act="appInstalar">Instalar</button></div>';
+  } else {
+    corpo = '<p class="sub">Fica com ícone próprio, abre em janela sem barra de endereço, '+
+      'e continua a funcionar sem rede.</p>'+
+      '<div class="note"><strong>No '+esc(via.nome)+':</strong> '+
+      via.passos.map(esc).join(' <span class="muted">›</span> ')+'</div>'+
+      '<div class="muted" style="font-size:12px;margin-top:7px">O botão de instalação aparece aqui '+
+      'assim que o navegador o oferecer — nem todos oferecem, e alguns só depois de a página ser visitada '+
+      'mais do que uma vez.</div>';
+  }
+
+  /* Lista dos requisitos, para quem não vê o botão saber porquê. Só se mostra
+     quando falta alguma coisa: com tudo pronto seria ruído. */
+  let porque = "";
+  const q = _requisitos;
+  if (!dentro && !podeJa && !deDisco && q.feito){
+    const faltas = [];
+    if (!q.https)     faltas.push("Endereço seguro (https, ou localhost)");
+    if (!q.manifesto) faltas.push("Manifesto com nome, arranque e janela própria");
+    if (!q.icones)    faltas.push("Ícone de 192 px ou maior que o navegador consiga ir buscar");
+    if (!q.sw)        faltas.push("Service worker ativo (o ficheiro <code>sw.js</code> ao lado)");
+    if (faltas.length){
+      porque = '<div class="note" style="border-left-color:var(--warn);margin-top:11px">'+
+        '<strong>Falta para o Chrome e o Android oferecerem a instalação:</strong>'+
+        '<ul style="margin:6px 0 0 18px;padding:0">'+
+        faltas.map(f => '<li>'+f+'</li>').join("")+'</ul></div>';
+    } else {
+      porque = '<div class="note" style="border-left-color:var(--pos);margin-top:11px">'+
+        '<strong>Está tudo pronto do lado da aplicação</strong> — endereço, manifesto, ícones '+
+        'e service worker. O Chrome costuma oferecer a instalação depois de a página ser '+
+        'visitada mais do que uma vez; entretanto, o caminho do menu acima funciona sempre.</div>';
+    }
+  }
+
+  return '<div class="card"><h2>Guardar como aplicação</h2>'+ corpo + porque +
+    '<div class="note" style="margin-top:12px"><strong>Instalar não copia nada para lado nenhum.</strong> '+
+    'A aplicação continua sem servidor e sem conta: o que muda é a janela e o ícone. '+
+    'As cópias de segurança continuam a ser suas, em <em>Dados ▾</em>.</div></div>';
 }
 
 /** Escolha e ordem dos cartões do painel. */
@@ -12494,6 +12677,20 @@ const ACOES = {
     });
   },
   prCorr(el){ alterar(() => { S.projecao.aplicarCorrecao = el.dataset.v === "1"; }); },
+
+  /* O convite de instalação só pode ser mostrado a partir de um gesto, e só
+     serve uma vez: usado, o navegador não o volta a dar nesta visita. */
+  appInstalar(){
+    if (!_conviteInstalar){ toast("O navegador ainda não ofereceu a instalação."); render(); return; }
+    const convite = _conviteInstalar;
+    _conviteInstalar = null;
+    convite.prompt();
+    Promise.resolve(convite.userChoice).then((r) => {
+      if (r && r.outcome === "accepted") toast("A instalar — a aplicação vai aparecer no seu aparelho.");
+      else toast("Fica para depois. O botão volta quando o navegador voltar a oferecer.");
+      render();
+    }).catch(() => render());
+  },
   imprimir(){ try { window.print(); } catch(e){ avisarImpressaoFalhou(e); } },
   relatorio(){ abrirRelatorio(true); },
   relatorioAno(){ abrirRelatorio("ano"); },
@@ -15351,6 +15548,14 @@ function aplicarTema(){
   const b = $("#temaBtn");
   b.textContent = S.tema === "dark" ? "☾" : S.tema === "light" ? "☀" : "◐";
   b.title = "Tema: " + (S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático");
+  /* Instalada, a barra do sistema à volta da janela toma esta cor. Sem isto
+     ficava um azul fixo por cima de uma aplicação verde ou bege. */
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta){
+    const cor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+    if (cor) meta.setAttribute("content", cor);
+  }
+  if (typeof aplicarIconeApp === "function") aplicarIconeApp();
 }
 /* Interruptor dos explicadores */
 function aplicarAjudas(){
@@ -15460,6 +15665,27 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
   // Registo opcional: só funciona se existir sw.js junto do ficheiro.
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
+
+/* ---------------------------------------------------------------
+   Guardar como aplicação — ouvintes
+   --------------------------------------------------------------- */
+/* O navegador oferece a instalação quando quer, e a oferta tem de ser
+   guardada: perde-se se não for. Guardada, aparece o botão. */
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  _conviteInstalar = e;
+  if (VIEW === "config") render();   // o cartão passa a ter botão
+});
+window.addEventListener("appinstalled", () => {
+  _instalada = true;
+  _conviteInstalar = null;
+  toast("Instalada. Passa a abrir em janela própria, com os mesmos dados.");
+  if (VIEW === "config") render();
+});
+aplicarIconeApp();
+/* Só faz sentido perguntar pelos requisitos onde eles podem ser cumpridos:
+   aberta de disco, nenhum navegador instala, e a pergunta seria ruído. */
+if (location.protocol.startsWith("http")) verificarRequisitos();
 </script>
 </body>
 </html>
