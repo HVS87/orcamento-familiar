@@ -3302,6 +3302,121 @@ G("arranque por perfil e estados vazios");
   render();
 })();
 
+G("português europeu, e não do Brasil");
+(function(){
+  comExemplo();
+  /* A ferramenta é para quem vive em Portugal, e fala-lhe da sua vida: o IRS,
+     a Segurança Social, o crédito à habitação. Uma palavra do outro lado do
+     Atlântico não é um erro de gramática, mas trai quem escreveu — e num
+     texto que fala de dinheiro, a confiança conta.
+
+     `\b` não serve aqui: em JavaScript não conhece letras acentuadas, e vê
+     fronteira de palavra dentro de «ação» ou «não». As fronteiras são feitas
+     à mão com `\p{L}`, senão o verificador acusa o que não deve. */
+  var A = "(?<!\\p{L})", Z = "(?!\\p{L})";
+  var rx = function(corpo){ return new RegExp(A + "(?:" + corpo + ")" + Z, "iu"); };
+
+  var BRASIL = [
+    [rx("usu[áa]rios?"), "usuário → utilizador"],
+    [rx("arquivos?"), "arquivo → ficheiro"],
+    [rx("telas?"), "tela → ecrã"],
+    [rx("celulares?"), "celular → telemóvel"],
+    [rx("salvar|salve"), "salvar → guardar"],
+    [rx("deletar|delete"), "deletar → apagar"],
+    [rx("digitar|digite"), "digitar → escrever"],
+    [rx("mouse"), "mouse → rato"],
+    [rx("gerenciar|gerenciamento"), "gerenciar → gerir"],
+    [rx("acessar|acesse|acessando"), "acessar → aceder"],
+    [rx("registrar|registrad[oa]s?|registre"), "registrar → registar"],
+    [rx("cadastr[oaei]\\p{L}*"), "cadastro → registo"],
+    [rx("aposentadoria"), "aposentadoria → reforma"],
+    [rx("planilha"), "planilha → folha de cálculo"],
+    [rx("aluguel"), "aluguel → aluguer"],
+    [rx("fatos?"), "fato → facto"],
+    [rx("contatos?"), "contato → contacto"],
+    [rx("ec[oô]n[oô]mic\\p{L}*|gên\\p{L}+|bônus|prêmios?|anônim\\p{L}*|quil[oô]metr\\p{L}*"),
+     "vogal fechada do Brasil (ô/ê) onde o português europeu abre (ó/é)"],
+    [rx("ônibus|trem|geladeira|sorvete|abacaxi"), "termo do Brasil"],
+    [rx("checar"), "checar → verificar"],
+    [/R\$/, "moeda do Brasil"],
+    // «estar + gerúndio» é a marca de sintaxe mais visível
+    [new RegExp(A+"(está|estão|estamos|estou|estava|estavam|estará)\\s+\\p{L}+ndo"+Z, "iu"),
+     "gerúndio progressivo → «a + infinitivo»"],
+  ];
+  var ERROS = [
+    [rx("apartir"), "«apartir» → «a partir»"],
+    [rx("concerteza"), "«concerteza» → «com certeza»"],
+    [rx("derrepente"), "«derrepente» → «de repente»"],
+    [rx("houveram"), "«houveram» → «houve»"],
+    [new RegExp(A+"à\\s+partir"+Z, "iu"), "«à partir» → «a partir»"],
+    [new RegExp(A+"à\\s+cerca\\s+de"+Z, "iu"), "«à cerca de» → «acerca de»"],
+    [/\p{L}  +\p{L}/u, "espaço duplo"],
+    [/\p{L} +[,;:!?](\s|$)/u, "espaço antes de pontuação"],
+    [new RegExp(A+"(\\p{L}+)\\s+\\1"+Z, "iu"), "palavra repetida"],
+    [rx("pra"), "coloquial «pra»"],
+  ];
+
+  /* Só o texto que chega às pessoas: o desenhado, os explicadores e os avisos.
+     O que está no código-fonte não serve para isto — uma frase partida em
+     pedaços por `+` parece ter espaços a dobrar sem os ter no ecrã. */
+  var textos = [];
+  var juntar = function(onde, t){ if (t && String(t).trim()) textos.push([onde, String(t)]); };
+  ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
+    .forEach(function(v){
+      irA(v);
+      juntar(v, q("#app").innerText);
+      qq('[data-act^="sec"]').map(function(b){ return {a:b.dataset.act, v:b.dataset.v}; })
+        .forEach(function(s){
+          irA(v);
+          var b = q('[data-act="'+s.a+'"][data-v="'+s.v+'"]');
+          if (b){ b.click(); juntar(v+"/"+s.v, q("#app").innerText); }
+        });
+    });
+  juntar("cabeçalho", q("header").innerText);
+  juntar("navegação", q("nav.tabs").innerText);
+  /* Os dicionários são `const` no topo do script da aplicação: vivem no
+     ambiente léxico global, não em `window`. Referem-se pelo nome. */
+  [["AJUDAS_VISTA", AJUDAS_VISTA], ["AJUDAS_KPI", AJUDAS_KPI], ["AJUDAS_COL", AJUDAS_COL],
+   ["AJUDAS_CAMPO", AJUDAS_CAMPO], ["AJUDAS_ACAO", AJUDAS_ACAO]].forEach(function(par){
+    /* Título e corpo são frases diferentes: juntam-se por quebra de linha, e
+       não por espaço, senão «Secções das despesas» colado a «Despesas fixas
+       é…» parecia uma palavra repetida. */
+    Object.keys(par[1]).forEach(function(k){ juntar(par[0]+":"+k, [].concat(par[1][k]).join("\n")); });
+  });
+  juntar("aviso curto", AVISO_CURTO);
+  AVISO_LONGO.forEach(function(b){ juntar("aviso:"+b[0], b[0]+": "+b[1]); });
+
+  ok(textos.length > 100, "há texto que chegue para valer a pena verificar", textos.length);
+  var caracteres = textos.reduce(function(s, t){ return s + t[1].length; }, 0);
+  ok(caracteres > 30000, "e caracteres que cheguem", caracteres);
+
+  var brasileirismos = [], erros = [];
+  textos.forEach(function(par){
+    BRASIL.forEach(function(r){ if (r[0].test(par[1])) brasileirismos.push(par[0]+": "+r[1]); });
+    /* As regras de prosa correm linha a linha. O `innerText` junta elementos
+       vizinhos com quebras de linha, e uma etiqueta de separador colada ao
+       título da secção que abre pareceria uma palavra repetida — «Planear» e
+       «Planear despesa» são duas coisas, não uma gaguez. O mesmo vale para as
+       iniciais dos dias da semana, onde dois «Q» seguidos são quarta e quinta. */
+    String(par[1]).split(/\n+/).forEach(function(linha){
+      if (!linha.trim()) return;
+      ERROS.forEach(function(r){ if (r[0].test(linha)) erros.push(par[0]+": "+r[1]+" — «"+linha.slice(0,40)+"»"); });
+    });
+  });
+  ok(brasileirismos.length === 0, "nenhuma palavra ou construção do português do Brasil",
+     brasileirismos.slice(0, 4).join(" ;; "));
+  ok(erros.length === 0, "nenhum erro comum de ortografia ou espaçamento",
+     erros.slice(0, 4).join(" ;; "));
+
+  // O verificador tem de saber acusar, senão está a dizer que sim a tudo
+  ok(BRASIL[0][0].test("O usuário escolhe"), "o verificador apanha «usuário»");
+  ok(!BRASIL[0][0].test("O utilizador escolhe"), "e não confunde com «utilizador»");
+  ok(ERROS[8][0].test("o o mesmo"), "apanha uma palavra repetida");
+  ok(!ERROS[8][0].test("o separador, a ação"), "sem tropeçar em letras acentuadas");
+  ok(BRASIL[21][0].test("está carregando"), "apanha o gerúndio progressivo");
+  ok(!BRASIL[21][0].test("está a carregar"), "e deixa passar a forma portuguesa");
+})();
+
 G("texto do utilizador não parte o desenho");
 (function(){
   comExemplo();
@@ -3331,14 +3446,22 @@ G("texto do utilizador não parte o desenho");
 
   /* Numa janela sem largura — separador oculto, painel recolhido — qualquer
      conteúdo «transborda» zero pixels. Mede-se só quando há o que medir, e
-     diz-se quando não há, em vez de fingir que se mediu. */
+     diz-se quando não há, em vez de fingir que se mediu.
+
+     E mede-se pela pergunta certa: **a página rola mesmo de lado?** A conta
+     `scrollWidth - clientWidth` acusa a barra de deslocação, que num ecrã de
+     320 px são onze pixels de mentira — `clientWidth` desconta-a e
+     `scrollWidth` não. Manda-se rolar e vê-se se andou. */
   if (raiz.clientWidth > 200){
     var transbordos = [];
     ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
       .forEach(function(v){
         irA(v);
-        var x = raiz.scrollWidth - raiz.clientWidth;
-        if (x > 1) transbordos.push(v + ": " + x + "px");
+        var antes = window.scrollX;
+        window.scrollTo(2000, window.scrollY);
+        var andou = window.scrollX;
+        window.scrollTo(antes, window.scrollY);
+        if (andou > 1) transbordos.push(v + ": rolou " + andou + "px");
       });
     eq(transbordos.length, 0, "e a página não passa a andar de lado em vista nenhuma",
        transbordos.join("; "));

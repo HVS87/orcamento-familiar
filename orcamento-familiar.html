@@ -113,6 +113,11 @@ html,body{margin:0;padding:0}
    `break-word` também encolhe a largura mínima, que é o que faz a diferença
    dentro de grelhas e flexbox. */
 #app, .dialog, #tip, #paleta, #folhaAcoes, header{overflow-wrap:anywhere}
+/* Um filho de grelha ou de flexbox não encolhe abaixo do seu conteúdo sem se
+   lhe desfazer o mínimo — é a outra metade da defesa contra conteúdo que não
+   cabe, a par do `overflow-wrap` acima. Preventivo: nos ecrãs medidos, até
+   aos 320 px, nada dependia disto. */
+.grid > *, .ctrl, .ctrl > *{min-width:0}
 body{
   background:var(--bg); color:var(--text);
   /* `system-ui` à frente, para que cada aparelho use o seu próprio tipo de
@@ -860,6 +865,13 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 [data-dispositivo="tablet"] #fitaMeses button{width:34px;padding:4px 2px}
 [data-dispositivo="telemovel"] #fitaMeses,
 [data-dispositivo="tablet"] #fitaMeses{overflow-x:auto;scrollbar-width:none}
+/* As linhas da legenda passaram de `div` a botões para terem teclado, e com
+   isso passaram a ser alvos de dedo a sério — a 22 px de altura, não se
+   acertava. São linhas de largura inteira, onde 40 px chegam e sobram; ao
+   rato ficam como estavam, que aí a precisão é outra. */
+[data-dispositivo="telemovel"] .legend button[data-foco],
+[data-dispositivo="tablet"] .legend button[data-foco]{min-height:40px;padding:4px 6px}
+[data-deitado="telemovel"] .legend button[data-foco]{min-height:34px}
 [data-dispositivo="telemovel"] .pega,
 [data-dispositivo="tablet"] .pega{display:none}
 [data-dispositivo="telemovel"] .ordenar,
@@ -944,8 +956,13 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
   #tabsMovel{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;
     background:var(--surface);border-top:1px solid var(--border);
     padding:4px max(6px,env(safe-area-inset-left)) max(6px,env(safe-area-inset-bottom))}
-  #tabsMovel button{flex:1 1 0;background:none;border:0;color:var(--muted);font-size:11px;
-    display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:9px;cursor:pointer}
+  /* `flex:1 1 0` sozinho não chega: por omissão um item de flexbox não encolhe
+     abaixo do seu conteúdo, e cinco rótulos como «Rendimentos» são muito para
+     um ecrã de 320 px. Com o mínimo desfeito, apertam-se e cortam-se com
+     reticências em vez de alargarem a barra. */
+  #tabsMovel button{flex:1 1 0;min-width:0;background:none;border:0;color:var(--muted);font-size:11px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:9px;
+    cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #tabsMovel button .ticon{font-size:19px}
   #tabsMovel button[aria-selected="true"]{color:var(--accent)}
   /* O botão de registo sobe acima da navegação inferior: pousado em cima
