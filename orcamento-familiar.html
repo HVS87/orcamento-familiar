@@ -5043,7 +5043,8 @@ function aplicarPerfil(agregado, habitacao, regime){
    --------------------------------------------------------------- */
 const AVISO_CURTO =
   "Isto é uma ferramenta gratuita e simples, para uso responsável. "+
-  "Tudo o que calcula são sugestões, a confirmar por si.";
+  "Tudo o que calcula são sugestões, a confirmar por si. "+
+  "Os dados ficam só neste aparelho — guarde cópias.";
 
 const AVISO_LONGO = [
   ["O que isto é", "Uma ferramenta gratuita e simples de cálculo, feita para ajudar "+
@@ -5058,14 +5059,25 @@ const AVISO_LONGO = [
   ["Responsabilidade", "O autor não se responsabiliza pelo impacto do uso desta "+
    "ferramenta, nem por decisões tomadas a partir dos seus resultados. As "+
    "decisões são suas."],
-  ["Os seus dados", "Ficam neste navegador, neste aparelho. Não há servidor nem "+
-   "conta, e nada é enviado para lado nenhum — o que também quer dizer que as "+
-   "cópias de segurança são da sua conta, em <em>Dados ▾</em>."],
+  ["Os seus dados ficam só aqui", "Tudo o que escrever é guardado <strong>apenas "+
+   "neste navegador, neste aparelho</strong>. Não há servidor, não há conta, e nada "+
+   "é enviado para lado nenhum — nem para o autor, nem para ninguém. É por isso que "+
+   "a ferramenta funciona sem rede, e é também por isso que <strong>ninguém lhe pode "+
+   "devolver os dados</strong> se eles desaparecerem daqui."],
+  ["Guardar cópias é consigo", "Como não há servidor, <strong>não há recuperação "+
+   "possível</strong>. Limpar os dados de navegação, usar uma janela privada, mudar "+
+   "de navegador, de computador ou de telemóvel, ou desinstalar a aplicação, leva "+
+   "consigo o orçamento inteiro — e não há «esqueci-me» que o traga de volta. "+
+   "<strong>Exporte uma cópia com regularidade</strong>, em <em>Dados ▾ → Exportar</em>, "+
+   "e guarde o ficheiro num sítio seguro. Se a cópia for para a nuvem ou para o "+
+   "e-mail, use a <em>cópia cifrada</em>: leva o orçamento todo lá dentro.", "warn"],
 ];
 
 /** O aviso longo em blocos, para o diálogo e para as Definições. */
-const avisoLongoHTML = () => AVISO_LONGO.map(([t, txt]) =>
-  '<div class="note" style="margin-bottom:9px"><strong>'+esc(t)+':</strong> '+txt+'</div>').join("");
+const avisoLongoHTML = () => AVISO_LONGO.map(([t, txt, realce]) =>
+  '<div class="note" style="margin-bottom:9px'+
+    (realce ? ';border-left-color:var(--'+realce+')' : "")+'">'+
+  '<strong>'+esc(t)+':</strong> '+txt+'</div>').join("");
 
 /**
  * Mostra o aviso e só corre `aoAceitar` se for aceite. Fechar pelo lado de

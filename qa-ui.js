@@ -3329,15 +3329,22 @@ G("texto do utilizador não parte o desenho");
      "o texto do utilizador pode partir palavras que não caibam",
      getComputedStyle(q("#app")).overflowWrap);
 
-  var transbordos = [];
-  ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
-    .forEach(function(v){
-      irA(v);
-      var x = raiz.scrollWidth - raiz.clientWidth;
-      if (x > 1) transbordos.push(v + ": " + x + "px");
-    });
-  eq(transbordos.length, 0, "e a página não passa a andar de lado em vista nenhuma",
-     transbordos.join("; "));
+  /* Numa janela sem largura — separador oculto, painel recolhido — qualquer
+     conteúdo «transborda» zero pixels. Mede-se só quando há o que medir, e
+     diz-se quando não há, em vez de fingir que se mediu. */
+  if (raiz.clientWidth > 200){
+    var transbordos = [];
+    ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
+      .forEach(function(v){
+        irA(v);
+        var x = raiz.scrollWidth - raiz.clientWidth;
+        if (x > 1) transbordos.push(v + ": " + x + "px");
+      });
+    eq(transbordos.length, 0, "e a página não passa a andar de lado em vista nenhuma",
+       transbordos.join("; "));
+  } else {
+    ok(true, "transbordo não medido: a janela não tem largura", raiz.clientWidth + "px");
+  }
   comExemplo();
 })();
 
@@ -3425,6 +3432,8 @@ G("aviso de uso responsável ao criar um perfil");
   ok(/gratuita e simples/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é simples e gratuita");
   ok(/uso responsável/i.test(texto), "e que se destina a uso responsável");
   ok(/confirmar por si/i.test(texto), "e que os números são para confirmar");
+  ok(/só neste aparelho/i.test(texto), "e que os dados ficam só neste aparelho");
+  ok(/guarde cópias/i.test(texto), "pedindo cópias já na versão curta");
 
   clicar('[data-act="perfilAplicar"]');
   var d = q("#modalHost .dialog");
@@ -3438,7 +3447,28 @@ G("aviso de uso responsável ao criar um perfil");
        "e diz junto de quem — não deixa a verificação como boa intenção vaga");
     ok(/não se responsabiliza/i.test(t), "declina responsabilidade pelo impacto do uso");
     ok(/decisões são suas/i.test(t), "e devolve a decisão a quem a toma");
-    ok(/neste navegador/i.test(t), "e aproveita para dizer onde ficam os dados");
+
+    /* Onde ficam os dados é a pergunta que ninguém faz a tempo. Sem servidor
+       não há quem os devolva: limpar o navegador, uma janela privada, mudar
+       de aparelho — e o orçamento inteiro foi-se. Vale dizê-lo antes, e
+       dizer também o que fazer quanto a isso. */
+    ok(/apenas neste navegador, neste aparelho/i.test(t),
+       "diz que os dados ficam apenas neste aparelho");
+    ok(/nada é enviado para lado nenhum/i.test(t), "e que nada sai daqui");
+    ok(/ninguém lhe pode devolver os dados/i.test(t),
+       "avisa que ninguém os pode devolver");
+    ok(/não há recuperação possível/i.test(t), "porque não há recuperação possível");
+    ok(/limpar os dados de navegação/i.test(t) && /janela privada/i.test(t) &&
+       /mudar de navegador/i.test(t) && /desinstalar/i.test(t),
+       "enumera o que os leva: limpar o navegador, janela privada, mudar de aparelho, desinstalar");
+    ok(/exporte uma cópia com regularidade/i.test(t),
+       "e pede cópias com regularidade, que é a única defesa que existe");
+    ok(/Dados ▾/i.test(t) && /Exportar/i.test(t), "dizendo onde se exporta");
+    ok(/cifrada/i.test(t), "e lembra a cópia cifrada para quem a mandar para fora");
+
+    var realces = qq("#modalHost .dialog .note").map(function(n){
+      return getComputedStyle(n).borderLeftColor; });
+    ok(new Set(realces).size > 1, "o aviso das cópias destaca-se dos outros blocos");
   }
 
   // Cancelar não cria nada, e não faz perder a escolha já feita
