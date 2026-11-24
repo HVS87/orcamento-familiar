@@ -24,23 +24,37 @@
   --bg:#f4f6fa; --surface:#ffffff; --surface-2:#eef1f7; --surface-3:#e3e8f0;
   --border:#d8dee9; --text:#131a26; --muted:#5c6a80;
   --accent:#2f5fd0; --accent-soft:#e3ebfd;
-  --pos:#0f7a4d; --pos-soft:#dff3e8;
-  --neg:#c0392b;
+  /* Positivo verde-azulado e negativo vermelho-ferrugem: escolhidos para se
+     distinguirem também em protanopia, deuteranopia e tritanopia (simulação
+     de Machado et al., 2009) — o verde e o vermelho de antes ficavam a 11,8
+     de distância CIELAB em protanopia, quase a mesma cor. Agora a menor
+     distância, nas três, é 33. E nunca vão sozinhos: levam sempre o sinal. */
+  --pos:#006c70; --pos-soft:#d9efef;
+  --neg:#ab3e2b; --neg-soft:#f8e3de;
   /* Âmbar escurecido: a #b5730a dava 3,87 sobre branco e 3,62 sobre o creme
      da paleta Areia — abaixo dos 4,5 que a norma pede para texto corrido, e
      o aviso é justamente o que tem de se ler. A #996200 dá 5,12 e 4,79. */
   --warn:#996200; --warn-soft:#fdf0d8;
   --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.07);
   --radius:14px;
-  --accent-forte:var(--accent);
-  --border-forte:color-mix(in srgb,var(--text) 24%,transparent);
+  /* Texto sobre o acento, o positivo e o negativo: branco no claro, quase
+     preto no escuro — o branco sobre um acento claro dava 2,3 de razão. */
+  --on-accent:#ffffff; --on-pos:#ffffff; --on-neg:#ffffff;
+  /* O acento para texto sobre fundos tonais: um pouco mais escuro no claro */
+  --accent-forte:color-mix(in srgb,var(--accent) 80%,#000);
+  /* Contornos de campos e fichas: 3:1 contra a superfície, como pede a norma
+     para limites de componentes; o --border fica para as divisórias. */
+  --border-forte:color-mix(in srgb,var(--text) 56%,var(--surface));
 }
 html[data-theme="dark"]{
   --bg:#0c1119; --surface:#141b26; --surface-2:#1b2431; --surface-3:#243044;
   --border:#2a3547; --text:#e8edf5; --muted:#95a3b8;
   --accent:#7aa2ff; --accent-soft:#1c2942;
-  --pos:#4ade9b; --pos-soft:#12301f;
-  --neg:#ff8a7a;
+  --pos:#00a5ab; --pos-soft:#0f2e2f;
+  --neg:#ff5e29; --neg-soft:#3a1a10;
+  --on-accent:#0b1018; --on-pos:#031d1e; --on-neg:#230800;
+  --accent-forte:var(--accent);
+  --border-forte:color-mix(in srgb,var(--text) 45%,var(--surface));
   --warn:#f0b64b; --warn-soft:#33270e;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
 }
@@ -49,8 +63,11 @@ html[data-theme="dark"]{
     --bg:#0c1119; --surface:#141b26; --surface-2:#1b2431; --surface-3:#243044;
     --border:#2a3547; --text:#e8edf5; --muted:#95a3b8;
     --accent:#7aa2ff; --accent-soft:#1c2942;
-    --pos:#4ade9b; --pos-soft:#12301f;
-    --neg:#ff8a7a;
+    --pos:#00a5ab; --pos-soft:#0f2e2f;
+    --neg:#ff5e29; --neg-soft:#3a1a10;
+    --on-accent:#0b1018; --on-pos:#031d1e; --on-neg:#230800;
+    --accent-forte:var(--accent);
+    --border-forte:color-mix(in srgb,var(--text) 45%,var(--surface));
     --warn:#f0b64b; --warn-soft:#33270e;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
   }
@@ -69,13 +86,13 @@ html[data-paleta="ameixa"]{--accent:#7a3fc4;--accent-soft:#efe6fa;--bg:#f7f4fa}
 html[data-paleta="grafite"]{--accent:#44546c;--accent-soft:#e7ebf1;--bg:#f5f6f8}
 /* Areia — bege quente até nas superfícies e no texto */
 html[data-paleta="areia"]{--bg:#f4eee1;--surface:#fbf7ee;--surface-2:#f1e9d8;--surface-3:#e7dcc4;
-  --border:#d8ccb2;--text:#2b241a;--muted:#7c6f59;--accent:#8a6134;--accent-soft:#f0e2ca}
+  --border:#d8ccb2;--text:#2b241a;--muted:#695c47;--accent:#8a6134;--accent-soft:#f0e2ca}
 /* Pastel — tons suaves e rosados */
 html[data-paleta="pastel"]{--bg:#faf4f7;--surface:#fffdfe;--surface-2:#f7ecf2;--surface-3:#efdfe8;
   /* Acento um tom abaixo do rosa original: a #c26a96 dava 3,58 sobre a
      superfície, e o acento é cor de texto em ligações e números. Continua
      rosa; passa a ler-se. */
-  --border:#e4cfda;--muted:#7c6a75;--accent:#ad527f;--accent-soft:#fae5ef}
+  --border:#e4cfda;--muted:#6a5864;--accent:#ad527f;--accent-soft:#fae5ef}
 /* Escuro forçado */
 html[data-theme="dark"][data-paleta="oceano"]{--bg:#091417;--surface:#101d21;--surface-2:#162629;--surface-3:#1f3237;--border:#2b444b;--accent:#4fc8dc;--accent-soft:#123037}
 html[data-theme="dark"][data-paleta="floresta"]{--bg:#0b130d;--surface:#121c14;--surface-2:#18261b;--surface-3:#213225;--border:#2f4433;--accent:#6fd08c;--accent-soft:#143120}
@@ -146,23 +163,23 @@ a{color:var(--accent)}
 .btn{
   display:inline-flex;align-items:center;gap:6px;
   border:1px solid var(--border); background:var(--surface-2);
-  border-radius:9px; padding:7px 12px; cursor:pointer;
+  border-radius:999px; padding:7px 14px; cursor:pointer;
   font-size:13.5px; font-weight:550; white-space:nowrap;
   transition:background .12s,border-color .12s,transform .06s;
 }
 .btn:hover{background:var(--surface-3)}
 .btn:active{transform:translateY(1px)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.ghost{background:transparent}
 .btn.danger{color:var(--neg);border-color:var(--neg)}
-.btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
+.btn.sm{padding:4px 11px;font-size:12.5px;border-radius:999px}
 .btn.icon{padding:7px 9px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 
 input,select,textarea{
   font:inherit; color:var(--text); background:var(--surface);
-  border:1px solid var(--border); border-radius:9px; padding:7px 10px; width:100%;
+  border:1px solid var(--border-forte); border-radius:10px; padding:7px 10px; width:100%;
 }
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 input[type=checkbox]{width:auto}
@@ -259,14 +276,14 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
 
 /* Interruptor de segmentos */
-.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface-2)}
+.seg{display:inline-flex;border:1px solid var(--border-forte);border-radius:999px;overflow:hidden;background:var(--surface-2)}
 .seg button{
   background:none;border:0;padding:5px 11px;cursor:pointer;font-size:12.5px;font-weight:600;
   color:var(--muted);border-right:1px solid var(--border);
 }
 .seg button:last-child{border-right:0}
 .seg button:hover{background:var(--surface-3);color:var(--text)}
-.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 
 /* Sugestão flutuante dos gráficos */
 #tip{
@@ -459,7 +476,7 @@ svg.mini{width:70px;height:20px;display:block}
 /* Ordem na lista de amortização */
 .ordem{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
   border-radius:50%;background:var(--surface-3);color:var(--muted);font-size:11.5px;font-weight:650}
-.ordem.primeiro{background:var(--accent);color:#fff}
+.ordem.primeiro{background:var(--accent);color:var(--on-accent)}
 
 /* Fita de meses no cabeçalho */
 #fitaMeses{display:flex;gap:3px;align-items:flex-end}
@@ -525,7 +542,7 @@ svg.mini{width:70px;height:20px;display:block}
 .passo.feito{background:color-mix(in srgb,var(--pos) 8%,var(--surface-2));border-color:color-mix(in srgb,var(--pos) 30%,transparent)}
 .passo .pn{flex:0 0 22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;
   font-size:11.5px;font-weight:700;background:var(--surface-3);color:var(--muted)}
-.passo.feito .pn{background:var(--pos);color:#fff}
+.passo.feito .pn{background:var(--pos);color:var(--on-pos)}
 .passo .pc{flex:1 1 auto;min-width:0}
 .passo .pt{font-size:13.5px;font-weight:600}
 .passo .pd{font-size:12px;color:var(--muted);margin-top:2px}
@@ -558,7 +575,7 @@ tr.diaCabec .dv{float:right;font-variant-numeric:tabular-nums}
    O custo de registar é o que decide se os movimentos se mantêm em dia. */
 #botaoRapido{position:fixed;right:18px;bottom:18px;z-index:60;width:54px;height:54px;
   border-radius:999px;border:0;cursor:pointer;font-size:27px;line-height:1;
-  background:var(--accent);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.28);
+  background:var(--accent);color:var(--on-accent);box-shadow:0 6px 20px rgba(0,0,0,.28);
   transition:transform .14s ease,box-shadow .14s ease}
 #botaoRapido:hover{transform:translateY(-2px);box-shadow:0 9px 26px rgba(0,0,0,.34)}
 #botaoRapido:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
@@ -583,7 +600,7 @@ tr.diaCabec .dv{float:right;font-variant-numeric:tabular-nums}
 /* Emblema de pendências: um ponto pequeno com o número */
 .destino, .ficha{position:relative}
 .emblema{position:absolute;top:3px;right:4px;min-width:15px;height:15px;padding:0 3px;
-  border-radius:999px;background:var(--neg);color:#fff;font-size:9.5px;font-weight:700;
+  border-radius:999px;background:var(--neg);color:var(--on-neg);font-size:9.5px;font-weight:700;
   line-height:15px;text-align:center;pointer-events:none;box-shadow:0 0 0 2px var(--surface)}
 /* Rosto de um membro: emoji, nome e a cor da pessoa numa pastilha */
 .rosto{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap;
@@ -1190,8 +1207,8 @@ ul.proximos .pn{display:flex;align-items:center;gap:8px;min-width:0;overflow:hid
 .boasVindas .passos li .pn{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
   background:var(--border);color:var(--text);font-size:13px}
 .boasVindas .passos li[aria-current="step"]{color:var(--text);background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
-.boasVindas .passos li[aria-current="step"] .pn{background:var(--accent);color:var(--on-accent, #fff)}
-.boasVindas .passos li.feito .pn{background:var(--pos);color:var(--on-pos, #fff)}
+.boasVindas .passos li[aria-current="step"] .pn{background:var(--accent);color:var(--on-accent)}
+.boasVindas .passos li.feito .pn{background:var(--pos);color:var(--on-pos)}
 .boasVindas .tituloPasso{font-size:16px;margin:0 0 12px}
 .boasVindas .tituloPasso:focus{outline:none}
 .outrasVias{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
@@ -1200,6 +1217,19 @@ ul.proximos .pn{display:flex;align-items:center;gap:8px;min-width:0;overflow:hid
 .comoOrganiza > summary{cursor:pointer;font-weight:600;color:var(--accent-forte);font-size:13.5px;min-height:32px;display:flex;align-items:center}
 label.chk{display:inline-flex;align-items:center;gap:8px;min-height:40px;cursor:pointer}
 label.chk input{width:18px;height:18px}
+
+/* ---------- Fase visual: notas curtas, ícones nos botões de linha ---------- */
+.note.recolhida{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.saberMais{display:inline-flex;align-items:center;min-height:32px;margin:2px 0 6px;padding:0 2px;border:0;background:none;
+  color:var(--accent-forte);font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.saberMais:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media print{ .note.recolhida{display:block;-webkit-line-clamp:unset;overflow:visible} }
+.btn.icon svg{width:16px;height:16px;flex:0 0 auto}
+.btn.sm.icon{padding:5px;min-width:32px;min-height:32px;justify-content:center}
+.linhaMenu.perigo{color:var(--neg)}
+
+.dicaTxt{display:inline-flex;align-items:flex-start;gap:8px}
+.dicaTxt svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:var(--warn)}
 </style>
 </head>
 <body>
@@ -2645,7 +2675,7 @@ const AJUDAS_ACAO = {
   relatorio:  ["Relatório mensal", "Uma folha desenhada para imprimir ou guardar em PDF: indicadores do mês, fluxo do dinheiro, desvios, despesa por categoria, património e objetivos.", ""],
   perfilAgregado:["Quem vive na casa", "Determina os membros e as despesas do dia a dia. A habitação escolhe-se à parte, porque é independente disto.", ""],
   perfilHabitacao:["Onde vive", "Arrendar traz a renda; casa própria traz o condomínio, a manutenção e os seguros. Combina-se com qualquer agregado.", ""],
-  perfilRegime:["Casa paga ou com empréstimo", "Com empréstimo acrescenta-se a prestação e o seguro de vida. Para ver os juros separados do capital, acrescente depois o crédito no separador respetivo.", ""],
+  perfilRegime:["Casa paga ou com empréstimo", "Com empréstimo acrescenta-se a prestação e o seguro de vida. Para ver os juros separados do capital, acrescente depois o crédito na página respetivo.", ""],
   perfilAplicar:["Começar assim", "Mostra primeiro o aviso de uso responsável e, aceite este, semeia membros, despesas fixas típicas e limites. São valores de exemplo, para ajustar — e pode anular logo a seguir.", ""],
   movSel:     ["Selecionar movimento", "Marque vários para lhes atribuir a mesma categoria, ou eliminá-los de uma vez.", ""],
   movSelTodos:["Selecionar todos", "Marca ou desmarca todos os movimentos visíveis com os filtros atuais.", ""],
@@ -2662,7 +2692,7 @@ const AJUDAS_ACAO = {
   tutorialIniciar: ["Visita guiada", "Um passeio opcional por todos os módulos — do painel às estratégias — com um passo por vista. Sai-se com Esc; sem dados, carrega o exemplo primeiro.", ""],
   tutorialSeguinte:["Passo seguinte", "Avança na visita guiada. A seta direita do teclado faz o mesmo.", ""],
   tutorialAnterior:["Passo anterior", "Recua na visita guiada. A seta esquerda do teclado faz o mesmo.", ""],
-  tutorialSair:   ["Sair da visita", "Termina a visita guiada. Pode retomá-la a qualquer momento no botão 🎓 do cabeçalho.", ""],
+  tutorialSair:   ["Sair da visita", "Termina a visita guiada. Pode retomá-la a qualquer momento no menu da ajuda (?), no cabeçalho.", ""],
   appInstalar:    ["Instalar", "Guarda a ferramenta como aplicação: ícone próprio, janela sem barra de endereço e arranque sem rede. Os dados são os mesmos, no mesmo sítio — instalar não copia nada para lado nenhum.", ""],
   demoApagar:     ["Apagar o exemplo", "Elimina a família de demonstração e devolve o ecrã de boas-vindas, com os pontos de partida. Guarda o tema e as preferências, e dá seis segundos para anular.", ""],
   demoFicar:      ["Continuar a explorar", "Fica com o exemplo mais um pouco. O lembrete no painel mostra como começar do zero quando quiser.", ""],
@@ -5749,7 +5779,7 @@ function detetarRecorrencias(){
 const DICAS_PASSO = [
   {k:"visita", falta: () => !S.tutorialVisto,
    txt:"Novo por aqui? A visita guiada percorre todos os módulos em dois minutos.",
-   btn:"🎓 Começar a visita", act:"tutorialIniciar"},
+   btn:"Começar a visita", act:"tutorialIniciar"},
   /* Enquanto os dados forem a demonstração intacta, o lembrete fica: é
      fácil esquecer que aqueles números não são de ninguém, e pior é
      descobri-lo depois de tomar decisões a olhar para eles. */
@@ -5779,9 +5809,9 @@ function dicaProximoPasso(){
   const acao = d.act
     ? '<button class="btn sm primary" data-act="'+esc(d.act)+'">'+esc(d.btn)+'</button>'
     : '<button class="btn sm primary" data-act="ir" data-view="'+esc(d.vista)+'">'+esc(d.btn)+'</button>';
-  return '<div class="dica no-print"><span>💡 '+esc(d.txt)+'</span>'+
+  return '<div class="dica no-print"><span class="dicaTxt">'+ic("lampada")+'<span>'+esc(d.txt)+'</span></span>'+
     '<span style="white-space:nowrap">'+acao+' '+
-    '<button class="btn sm ghost" data-act="dicaFechar" data-k="'+esc(d.k)+'" aria-label="Dispensar sugestão">✕</button></span></div>';
+    '<button class="btn sm ghost icon" data-act="dicaFechar" data-k="'+esc(d.k)+'" aria-label="Dispensar sugestão">'+ic("fechar")+'</button></span></div>';
 }
 
 function viewPainel(){
@@ -5816,7 +5846,7 @@ function viewPainel(){
   const botaoComparar =
     '<div class="no-print" style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
     '<button class="btn sm '+(comparar ? "" : "ghost")+'" data-act="compararAlternar" aria-pressed="'+comparar+'">'+
-    '⇄ vs. '+esc(mesLabel(mesH, true))+'</button></div>';
+    ic("comparar")+'vs. '+esc(mesLabel(mesH, true))+'</button></div>';
   const kpis = botaoComparar +
     '<div class="grid g4">'+
       kpiTend("Rendimento", eur(rend),
@@ -6771,7 +6801,7 @@ function cartaoDefice(){
     '<div class="card-head"><div class="t"><h2>Resolver o défice</h2>'+
     '<div class="sub">O mês aponta para fechar '+esc(eur(d.saldo))+'. Estas são as alavancas que existe, '+
     'e quanto vale cada uma.</div></div>'+
-    '<span class="tag" style="background:var(--neg);color:#fff">faltam '+esc(eur(d.falta))+'</span></div>'+
+    '<span class="tag" style="background:var(--neg);color:var(--on-neg)">faltam '+esc(eur(d.falta))+'</span></div>'+
     '<div class="alertas">'+d.alavancas.map(a =>
       '<div class="alerta" style="cursor:default">'+
         '<span class="ai" style="color:'+(a.aviso ? "var(--warn)" : "var(--accent)")+'" aria-hidden="true">'+
@@ -7918,8 +7948,8 @@ function viewMovimentos(){
       '<td class="r num '+(isR ? "pos" : "neg")+'" data-lbl="Valor" data-edit="valor" data-id="'+esc(m.id)+'" '+
         'title="Clique duplo para editar">'+(isR ? "+" : "−")+esc(eur(v))+'</td>'+
       '<td class="r no-print acoesLinha" style="white-space:nowrap">'+
-        '<button class="btn sm ghost" data-act="movDuplicar" data-id="'+esc(m.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="movEditar" data-id="'+esc(m.id)+'" title="Editar">✎</button> '+
-        '<button class="btn sm ghost" data-act="movApagar" data-id="'+esc(m.id)+'" title="Eliminar">✕</button></td>'+
+        '<button class="btn sm ghost icon" data-act="movDuplicar" data-id="'+esc(m.id)+'" title="Duplicar" aria-label="Duplicar">'+ic("copiar")+'</button> '+'<button class="btn sm ghost icon" data-act="movEditar" data-id="'+esc(m.id)+'" title="Editar" aria-label="Editar">'+ic("editar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="movApagar" data-id="'+esc(m.id)+'" title="Eliminar" aria-label="Eliminar">'+ic("apagar")+'</button></td>'+
     '</tr>';
   }).join("");
 
@@ -7984,7 +8014,7 @@ function cartaoRecorrencias(){
         '<span class="t2">'+esc(eur(r.valor))+'/mês em média · visto em '+r.meses+' meses</span></span>'+
         '<span class="av" style="display:flex;gap:6px">'+
           '<button class="btn sm primary" data-act="recorrenciaCriar" data-k="'+esc(r.chave)+'">Criar rubrica</button>'+
-          '<button class="btn sm ghost" data-act="recorrenciaIgnorar" data-k="'+esc(r.chave)+'" aria-label="Ignorar">✕</button>'+
+          '<button class="btn sm ghost icon" data-act="recorrenciaIgnorar" data-k="'+esc(r.chave)+'" aria-label="Ignorar">'+ic("fechar")+'</button>'+
         '</span></div>').join("")+'</div></div>';
 }
 
@@ -8225,8 +8255,8 @@ function fichaRendimento(rd){
       '<td class="r num">'+esc(eur(parseNum(c.valor)))+'</td>'+
       '<td class="r num"><strong>'+esc(eur(v))+'</strong></td>'+
       '<td class="r no-print" style="white-space:nowrap">'+
-        '<button class="btn sm ghost" data-act="compEditar" data-rd="'+esc(rd.id)+'" data-id="'+esc(c.id)+'">✎</button> '+
-        '<button class="btn sm ghost" data-act="compApagar" data-rd="'+esc(rd.id)+'" data-id="'+esc(c.id)+'">✕</button></td>'+
+        '<button class="btn sm ghost icon" data-act="compEditar" data-rd="'+esc(rd.id)+'" data-id="'+esc(c.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="compApagar" data-rd="'+esc(rd.id)+'" data-id="'+esc(c.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td>'+
     '</tr>';
   }).join("");
 
@@ -8251,8 +8281,8 @@ function fichaRendimento(rd){
       '<div class="no-print" style="white-space:nowrap">'+
         '<button class="btn sm" data-act="compNovo" data-rd="'+esc(rd.id)+'">+ Componente</button> '+
         '<button class="btn sm ghost" data-act="rdToggle" data-id="'+esc(rd.id)+'" title="Ativar ou desativar">'+(rd.ativo === false ? "○" : "●")+'</button> '+
-        '<button class="btn sm ghost" data-act="rdEditar" data-id="'+esc(rd.id)+'">✎</button> '+
-        '<button class="btn sm ghost" data-act="rdApagar" data-id="'+esc(rd.id)+'">✕</button></div></div>'+
+        '<button class="btn sm ghost icon" data-act="rdEditar" data-id="'+esc(rd.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="rdApagar" data-id="'+esc(rd.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></div></div>'+
     (abertoAgora || emEdicao
       ? (emEdicao ? formComponente(rd) : "") + corpo +
         '<div class="grid g4" style="margin-top:14px">'+
@@ -8520,8 +8550,8 @@ function viewPlano(){
           '<td class="r num"><strong>'+esc(eur(recMensal(r)))+'</strong></td>'+
           '<td class="r no-print acoesLinha" style="white-space:nowrap">'+
             '<button class="btn sm ghost" data-act="recToggle" data-id="'+esc(r.id)+'" title="Ativar/desativar">'+(r.ativo === false ? "○" : "●")+'</button> '+
-            '<button class="btn sm ghost" data-act="recDuplicar" data-id="'+esc(r.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="recEditar" data-id="'+esc(r.id)+'" title="Editar">✎</button> '+
-            '<button class="btn sm ghost" data-act="recApagar" data-id="'+esc(r.id)+'" title="Eliminar">✕</button></td>'+
+            '<button class="btn sm ghost icon" data-act="recDuplicar" data-id="'+esc(r.id)+'" title="Duplicar" aria-label="Duplicar">'+ic("copiar")+'</button> '+'<button class="btn sm ghost icon" data-act="recEditar" data-id="'+esc(r.id)+'" title="Editar" aria-label="Editar">'+ic("editar")+'</button> '+
+            '<button class="btn sm ghost icon" data-act="recApagar" data-id="'+esc(r.id)+'" title="Eliminar" aria-label="Eliminar">'+ic("apagar")+'</button></td>'+
         '</tr>';
       }).join("")+
       '</tbody><tfoot><tr><td colspan="6">Total mensal ativo</td>'+
@@ -8533,7 +8563,7 @@ function viewPlano(){
   const totalJuros = prestacoes.reduce((s,c) => { const x = parcelaMes(c, MES); return s + (x ? x.juros : 0); }, 0);
   const totalCapital = prestacoes.reduce((s,c) => { const x = parcelaMes(c, MES); return s + (x ? x.capital : 0); }, 0);
   const notaCredito = prestacoes.length
-    ? '<div class="note" style="margin-top:12px">As prestações de crédito ('+esc(eur(totalEncargos))+'/mês) vêm do separador '+
+    ? '<div class="note" style="margin-top:12px">As prestações de crédito ('+esc(eur(totalEncargos))+'/mês) vêm da página '+
       '<strong>Créditos</strong> e entram na despesa prevista decompostas: '+esc(eur(totalJuros))+' de juros, '+
       esc(eur(totalCapital))+' de amortização de capital'+
       (totalEncargos - totalJuros - totalCapital > 0.005
@@ -8557,7 +8587,7 @@ function viewPlano(){
       kpi("Saldo previsto", eur(p.saldo), p.saldo >= 0 ? "Disponível para poupar" : "Plano deficitário", p.saldo >= 0 ? "accent" : "bad")+
     '</div>'+
     bloco("despesa","Despesas")+notaCredito+notaAtivos+
-    '<div class="note no-print" style="margin-top:10px">Os rendimentos vivem no separador '+
+    '<div class="note no-print" style="margin-top:10px">Os rendimentos vivem na página '+
     '<strong>Rendimentos</strong>, onde cada fonte se decompõe em vencimento, subsídios, prémios e afins, '+
     'com o respetivo tratamento fiscal.</div>'+
   '</div>';
@@ -9061,8 +9091,8 @@ function viewPlanear(){
         '<div class="no-print" style="white-space:nowrap">'+
           '<span class="seg" style="margin-right:6px">'+HORIZONTES_PLANEIO.map(h =>
             '<button data-act="planHorizonte" data-id="'+esc(p.id)+'" data-v="'+h+'" aria-pressed="'+(h === p.horizonte)+'">'+h+'m</button>').join("")+'</span>'+
-          '<button class="btn sm ghost" data-act="planEditar" data-id="'+esc(p.id)+'" title="Editar">✎</button> '+
-          '<button class="btn sm ghost" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar">✕</button>'+
+          '<button class="btn sm ghost icon" data-act="planEditar" data-id="'+esc(p.id)+'" title="Editar" aria-label="Editar">'+ic("editar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar" aria-label="Eliminar">'+ic("apagar")+'</button>'+
         '</div></div>'+
       (ver ? '<div style="font-size:13px;color:'+corG(ver.grau)+'">'+esc(ver.txt)+'</div>' : "")+
       faixa + avisoMarcado + linhaMarcada + blocoReserva + acoes +
@@ -9079,7 +9109,7 @@ function viewPlanear(){
         '<td class="r num">'+esc(eur(parseNum(p.valor)))+'</td>'+
         '<td>'+esc((p.feitaEm || "").split("-").reverse().join("/"))+'</td>'+
         '<td class="r no-print"><button class="btn sm ghost" data-act="planVerMov" data-id="'+esc(p.id)+'">Ver movimento</button> '+
-        '<button class="btn sm ghost" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar">✕</button></td></tr>').join("")+
+        '<button class="btn sm ghost icon" data-act="planApagar" data-id="'+esc(p.id)+'" title="Eliminar" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>').join("")+
       '</tbody></table></div></div>' : "";
 
   const vazio = !pendentes.length && !feitas.length
@@ -9215,8 +9245,8 @@ function viewObjetivos(){
           : "Sem prazo definido")+'</div></div>'+
         '<div class="no-print" style="white-space:nowrap">'+
           '<button class="btn sm" data-act="objContrib" data-id="'+esc(o.id)+'">+ Reforçar</button> '+
-          '<button class="btn sm ghost" data-act="objEditar" data-id="'+esc(o.id)+'">✎</button> '+
-          '<button class="btn sm ghost" data-act="objApagar" data-id="'+esc(o.id)+'">✕</button>'+
+          '<button class="btn sm ghost icon" data-act="objEditar" data-id="'+esc(o.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="objApagar" data-id="'+esc(o.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button>'+
         '</div></div>'+
       '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+
         anelProgresso(prog, o.cor || "var(--pos)", 74)+
@@ -10749,7 +10779,7 @@ function cartaoCenarios(simAtual){
       '<td class="r num muted">'+esc(eur(sim.real))+'</td>'+
       '<td class="r no-print" style="white-space:nowrap">'+
         '<button class="btn sm ghost" data-act="cenarioAplicar" data-i="'+i+'" title="Repor estes parâmetros">↺</button> '+
-        '<button class="btn sm ghost" data-act="cenarioApagar" data-i="'+i+'">✕</button></td></tr>';
+        '<button class="btn sm ghost icon" data-act="cenarioApagar" data-i="'+i+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>';
   }).join("");
 
   return '<div style="margin-top:18px"><div class="barlbl">'+
@@ -11012,7 +11042,7 @@ function viewAtivos(){
     '(automóveis depreciam por omissão '+esc(pct(-CLASSES.automovel.ret))+' ao ano). '+
     (eImovel ? 'O <strong>VPT</strong> serve para calcular o IMI, que entra no orçamento. ' : "")+
     (eVeiculo ? 'O <strong>IUC</strong> é o valor anual do imposto, que entra no orçamento. ' : "")+
-    'Os encargos de posse e os rendimentos acrescentam-se depois em cada ativo; os créditos associam-se no separador Créditos.</div>'+
+    'Os encargos de posse e os rendimentos acrescentam-se depois em cada ativo; os créditos associam-se na página Créditos.</div>'+
     '</div>';
 
   const b = balanco();
@@ -11086,9 +11116,9 @@ function viewAtivos(){
         '<td class="r num" data-lbl="Capital próprio"><strong>'+esc(eur(val - dividaA))+'</strong></td>'+
         '<td class="r num '+(fx.liquido >= 0 ? "pos" : "neg")+'" data-lbl="Fluxo/mês">'+(fx.liquido >= 0 ? "+" : "")+esc(eur(fx.liquido))+'</td>'+
         '<td class="r no-print" style="white-space:nowrap">'+
-          '<button class="btn sm ghost" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor">↻</button> '+
-          '<button class="btn sm ghost" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
-          '<button class="btn sm ghost" data-act="patApagar" data-id="'+esc(a.id)+'">✕</button></td>'+
+          '<button class="btn sm ghost icon" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor" aria-label="Atualizar valor">'+ic("atualizar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar" aria-label="Duplicar">'+ic("copiar")+'</button> '+'<button class="btn sm ghost icon" data-act="patEditar" data-id="'+esc(a.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="patApagar" data-id="'+esc(a.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td>'+
       '</tr>';
     }).join("");
 
@@ -11283,10 +11313,10 @@ function fichaAtivo(a, opts){
           '<td class="r num pos">'+esc(eur(p ? p.capital : 0))+'</td>'+
           '<td class="r num">'+esc(eur(p ? p.seguro : 0))+'</td>'+
           '<td class="r num">'+esc(eur(sd))+'</td>'+
-          '<td class="r no-print"><button class="btn sm ghost" data-act="crEditar" data-id="'+esc(c.id)+'">✎</button></td></tr>';
+          '<td class="r no-print"><button class="btn sm ghost icon" data-act="crEditar" data-id="'+esc(c.id)+'" aria-label="Editar">'+ic("editar")+'</button></td></tr>';
       }).join("")+
       '</tbody></table></div>'
-    : '<div class="note" style="margin-top:14px">Sem crédito associado. Para ligar um, crie-o ou edite-o no separador '+
+    : '<div class="note" style="margin-top:14px">Sem crédito associado. Para ligar um, crie-o ou edite-o na página '+
       '<strong>Créditos</strong> e escolha este ativo.</div>';
 
   /* Tabelas de encargos e rendimentos */
@@ -11306,8 +11336,8 @@ function fichaAtivo(a, opts){
           '<td class="r num">'+esc(eur(parseNum(x.valor)))+'</td>'+
           '<td class="r num"><strong>'+esc(eur(parseNum(x.valor) * freqFator(x.frequencia)))+'</strong></td>'+
           '<td class="r no-print" style="white-space:nowrap">'+
-            '<button class="btn sm ghost" data-act="fluxoEditar" data-ativo="'+esc(a.id)+'" data-tipo="'+tipo+'" data-id="'+esc(x.id)+'">✎</button> '+
-            '<button class="btn sm ghost" data-act="fluxoApagar" data-ativo="'+esc(a.id)+'" data-tipo="'+tipo+'" data-id="'+esc(x.id)+'">✕</button></td></tr>'
+            '<button class="btn sm ghost icon" data-act="fluxoEditar" data-ativo="'+esc(a.id)+'" data-tipo="'+tipo+'" data-id="'+esc(x.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+            '<button class="btn sm ghost icon" data-act="fluxoApagar" data-ativo="'+esc(a.id)+'" data-tipo="'+tipo+'" data-id="'+esc(x.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>'
         ).join("")+
         '</tbody><tfoot><tr><td colspan="4">Total mensal</td>'+
         '<td class="r num">'+esc(eur(total))+'</td><td class="no-print"></td></tr></tfoot></table></div>'
@@ -11356,8 +11386,8 @@ function fichaAtivo(a, opts){
             return '<div class="tblwrap"><table><thead><tr><th>Data</th><th class="r">Valor</th><th class="no-print"></th></tr></thead><tbody>'+
               aportes.map(x => '<tr><td class="num">'+esc((x.data||"").split("-").reverse().join("/"))+'</td>'+
                 '<td class="r num">'+esc(eur(parseNum(x.valor)))+'</td>'+
-                '<td class="r no-print"><button class="btn sm ghost" data-act="aporteApagar" data-id="'+esc(a.id)+
-                  '" data-ap="'+esc(x.id)+'">✕</button></td></tr>').join("")+
+                '<td class="r no-print"><button class="btn sm ghost icon" data-act="aporteApagar" data-id="'+esc(a.id)+
+                  '" data-ap="'+esc(x.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>').join("")+
               '</tbody><tfoot><tr><td>Total aportado</td><td class="r num">'+esc(eur(soma))+
               '</td><td class="no-print"></td></tr></tfoot></table></div>'+
               (Math.abs(desvio) > Math.max(1, aplicado*0.02)
@@ -11426,9 +11456,9 @@ function fichaAtivo(a, opts){
       '<div class="no-print" style="white-space:nowrap">'+
         (aoLado ? "" : '<button class="btn sm ghost" data-act="detalheAbrir" data-tipo="ativo" data-id="'+esc(a.id)+'" '+
           'aria-label="Abrir '+esc(a.nome || "ativo")+' ao lado" title="Abrir ao lado">'+ic("setaDir")+'</button> ')+
-        '<button class="btn sm ghost" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor">↻</button> '+
-        '<button class="btn sm ghost" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
-        '<button class="btn sm ghost" data-act="patApagar" data-id="'+esc(a.id)+'">✕</button></div></div>'+
+        '<button class="btn sm ghost icon" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor" aria-label="Atualizar valor">'+ic("atualizar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar" aria-label="Duplicar">'+ic("copiar")+'</button> '+'<button class="btn sm ghost icon" data-act="patEditar" data-id="'+esc(a.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="patApagar" data-id="'+esc(a.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></div></div>'+
     '<div class="grid g4">'+
       kpi("Valor atual", eur(val), "Valor "+origemValor(a), "accent")+
       kpi("Retorno obtido", obtido ? pct(obtido.taxa) : "—",
@@ -11910,9 +11940,9 @@ function fichaCredito(c, opts){
         '<div class="no-print" style="white-space:nowrap">'+
           (aoLado ? "" : '<button class="btn sm ghost" data-act="detalheAbrir" data-tipo="credito" data-id="'+esc(c.id)+'" '+
             'aria-label="Abrir '+esc(c.nome || "crédito")+' ao lado" title="Abrir ao lado">'+ic("setaDir")+'</button> ')+
-          '<button class="btn sm ghost" data-act="crDuplicar" data-id="'+esc(c.id)+'" title="Duplicar">⧉</button> '+
-          '<button class="btn sm ghost" data-act="crEditar" data-id="'+esc(c.id)+'">✎</button> '+
-          '<button class="btn sm ghost" data-act="crApagar" data-id="'+esc(c.id)+'">✕</button></div></div>'+
+          '<button class="btn sm ghost icon" data-act="crDuplicar" data-id="'+esc(c.id)+'" title="Duplicar" aria-label="Duplicar">'+ic("copiar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="crEditar" data-id="'+esc(c.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+          '<button class="btn sm ghost icon" data-act="crApagar" data-id="'+esc(c.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></div></div>'+
       '<div class="grid g4" style="margin-bottom:13px">'+
         kpi("Encargo mensal", eur(parcela ? parcela.total : 0),
             Math.abs(dif) > 0.005 ? (dif > 0 ? "+" : "")+eur(dif)+" com o choque" :
@@ -12034,7 +12064,7 @@ function viewEse(){
       '<div class="no-print" style="white-space:nowrap">'+
         '<input type="month" data-act="eseMes" data-i="'+i+'" value="'+esc(ev.mes)+'" '+
           'aria-label="Mês de início" style="width:auto;display:inline-block"> '+
-        '<button class="btn sm ghost" data-act="eseRemover" data-i="'+i+'" title="Remover">✕</button>'+
+        '<button class="btn sm ghost icon" data-act="eseRemover" data-i="'+i+'" title="Remover" aria-label="Remover">'+ic("apagar")+'</button>'+
       '</div></div>'+
       '<div class="grid g2">'+def.params.map(par =>
         '<div class="ctrl"><div class="top"><span class="lbl">'+esc(par.lbl)+
@@ -12179,7 +12209,7 @@ function viewConfig(){
                 'aria-label="Cor de '+esc(m.nome)+'" style="padding:3px;height:34px;width:44px"></td>'+
             '<td>'+membroPastilha(m.id)+'</td><td class="r num pos">'+esc(eur(rr))+'</td>'+
             '<td class="r num neg">'+esc(eur(dd))+'</td>'+
-            '<td class="r no-print"><button class="btn sm ghost" data-act="mbApagar" data-id="'+esc(m.id)+'">✕</button></td></tr>';
+            '<td class="r no-print"><button class="btn sm ghost icon" data-act="mbApagar" data-id="'+esc(m.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>';
         }).join("")+'</tbody></table></div>'
       : '<div class="empty">Sem membros. Opcional — pode usar a ferramenta sem os definir.</div>')+
     '</div>';
@@ -12226,8 +12256,8 @@ function viewConfig(){
              : '<span class="tag g-'+esc(c.grupo || "desejos")+'">'+esc((GRUPOS[c.grupo] || GRUPOS.desejos).lbl)+'</span>')+'</td>'+
       '<td class="r num">'+usos(c.id)+'</td>'+
       '<td class="r no-print" style="white-space:nowrap">'+
-        '<button class="btn sm ghost" data-act="catEditar" data-id="'+esc(c.id)+'">✎</button> '+
-        '<button class="btn sm ghost" data-act="catApagar" data-id="'+esc(c.id)+'">✕</button></td></tr>'
+        '<button class="btn sm ghost icon" data-act="catEditar" data-id="'+esc(c.id)+'" aria-label="Editar">'+ic("editar")+'</button> '+
+        '<button class="btn sm ghost icon" data-act="catApagar" data-id="'+esc(c.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>'
     ).join("")+'</tbody></table></div></div>';
 
   const dados =
@@ -12553,7 +12583,7 @@ function cartaoRegras(){
           '<tr><td><code>'+esc(rg.padrao)+'</code></td>'+
           '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(rg.categoriaId))+'"></span>'+
             esc(catRotulo(rg.categoriaId))+'</span></td>'+
-          '<td class="r no-print"><button class="btn sm ghost" data-act="regraApagar" data-i="'+i+'">✕</button></td></tr>'
+          '<td class="r no-print"><button class="btn sm ghost icon" data-act="regraApagar" data-i="'+i+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>'
         ).join("")+'</tbody></table></div>'
       : '<div class="empty">Sem regras. São criadas ao categorizar movimentos importados em lote, ou aqui à mão.</div>')+
     '</div>';
@@ -12691,7 +12721,7 @@ function cartaoFiscalidade(){
       campoF("fxdiasUteis", "Dias de subsídio", f.diasUteis, "por mês")+
     '</div>'+
     '<div class="note" style="margin-top:10px">O regime de contribuições escolhe-se em cada fonte de rendimento, '+
-    'no separador <strong>Rendimentos</strong> — uma pensão não paga TSU, um independente paga a taxa dele.</div>'+
+    'na página <strong>Rendimentos</strong> — uma pensão não paga TSU, um independente paga a taxa dele.</div>'+
 
     secao('Capitais')+
     '<div class="row no-print">'+
@@ -12788,7 +12818,7 @@ function cartaoFiscalidade(){
       '<div class="note" style="margin-top:10px">O subsídio parental, o subsídio por risco clínico na gravidez, '+
         'o abono de família e o abono pré-natal são <strong>prestações sociais</strong>: não pagam IRS nem contribuições, '+
         'e não contam para o rendimento de referência do abono. Acrescentam-se como componentes de uma fonte '+
-        'de rendimento, no separador <strong>Rendimentos</strong>, onde há calculadoras que os apuram a partir '+
+        'de rendimento, na página <strong>Rendimentos</strong>, onde há calculadoras que os apuram a partir '+
         'da remuneração de referência e do escalão do agregado.</div>';
     })()+
 
@@ -13193,6 +13223,7 @@ function render(){
   // O relatório é uma folha: sem título de página nem fichas
   $("#app").innerHTML = emPasse(() => (ui.relatorio ? "" : cabecalhoPagina()) + fn());
   recolherFormularios();
+  encurtarNotas();
   marcarAjudas();
   animarValores();
   _camposIniciais = camposValores();   // a régua para medir o que for escrito
@@ -15546,7 +15577,7 @@ const PAGINAS = {
   plano:       {lbl:"Despesas fixas",        vista:"despesas",    secD:"plano"},
   limites:     {lbl:"Limites",               vista:"despesas",    secD:"limites"},
   ativos:      {lbl:"Ativos",                vista:"ativos"},
-  creditos:    {lbl:"Dívidas",               vista:"creditos"},
+  creditos:    {lbl:"Créditos",              vista:"creditos"},
   objetivos:   {lbl:"Objetivos",             vista:"objetivos"},
   compras:     {lbl:"Compras grandes",       vista:"despesas",    secD:"planear"},
   simulador:   {lbl:"Poupar e investir",     vista:"estrategias", secE:"simulador"},
@@ -15920,10 +15951,15 @@ const LIMIAR_TABLET    = 900;   // e abaixo disto, tablet
  */
 function classificarEcra(medidas){
   const m = medidas || {};
-  const larg = m.larg != null ? m.larg
-    : (window.innerWidth || document.documentElement.clientWidth || 0);
-  const alt  = m.alt != null ? m.alt
-    : (window.innerHeight || document.documentElement.clientHeight || 0);
+  /* A menor das duas medidas: num telemóvel, quando alguma coisa transborda,
+     o navegador afasta-se para a mostrar e o `innerWidth` cresce com ela —
+     807 px num ecrã de 390. Medida assim, a página nunca passava ao desenho
+     compacto, que era justamente o que a faria caber. A largura útil do
+     documento não sofre disso. */
+  const menorDe = (x, y) => (x > 0 && y > 0) ? Math.min(x, y) : (x || y || 0);
+  const de = document.documentElement;
+  const larg = m.larg != null ? m.larg : menorDe(window.innerWidth, de.clientWidth);
+  const alt  = m.alt != null ? m.alt : menorDe(window.innerHeight, de.clientHeight);
   const menor = Math.min(larg, alt), maior = Math.max(larg, alt);
   const toque = m.toque != null ? !!m.toque
     : !!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
@@ -16742,31 +16778,31 @@ document.addEventListener("dragend", () => {
    e explica o que lá se faz. Sai-se com Esc, navega-se com as setas.
    --------------------------------------------------------------- */
 const TUTORIAL_PASSOS = [
-  {vista:"painel", sel:null, titulo:"Bem-vindo à visita guiada 👋",
+  {vista:"painel", sel:null, titulo:"Bem-vindo à visita guiada",
    texto:"Esta aplicação gere o orçamento da família em <strong>três coisas</strong>: rendimentos, despesas e ativos — o resto pendura-se destas. Tudo fica <strong>no seu navegador</strong>: não há servidor, conta nem envio de dados. Use <strong>Seguinte</strong> ou as setas do teclado; <strong>Esc</strong> sai a qualquer momento."},
   {vista:"painel", sel:"#mesBtn", titulo:"O mês em análise",
    texto:"Todos os cálculos se referem a este mês: movimentos, prestações, balanço. As setas <strong>‹ ›</strong> percorrem o histórico — recue para ver meses passados, avance para ver o plano projetado."},
-  {vista:"painel", sel:"#app .kpi", titulo:"Painel — o mês num relance",
-   texto:"Rendimento, despesa, saldo e taxa de poupança, cada um com a <strong>variação face ao mês anterior</strong> e a tendência de 6 meses. Por baixo: previsto vs. real, a despesa por categoria, a regra <strong>50/30/20</strong>, a evolução e um simulador «e se poupar mais?». Passe o ponteiro sobre qualquer indicador para ver o <strong>explicador</strong> com a fórmula."},
-  {vista:"rendimentos", sel:"#app .form", titulo:"Rendimentos — fontes e componentes",
+  {vista:"painel", sel:"#app .kpi", titulo:"Início — o mês num relance",
+   texto:"Uma frase diz quanto sobra e quantas coisas precisam de si; por baixo, rendimento, despesa, saldo e taxa de poupança, cada um com a <strong>variação face ao mês anterior</strong> e a tendência de 6 meses. Cada aviso trata-se, adia-se ou dispensa-se ali mesmo. Os gráficos — previsto vs. real, despesa por categoria, a regra <strong>50/30/20</strong>, a evolução e o simulador «e se poupar mais?» — estão na página <strong>Análises</strong>. Passe o ponteiro sobre qualquer indicador para ver o <strong>explicador</strong> com a fórmula."},
+  {vista:"rendimentos", sel:"#app .novoForm, #app .form", titulo:"Rendimentos — fontes e componentes",
    texto:"Cada fonte (um vencimento, uma pensão) decompõe-se em <strong>componentes</strong>: base, subsídios de férias e Natal, alimentação, prémios… A ferramenta aplica o tratamento fiscal de cada espécie — Segurança Social, retenção de IRS pelas <strong>tabelas de 2026</strong> (Continente, Açores e Madeira) ou isenção — e mostra o bruto, o líquido e a carga fiscal."},
   {vista:"rendimentos", sel:null, titulo:"Prestações sociais com calculadora",
    texto:"O subsídio parental (com parto múltiplo e prematuridade), o risco clínico na gravidez, o abono de família (majorações por monoparentalidade, criança <36 meses e deficiência) e o abono pré-natal têm <strong>calculadoras próprias</strong>: escolha a espécie na componente e a ferramenta calcula o valor pelas regras da Segurança Social — e explica a conta."},
-  {vista:"plano", sel:"#app .form", titulo:"Despesas — o plano mensal",
+  {vista:"plano", sel:"#app .novoForm, #app .form", titulo:"Orçamento — as despesas fixas",
    texto:"As <strong>despesas fixas</strong> registam-se com a periodicidade real — mensal, trimestral, anual, 14× — e a ferramenta converte tudo a equivalente mensal. É este plano que alimenta o «previsto» do painel e a viabilidade dos objetivos."},
-  {vista:"movimentos", sel:null, titulo:"Despesas — os movimentos reais",
-   texto:"O que <strong>realmente aconteceu</strong>, dia a dia. O botão <strong>«Lançar plano deste mês»</strong> cria os movimentos a partir das rubricas mensais, das prestações de crédito e dos fluxos dos ativos — depois é só ajustar ao real. Há filtros por texto, categoria, membro e tipo."},
-  {vista:"orcamento", sel:null, titulo:"Despesas — limites por categoria",
+  {vista:"movimentos", sel:null, titulo:"Movimentos — o que aconteceu",
+   texto:"O que <strong>realmente aconteceu</strong>, dia a dia — em lista, em calendário ou em agenda, com o que ainda está para vir. No menu <strong>⋮</strong>, «Lançar o plano deste mês» cria os movimentos a partir das rubricas mensais, das prestações de crédito e dos fluxos dos ativos — depois é só ajustar ao real. As fichas filtram despesas, rendimentos e o que está por categorizar."},
+  {vista:"orcamento", sel:null, titulo:"Orçamento — limites por categoria",
    texto:"Defina um <strong>teto mensal</strong> por categoria e acompanhe as barras: verde dentro do limite, âmbar perto, vermelho ultrapassado. <strong>«Preencher com o plano»</strong> usa os valores das despesas fixas como ponto de partida."},
-  {vista:"painel", sel:null, titulo:"Painel — o mês por dentro",
+  {vista:"analises", sel:null, titulo:"Análises — o mês por dentro",
    texto:"Dois cartões respondem à pergunta de dentro do mês. A <strong>linha do mês</strong> põe cada pagamento no dia em que sai — indique o <strong>dia do mês</strong> nas despesas fixas e ela enche-se — e diz quantos dias faltam para o próximo. <strong>«Como vai fechar o mês»</strong> projeta o saldo final: o que já aconteceu é real, o que falta é o ritmo observado mais as rubricas que ainda vão sair, com uma margem tirada da variabilidade dos últimos meses."},
-  {vista:"painel", sel:null, titulo:"Painel — o que os números dizem sozinhos",
+  {vista:"analises", sel:null, titulo:"Análises — o que os números dizem sozinhos",
    texto:"O cartão de <strong>atenção</strong> avisa quando uma categoria sai do habitual, mas com <strong>sazonalidade</strong>: a eletricidade de janeiro compara-se com janeiros anteriores, não com julho. <strong>Subscrições ao ano</strong> soma as mensalidades pequenas a doze meses — é a soma que dói. <strong>A sua inflação</strong> mede o seu cabaz face ao ano passado e oferece-se para substituir os 2% genéricos nas projeções."},
   {vista:"orcamento", sel:null, titulo:"Limites — plano de corte",
    texto:"Entre «gasto demasiado» e limites concretos falta a ponte: <strong>onde</strong>. Escreva quanto quer poupar por mês e a ferramenta reparte o corte pelas categorias com mais folga — <strong>desejos primeiro</strong>, e só depois necessidades. Poupança, juros, prestações e impostos ficam de fora, porque cortar amortização para poupar é circular. Cada linha tem deslizador, e um botão transforma tudo em limites. Ao lado, <strong>«Sugerir pelo histórico»</strong> usa a mediana real dos últimos seis meses."},
-  {vista:"planear", sel:"#app .form", titulo:"Despesas — planear as compras grandes",
+  {vista:"planear", sel:"#app .novoForm, #app .form", titulo:"Planear — as compras grandes",
    texto:"Um eletrodoméstico, um portátil, mobília, um carro — compras que <strong>podem escolher a data</strong>. Indique a verba estimada e a ferramenta simula a compra em cada mês do horizonte (3, 6, 12 ou 24 meses) e responde <strong>por trimestre</strong>: onde há folga, onde aperta, e qual a melhor altura. Depois, <strong>marque o mês</strong> (entra na tesouraria projetada), <strong>reserve verba</strong> (vira um objetivo de poupança) e, chegada a hora, <strong>registe a compra</strong> nos movimentos com um toque."},
-  {vista:"ativos", sel:"#app .form", titulo:"Ativos — tudo o que tem valor",
+  {vista:"ativos", sel:"#app .novoForm, #app .form", titulo:"Ativos — tudo o que tem valor",
    texto:"Contas, poupanças, certificados, PPR, ETFs, imóveis, veículos — no mesmo sítio. O valor vem de <strong>unidades × cotação</strong>, do valor que indicar, ou da estimativa pela taxa da classe. Cada ativo pode ter <strong>encargos e rendimentos</strong> (IMI, condomínio, rendas…), que entram no orçamento, um <strong>simulador próprio</strong> e aportes datados para calcular o retorno por <strong>TIR</strong>. Em baixo, a projeção da carteira com cenários e teste de correção."},
   {vista:"creditos", sel:null, titulo:"Créditos — fixa ou indexada",
    texto:"Cada empréstimo liga-se ao ativo que financia. A prestação decompõe-se em <strong>juros + amortização + seguros</strong> — os juros são despesa, a amortização conta como poupança. Nos créditos indexados (Euribor + spread) há revisões periódicas, mapa de amortização ano a ano e o deslizador <strong>«E se as taxas subirem?»</strong>, que recalcula tudo ao vivo."},
@@ -16776,8 +16812,8 @@ const TUTORIAL_PASSOS = [
    texto:"Escolha o objetivo — reforma, entrada para casa (com IMT e Imposto de Selo de 2026), automóvel, fundo de emergência ou crescer capital — e compare instrumentos <strong>com a fiscalidade portuguesa real</strong>: juros a 28%, mais-valias no resgate, cripto isenta ao fim de um ano, PPR com dedução no IRS. <strong>«Executar»</strong> integra a estratégia no orçamento: cria a rubrica de poupança, o ativo e o objetivo, de uma vez."},
   {vista:"config", sel:null, titulo:"Definições — o quadro fiscal e os dados",
    texto:"Os <strong>membros</strong> do agregado, a <strong>fiscalidade</strong> (região, situação familiar e dependentes para as tabelas de retenção, IAS, PPR, IMI, taxas das rendas — tudo editável e com os valores de 2026 por omissão), as <strong>categorias</strong> e os grupos 50/30/20. E as <strong>cópias de segurança</strong>: exporte JSON/CSV com regularidade — limpar os dados do navegador apaga o orçamento."},
-  {vista:"painel", sel:null, titulo:"Atalhos finais 🎓",
-   texto:"<strong>Ctrl+K</strong> abre a paleta de comandos; o botão <strong>?</strong> liga os explicadores ao passar o ponteiro; eliminar dá sempre <strong>6 segundos para anular</strong>; no telemóvel a navegação fica em baixo; e imprimir gera uma folha limpa. Pode repetir esta visita no botão <strong>🎓</strong> do cabeçalho. Carregue em <strong>Concluir</strong> — e, se a visita trouxe a família de exemplo, decide-se ali o que lhe fazer. Bom orçamento!"},
+  {vista:"painel", sel:null, titulo:"Atalhos finais",
+   texto:"<strong>Ctrl+K</strong> abre a pesquisa — e lá também se regista um movimento por frase, como «45,90 continente ontem»; no menu <strong>?</strong> ligam-se os explicadores ao passar o ponteiro; eliminar dá sempre <strong>6 segundos para anular</strong>; no telemóvel a navegação fica em baixo; e imprimir gera uma folha limpa. Pode repetir esta visita no menu <strong>?</strong> do cabeçalho. Carregue em <strong>Concluir</strong> — e, se a visita trouxe a família de exemplo, decide-se ali o que lhe fazer. Bom orçamento!"},
 ];
 
 let tutorialPasso = -1;
@@ -16834,7 +16870,7 @@ function tutorialFim(concluido){
      dados a sério — e é a altura certa, que é quando se acabou de ver. */
   if (concluido && S.exemploDemo){ despedidaDaVisita(); return; }
   toast(concluido ? "Visita concluída — bom orçamento! 🎉"
-                  : "Visita terminada. Pode retomá-la no botão 🎓.");
+                  : "Visita terminada. Pode retomá-la no menu da ajuda (?).");
 }
 
 /**
@@ -17546,6 +17582,41 @@ document.addEventListener("toggle", (e) => {
         d.querySelector("summary") === document.activeElement) campo.focus();
   }
 }, true);
+
+/**
+ * Notas compridas ficam em duas linhas, com «Saber mais» para o resto. O
+ * texto continua todo lá — o leitor de ecrã lê-o inteiro, a impressão
+ * também —, só deixa de ocupar meio ecrã a quem já o leu. Os avisos (borda
+ * de aviso ou de negativo) e as notas com controlos ficam sempre inteiros.
+ */
+function encurtarNotas(){
+  $$("#app .note").forEach(n => {
+    if (n.dataset.curta) return;
+    if (n.querySelector("input, select, textarea, button, table, details")) return;
+    if (/--(warn|neg)\b/.test(n.getAttribute("style") || "")) return;
+    const txt = n.textContent.trim();
+    if (txt.length < 280) return;
+    n.dataset.curta = "1";
+    const chave = "nota-" + semAcento(txt.slice(0, 48)).replace(/[^a-z0-9]+/g, "-");
+    const aberta = !!ui.abertos[chave];
+    if (!n.id) n.id = chave.slice(0, 60) + "-" + Math.abs(txt.length);
+    n.classList.toggle("recolhida", !aberta);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "saberMais no-print";
+    b.setAttribute("aria-expanded", String(aberta));
+    b.setAttribute("aria-controls", n.id);
+    b.textContent = aberta ? "Mostrar menos" : "Saber mais";
+    b.addEventListener("click", () => {
+      const agora = !n.classList.contains("recolhida");
+      n.classList.toggle("recolhida", agora);
+      ui.abertos[chave] = !agora;
+      b.setAttribute("aria-expanded", String(!agora));
+      b.textContent = agora ? "Saber mais" : "Mostrar menos";
+    });
+    n.insertAdjacentElement("afterend", b);
+  });
+}
 
 /** A fiscalidade, um imposto de cada vez: cada secção recolhe-se no seu título. */
 function recolherSeccoesFiscais(html){

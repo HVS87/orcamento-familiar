@@ -1707,6 +1707,12 @@ G("melhorias visuais");
   eq(S.densidade, densAntes, "voltar a carregar repõe");
   fecharMenus();
 
+  /* A largura que decide o desenho é a útil do documento: num telemóvel com
+     algo a transbordar, o innerWidth crescia até 807 px num ecrã de 390, e o
+     desenho compacto — o que faria tudo caber — nunca chegava. */
+  ok(classificarEcra().larg <= document.documentElement.clientWidth,
+     "a largura medida não cresce com o que transborda", classificarEcra().larg + " vs " + document.documentElement.clientWidth);
+  eq(classificarEcra({larg:390, alt:844, toque:true}).dispositivo, "telemovel", "390 × 844 com toque é telemóvel");
   // No telemóvel, a barra vai para baixo e o «Criar» flutua
   (function(){
     var raiz = document.documentElement, antes = raiz.getAttribute("data-dispositivo");
@@ -4066,8 +4072,15 @@ G("guardar como aplicação");
 G("contraste das oito paletas, nos dois modos");
 (function(){
   comExemplo();
-  var paraRGB = function(c){ var d = document.createElement("div"); d.style.color = c;
-    document.body.appendChild(d); var r = getComputedStyle(d).color; d.remove(); return r; };
+  var tela = document.createElement("canvas"); tela.width = tela.height = 1;
+  var ctx2 = tela.getContext("2d", {willReadFrequently: true});
+  var paraRGB = function(c){
+    var d = document.createElement("div"); d.style.color = c;
+    document.body.appendChild(d); var r = getComputedStyle(d).color; d.remove();
+    ctx2.clearRect(0, 0, 1, 1); ctx2.fillStyle = "#000"; ctx2.fillStyle = r; ctx2.fillRect(0, 0, 1, 1);
+    var p = ctx2.getImageData(0, 0, 1, 1).data;
+    return "rgb(" + p[0] + "," + p[1] + "," + p[2] + ")";
+  };
   var lum = function(c){ var m = c.match(/\d+(\.\d+)?/g).map(Number);
     var f = m.slice(0,3).map(function(v){ v /= 255;
       return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
@@ -4080,7 +4093,13 @@ G("contraste das oito paletas, nos dois modos");
   var pares = [["texto/fundo","--text","--bg"], ["texto/superfície","--text","--surface"],
                ["texto/superfície-2","--text","--surface-2"], ["esbatido/superfície","--muted","--surface"],
                ["acento/superfície","--accent","--surface"], ["positivo/superfície","--pos","--surface"],
-               ["negativo/superfície","--neg","--surface"], ["aviso/superfície","--warn","--surface"]];
+               ["negativo/superfície","--neg","--surface"], ["aviso/superfície","--warn","--surface"],
+               ["sobre o acento","--on-accent","--accent"], ["sobre o positivo","--on-pos","--pos"],
+               ["sobre o negativo","--on-neg","--neg"], ["acento forte/tonal","--accent-forte","--accent-soft"],
+               ["acento forte/superfície","--accent-forte","--surface"], ["esbatido/superfície-2","--muted","--surface-2"],
+               ["positivo/fundo","--pos","--bg"], ["negativo/fundo","--neg","--bg"]];
+  /* Limites de componentes (contorno de campos, fichas e segmentos): 3:1. */
+  var paresUI = [["contorno forte/superfície","--border-forte","--surface"], ["contorno forte/fundo","--border-forte","--bg"]];
   var fracos = [], semFundoEscuro = [], n = 0, pior = 99, piorNome = "";
   Object.keys(PALETAS).forEach(function(p){
     ["light","dark"].forEach(function(modo){
@@ -4089,6 +4108,10 @@ G("contraste das oito paletas, nos dois modos");
         var r = razao(cor(par[1]), cor(par[2])); n++;
         if (r < pior){ pior = r; piorNome = p+"/"+modo+" "+par[0]; }
         if (r < 4.5) fracos.push(p+"/"+modo+" "+par[0]+" = "+r.toFixed(2));
+      });
+      paresUI.forEach(function(par){
+        var r = razao(cor(par[1]), cor(par[2])); n++;
+        if (r < 3) fracos.push(p+"/"+modo+" "+par[0]+" = "+r.toFixed(2)+" (mínimo 3)");
       });
       /* Uma paleta que se esqueça do fundo no modo escuro fica com o claro
          da sua própria regra — foi o que aconteceu à Grafite, que dava texto
@@ -4099,13 +4122,111 @@ G("contraste das oito paletas, nos dois modos");
   });
   S.paleta = paletaAntes; S.tema = temaAntes; aplicarTema();
 
-  eq(n, Object.keys(PALETAS).length * 2 * pares.length,
+  eq(n, Object.keys(PALETAS).length * 2 * (pares.length + paresUI.length),
      "cada paleta medida nos dois modos, par a par", n);
-  eq(semFundoEscuro.length, 0, "nenhuma paleta fica com fundo claro no modo escuro",
+  ok(semFundoEscuro.length === 0, "nenhuma paleta fica com fundo claro no modo escuro",
      semFundoEscuro.join("; "));
-  eq(fracos.length, 0, "e nenhum par de texto fica abaixo dos 4,5 que a norma pede",
+  ok(fracos.length === 0, "e nenhum par de texto fica abaixo dos 4,5 que a norma pede",
      fracos.slice(0, 4).join("; "));
   ok(pior >= 4.5, "o pior par de todos ainda se lê", piorNome+" = "+pior.toFixed(2));
+})();
+
+G("daltonismo: positivo, negativo e aviso distinguem-se");
+(function(){
+  comExemplo();
+  /* Simulação de Machado, Oliveira e Fernandes (2009), severidade total, em
+     luz linear; distância em CIELAB (ΔE76). Abaixo de ~20 duas cores lêem-se
+     como a mesma; o par positivo/negativo pede bem mais do que isso. */
+  var M = {
+    protanopia:   [[0.152286,1.052583,-0.204868],[0.114503,0.786281,0.099216],[-0.003882,-0.048116,1.051998]],
+    deuteranopia: [[0.367322,0.860646,-0.227968],[0.280085,0.672501,0.047413],[-0.011820,0.042940,0.968881]],
+    tritanopia:   [[1.255528,-0.076749,-0.178779],[-0.078411,0.930809,0.147602],[0.004733,0.691367,0.303900]]
+  };
+  var lin = function(v){ return v <= 0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  var delin = function(v){ v = Math.min(1, Math.max(0, v)); return v <= 0.0031308 ? 12.92*v : 1.055*Math.pow(v, 1/2.4) - 0.055; };
+  var tela = document.createElement("canvas"); tela.width = tela.height = 1;
+  var c2 = tela.getContext("2d", {willReadFrequently: true});
+  var rgb = function(v){
+    var d = document.createElement("div"); d.style.color = "var(" + v + ")"; document.body.appendChild(d);
+    var c = getComputedStyle(d).color; d.remove();
+    c2.clearRect(0,0,1,1); c2.fillStyle = "#000"; c2.fillStyle = c; c2.fillRect(0,0,1,1);
+    var p = c2.getImageData(0,0,1,1).data; return [p[0]/255, p[1]/255, p[2]/255];
+  };
+  var sim = function(c, t){ if (!t) return c; var l = c.map(lin), m = M[t];
+    return m.map(function(r){ return delin(r[0]*l[0] + r[1]*l[1] + r[2]*l[2]); }); };
+  var lab = function(c){ var l = c.map(lin);
+    var x = (0.4124*l[0]+0.3576*l[1]+0.1805*l[2])/0.95047, y = 0.2126*l[0]+0.7152*l[1]+0.0722*l[2], z = (0.0193*l[0]+0.1192*l[1]+0.9505*l[2])/1.08883;
+    var g = function(t){ return t > 0.008856 ? Math.cbrt(t) : 7.787*t + 16/116; };
+    return [116*g(y)-16, 500*(g(x)-g(y)), 200*(g(y)-g(z))]; };
+  var dE = function(a, b){ var p = lab(a), q = lab(b); return Math.hypot(p[0]-q[0], p[1]-q[1], p[2]-q[2]); };
+
+  var paletaAntes = S.paleta, temaAntes = S.tema;
+  var piorPN = 99, piorPNnome = "", piorAviso = 99, piorAvisoNome = "", n = 0;
+  Object.keys(PALETAS).forEach(function(p){
+    ["light","dark"].forEach(function(modo){
+      S.paleta = p; S.tema = modo; aplicarTema();
+      var pos = rgb("--pos"), neg = rgb("--neg"), warn = rgb("--warn");
+      ["", "protanopia", "deuteranopia", "tritanopia"].forEach(function(t){
+        n++;
+        var d = dE(sim(pos, t), sim(neg, t));
+        if (d < piorPN){ piorPN = d; piorPNnome = p + "/" + modo + " " + (t || "visão comum"); }
+        var w = Math.min(dE(sim(pos, t), sim(warn, t)), dE(sim(neg, t), sim(warn, t)));
+        if (w < piorAviso){ piorAviso = w; piorAvisoNome = p + "/" + modo + " " + (t || "visão comum"); }
+      });
+    });
+  });
+  S.paleta = paletaAntes; S.tema = temaAntes; aplicarTema();
+  eq(n, Object.keys(PALETAS).length * 2 * 4, "oito paletas, dois modos, visão comum e três formas de daltonismo", n);
+  ok(piorPN >= 30, "positivo e negativo nunca se confundem", piorPNnome + ": ΔE " + piorPN.toFixed(1));
+  ok(piorAviso >= 12, "e o aviso distingue-se dos dois", piorAvisoNome + ": ΔE " + piorAviso.toFixed(1));
+
+  /* A cor nunca é a única pista: os valores com cor levam sinal. */
+  irA("despesas"); irPag("movimentos");
+  var celulas = qq("tr[data-mov] td.num.pos, tr[data-mov] td.num.neg");
+  ok(celulas.length > 0, "há valores com cor nos movimentos");
+  ok(celulas.every(function(td){ return /^[+−]/.test(td.textContent.trim()); }), "e cada um leva + ou −");
+  irA("painel");
+  var deltas = qq(".kpi .delta");
+  ok(deltas.every(function(d){ return /^[+−]/.test(d.textContent.trim()); }), "as variações dos indicadores também");
+  var alertasIcone = qq(".alerta .ai");
+  ok(alertasIcone.every(function(a){ return a.textContent.trim().length > 0; }), "e cada aviso tem um símbolo, não só uma cor");
+})();
+
+G("acabamentos: ícones nos botões de linha, notas curtas, pílulas");
+(function(){
+  comExemplo();
+  irA("despesas"); irPag("movimentos");
+  var acoes = qq("tr[data-mov] .acoesLinha button");
+  ok(acoes.length > 0, "as linhas têm ações");
+  ok(acoes.every(function(b){ return b.querySelector("svg") != null; }), "desenhadas com ícones de traço");
+  ok(acoes.every(function(b){ return /\S/.test(b.getAttribute("aria-label") || ""); }), "e cada uma diz o que faz");
+  ok(qq("button").every(function(b){ return !/^[⧉✎✕↻]$/.test(b.textContent.trim()); }), "nenhum botão é só um glifo");
+
+  // Pílulas
+  var r = parseFloat(getComputedStyle(q(".btn")).borderTopLeftRadius);
+  ok(r >= 16, "os botões são pílulas", r);
+
+  // Notas compridas: duas linhas e «Saber mais»
+  var vistas = ["rendimentos", "despesas", "ativos", "creditos", "objetivos", "config"];
+  var achou = null;
+  vistas.some(function(v){ irA(v); achou = q("#app .note.recolhida"); return !!achou; });
+  ok(achou != null, "há notas compridas recolhidas");
+  if (achou){
+    var b = achou.nextElementSibling;
+    ok(b && b.classList.contains("saberMais"), "com «Saber mais» logo a seguir");
+    eq(b.getAttribute("aria-expanded"), "false", "anunciado fechado");
+    eq(b.getAttribute("aria-controls"), achou.id, "e ligado à nota");
+    ok(achou.textContent.length >= 280, "o texto continua lá todo");
+    b.click();
+    ok(!achou.classList.contains("recolhida"), "carregar mostra a nota inteira");
+    eq(b.getAttribute("aria-expanded"), "true", "e anuncia-a aberta");
+    eq(b.textContent, "Mostrar menos", "e muda o rótulo");
+    render();
+    var outra = q("#" + CSS.escape(achou.id));
+    ok(outra && !outra.classList.contains("recolhida"), "e fica aberta depois de repintar");
+  }
+  ok(qq('#app .note.recolhida[style*="--warn"], #app .note.recolhida[style*="--neg"]').length === 0,
+     "os avisos nunca se recolhem");
 })();
 
 G("relatório: a impressão pode falhar, o utilizador não pode ficar preso");
