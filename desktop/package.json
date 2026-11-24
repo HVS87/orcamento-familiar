@@ -1,0 +1,80 @@
+{
+  "name": "orcamento-familiar",
+  "productName": "Orçamento Familiar",
+  "version": "2.1.0",
+  "description": "Orçamento e património de um agregado familiar em Portugal — aplicação de secretária, com dois ecrãs e sincronização com o telemóvel.",
+  "main": "main.js",
+  "author": "HVS87",
+  "homepage": "https://github.com/HVS87/orcamento-familiar",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "preparar": "node preparar.js",
+    "start": "electron .",
+    "teste": "node testes/qr.js && node testes/e2e.js",
+    "build:win": "npm run preparar && electron-builder --win portable nsis --x64 --publish never",
+    "build:mac": "npm run preparar && electron-builder --mac dmg zip --x64 --arm64 --publish never",
+    "build:linux": "npm run preparar && electron-builder --linux AppImage deb --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8",
+    "jsqr": "1.4.0"
+  },
+  "build": {
+    "appId": "pt.hvs87.orcamentofamiliar",
+    "productName": "Orçamento Familiar",
+    "copyright": "HVS87",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "build/icon.png"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "Orcamento-Familiar-${version}-instalador.${ext}"
+    },
+    "portable": {
+      "artifactName": "Orcamento-Familiar-${version}-portatil.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Orçamento Familiar",
+      "language": "2070",
+      "artifactName": "Orcamento-Familiar-${version}-instalador.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.finance",
+      "identity": "-",
+      "artifactName": "Orcamento-Familiar-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Orçamento Familiar ${version}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Office;Finance",
+      "synopsis": "Orçamento e património familiar",
+      "maintainer": "HVS87 <noreply@github.com>",
+      "artifactName": "Orcamento-Familiar-${version}-linux-${arch}.${ext}",
+      "executableName": "orcamento-familiar"
+    },
+    "deb": {
+      "packageName": "orcamento-familiar"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

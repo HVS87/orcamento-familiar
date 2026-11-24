@@ -1,0 +1,77 @@
+# Aplicação de secretária: a cada etiqueta v* compila para Windows, Mac e
+# Linux, cada um no seu sistema, e junta os ficheiros à Release do GitHub.
+# Também se pode lançar à mão (workflow_dispatch): aí ficam só como artefactos.
+name: Release (aplicação de secretária)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  construir:
+    name: ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            alvo: win
+            nome: Windows (portátil e instalador)
+          - os: macos-latest
+            alvo: mac
+            nome: Mac (Apple e Intel)
+          - os: ubuntu-latest
+            alvo: linux
+            nome: Linux (AppImage e .deb)
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Dependências
+        run: npm ci
+
+      - name: O código QR lê-se
+        run: node testes/qr.js
+
+      - name: Compilar
+        run: npm run build:${{ matrix.alvo }}
+        env:
+          # Sem certificado de programador: a aplicação sai sem assinatura
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Guardar como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: orcamento-familiar-${{ matrix.alvo }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*-mac-*.zip
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+          if-no-files-found: error
+
+      - name: Juntar à Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*-mac-*.zip
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+          fail_on_unmatched_files: false
