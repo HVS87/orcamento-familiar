@@ -131,6 +131,16 @@ try {
     render(); medir(modo + " sincronizar ligada a dois");
     var av = document.querySelector("#cfgSinc details:not(.sincLigar)"); if (av){ av.open = true; medir(modo + " sincronizar, avançado"); }
     localStorage.removeItem(SINC_KEY); render();
+    // Emparelhar no Safari do iPhone: o aviso de que a app guarda à parte, com o código
+    var uaD = Object.getOwnPropertyDescriptor(navigator, "userAgent");
+    Object.defineProperty(navigator, "userAgent", {value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", configurable: true});
+    try {
+      history.replaceState(null, "", location.pathname + location.search + "#ligar=0123456789ABCDEFGHJKMNPQR");
+      sincLerLigacao(); medir(modo + " emparelhar no iPhone");
+    } finally {
+      document.getElementById("modalHost").innerHTML = "";
+      if (uaD) Object.defineProperty(navigator, "userAgent", uaD); else delete navigator.userAgent;
+    }
     // Dois ecrãs: o cartão com a companheira aberta, e a própria companheira
     _painelVivo = Date.now(); irPagina("config"); medir(modo + " dois ecrãs com a companheira aberta"); _painelVivo = 0;
     raiz.classList.add("janelaPainel"); pintarBarraPainel(); irPagina("limites"); medir(modo + " companheira (limites)");

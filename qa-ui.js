@@ -4325,7 +4325,7 @@ G("todas as ações do registo, disparadas uma a uma");
                  /* e as que saem da página: outra janela, a rede, pastas do sistema
                     (têm a sua própria suite, a qa-sinc.js) */
                  "ecra2Abrir", "ecra2Menu", "ecra2Trocar", "ecra2Fechar", "ecra2Apresentacao",
-                 "sincCriar", "sincEntrar", "sincAgora", "sincCopiar", "sincDesligar", "sincGuardarAvancado",
+                 "sincCriar", "sincEntrar", "sincLerQR", "sincAgora", "sincCopiar", "sincDesligar", "sincGuardarAvancado",
                  "appPastaCopias", "appMenuInstalar"];
   var vistaDe = {rd:"rendimento", cp:"rendimento", comp:"rendimento", mv:"despesas", rec:"despesas",
     lim:"despesas", corte:"despesas", plan:"despesas", lote:"despesas", regra:"despesas",
@@ -4372,7 +4372,10 @@ G("tipografia: sem rede, do sistema, e algarismos que alinham");
   eq(qq('link[rel~="stylesheet"], link[rel="preconnect"]').length, 0, "nem ligações a servidores de tipos");
   var externos = performance.getEntriesByType("resource")
     .map(function(e){ return e.name; })
-    .filter(function(n){ return !/^(blob|data):/.test(n) && n.indexOf(location.origin) !== 0; });
+    .filter(function(n){ return !/^(blob|data):/.test(n) && n.indexOf(location.origin) !== 0; })
+    /* A qa-sinc.js faz de propósito uma troca real pelo serviço de passagem;
+       se correu antes nesta página, esses pedidos são dela, não da aplicação. */
+    .filter(function(n){ return !(window.__QASINC && typeof SINC_SERVIDOR === "string" && n.indexOf(SINC_SERVIDOR + "/") === 0); });
   eq(externos.length, 0, "e nenhum pedido saiu para fora", externos.slice(0, 3).join(", "));
 
   /* `system-ui` à frente: cada aparelho usa o seu tipo de interface. Um nome

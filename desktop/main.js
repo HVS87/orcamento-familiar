@@ -306,6 +306,10 @@ if (!app.requestSingleInstanceLock()){
   app.on("second-instance", () => {
     if (principal){ if (principal.isMinimized()) principal.restore(); principal.focus(); }
   });
+  /* O identificador do navegador leva o nome do produto, e «Orçamento» tem um
+     carácter fora do ASCII: num cabeçalho HTTP isso rebenta (o protocolo
+     próprio recusa o pedido). Fica só com letras simples. */
+  app.userAgentFallback = app.userAgentFallback.replace(/[^\x20-\x7E]/g, (c) => ({"ç": "c", "Ç": "C"})[c] || "");
   app.whenReady().then(() => {
     protocol.handle(ESQUEMA, (req) => {
       const u = new URL(req.url);

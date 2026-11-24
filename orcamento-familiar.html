@@ -2,7 +2,7 @@
 <html lang="pt" data-theme="auto">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Orçamento Familiar</title>
 <meta name="description" content="Ferramenta de cálculo e gestão do orçamento familiar — rendimentos, despesas, poupança, objetivos e créditos.">
 <!-- A cor da barra do sistema acompanha a paleta escolhida: `aplicarTema` reescreve
@@ -14,6 +14,7 @@
      O ícone com que fica no ecrã principal é desenhado em tempo de execução
      (o Safari só aceita PNG aqui, e a aplicação não tem ficheiros de imagem). -->
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Orçamento">
 <style>
@@ -1269,6 +1270,28 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offse
   background:var(--accent);color:var(--on-accent);font-weight:650;text-decoration:none;transition:top .12s}
 .saltar:focus{top:12px;outline:2px solid var(--text);outline-offset:2px}
 main:focus{outline:none}
+
+/* Telemóvel. Com viewport-fit=cover a página chega às bordas: o entalhe, os
+   cantos e a barra de gestos ficam por conta das margens seguras, que só
+   existem nesses aparelhos (no resto valem zero e nada muda). */
+[data-layout="compacto"] .topbar{padding-left:max(6px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right))}
+[data-layout="compacto"] header{padding-top:env(safe-area-inset-top)}
+[data-layout="compacto"] main{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+[data-layout="compacto"] #destinos{padding-left:max(2px,env(safe-area-inset-left));padding-right:max(2px,env(safe-area-inset-right))}
+[data-layout="compacto"] #botaoRapido{right:max(16px,calc(env(safe-area-inset-right) + 12px))}
+[data-layout="compacto"] #toast{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right))}
+/* O iOS aproxima a página quando um campo com letra abaixo de 16 px recebe o
+   foco, e não a afasta depois. Ao toque, os campos têm 16. */
+@media (pointer:coarse){ input,select,textarea{font-size:16px} }
+button,a,[role=button],summary{-webkit-tap-highlight-color:transparent}
+@supports (height:100dvh){
+  .dialog{max-height:calc(100dvh - 32px)}
+}
+#leitorQR video{width:100%;max-height:60dvh;border-radius:12px;background:#000;object-fit:cover}
+#leitorQR .moldura{position:relative}
+#leitorQR .moldura::after{content:"";position:absolute;inset:18%;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.codigoGrande{font:600 18px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.05em;word-break:break-all;
+  background:var(--surface);border:1px solid var(--border-forte);border-radius:10px;padding:8px 10px;margin:8px 0}
 
 /* O atributo hidden manda sempre: sem isto, um display de classe (flex, inline-flex)
    mostrava o que a aplicação escondeu */
@@ -2647,6 +2670,7 @@ const AJUDAS_ACAO = {
   sincDesligar:["Desligar a sincronização", "Este aparelho deixa de enviar e receber. Os dados ficam como estão, aqui e no outro.", ""],
   sincCopiar: ["Copiar a ligação", "Copia o endereço com o código, para abrir no outro aparelho quando a câmara não dá jeito.", ""],
   sincGuardarAvancado:["Guardar", "Muda o nome com que este aparelho aparece no outro, ou o serviço de passagem (os dois aparelhos têm de usar o mesmo).", ""],
+  sincLerQR:  ["Ler o QR com a câmara", "Abre a câmara e lê o código do outro aparelho, sem o escrever. Só aparece onde o navegador sabe ler códigos.", ""],
   sincIr:     ["Sincronizar aparelhos", "Leva às definições da sincronização entre o telemóvel e o computador.", ""],
   ecra2Abrir: ["Janela companheira", "Abre uma segunda janela, no outro ecrã quando há, que segue esta e mostra o que completa a página em que está.", ""],
   ecra2Fechar:["Fechar a companheira", "Fecha a segunda janela. As fichas e ferramentas voltam a abrir ao lado, nesta.", ""],
@@ -19161,7 +19185,10 @@ function cartaoSinc(){
         '<div class="sincPasso"><h3>Já tenho um código</h3><p class="muted">O que aparece no outro aparelho, por baixo do QR.</p>' +
           '<div class="row"><div style="flex:1 1 200px"><label class="field" for="sincCodigo">Código</label>' +
           '<input id="sincCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"></div>' +
-          '<div class="shrink" style="align-self:flex-end"><button class="btn" data-act="sincEntrar">Ligar</button></div></div></div>' +
+          '<div class="shrink" style="align-self:flex-end"><button class="btn" data-act="sincEntrar">Ligar</button></div></div>' +
+          (podeLerQR() ? '<button class="btn ghost" data-act="sincLerQR" style="margin-top:10px">' + ic("ecra") + 'Ler o QR com a câmara</button>' : '') +
+          (eIOS() && emAplicacao() ? '<p class="muted" style="font-size:12px;margin-top:8px">No iPhone, a câmara abre a ligação no Safari, que guarda os dados à parte desta app: aqui, escreva o código.</p>' : '') +
+        '</div>' +
       '</div>' +
       '<div class="note" style="margin-top:12px"><strong>Por onde passa.</strong> As cópias seguem por um serviço público de mensagens ' +
       '(<code>ntfy.sh</code>, ou um servidor seu), cifradas com AES de 256 bits antes de sair do aparelho. Sem o código são ruído. ' +
@@ -19206,6 +19233,7 @@ const ACOES_SINC = {
     render();
     toast("Código criado. Aponte a câmara do outro aparelho ao quadrado.");
   },
+  sincLerQR(){ abrirLeitorQR(); },
   sincEntrar(){
     const v = ($("#sincCodigo") || {}).value || "";
     if (!codigoValido(v)){ invalido("sincCodigo", "O código tem 25 letras e números, em cinco grupos."); return; }
@@ -19248,6 +19276,87 @@ const ACOES_SINC = {
   },
 };
 
+/** iPhone ou iPad (o iPad diz-se Mac, mas tem toque). */
+function eIOS(){
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+/** Há leitor de códigos nativo e câmara (o Chrome no Android tem; o Safari não). */
+const podeLerQR = () => typeof window.BarcodeDetector === "function" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+/** Tira o código de um texto lido: a ligação do QR, ou o código sozinho. */
+function codigoDeTexto(t){
+  const m = /#ligar=([0-9A-Za-z-]+)(?:&s=([^&\s]+))?/.exec(String(t || ""));
+  if (m && codigoValido(m[1])) return {codigo: m[1], servidor: m[2] ? decodeURIComponent(m[2]) : ""};
+  return codigoValido(t) ? {codigo: String(t), servidor: ""} : null;
+}
+let _leitorQR = null;
+function fecharLeitorQR(){
+  if (_leitorQR){ _leitorQR.ativo = false; try { _leitorQR.stream.getTracks().forEach(t => t.stop()); } catch(e){} }
+  _leitorQR = null;
+  const h = $("#modalHost");
+  if (h && h.querySelector("#leitorQR")) h.innerHTML = "";
+}
+async function abrirLeitorQR(){
+  if (!podeLerQR()){ toast("Este navegador não lê códigos pela câmara. Escreva o código."); return; }
+  let detetor;
+  try { detetor = new BarcodeDetector({formats: ["qr_code"]}); }
+  catch(e){ toast("Este navegador não lê códigos QR. Escreva o código."); return; }
+  const host = $("#modalHost");
+  host.innerHTML = '<div class="overlay"><div class="dialog" id="leitorQR" role="dialog" aria-modal="true" aria-labelledby="leitorQRT">' +
+    '<h3 id="leitorQRT">Aponte ao QR do outro aparelho</h3>' +
+    '<div class="moldura"><video playsinline muted aria-label="Imagem da câmara"></video></div>' +
+    '<p class="muted" id="leitorQREstado" style="margin-top:8px">A pedir a câmara…</p>' +
+    '<div class="actions"><button class="btn ghost" data-dlg="no">Cancelar</button></div></div></div>';
+  host.querySelector('[data-dlg="no"]').onclick = fecharLeitorQR;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false}); }
+  catch(e){
+    const est = $("#leitorQREstado");
+    if (est) est.textContent = "Sem acesso à câmara. Pode escrever o código por baixo do QR.";
+    return;
+  }
+  const video = host.querySelector("video");
+  if (!video){ stream.getTracks().forEach(t => t.stop()); return; }
+  _leitorQR = {stream, ativo: true};
+  video.srcObject = stream;
+  /* Não se espera pelo vídeo: numa janela que não está à frente o play() pode
+     nunca responder. O leitor vai tentando, e lê assim que houver imagem. */
+  video.play().catch(() => {});
+  const est = $("#leitorQREstado"); if (est) est.textContent = "À procura do código…";
+  const ciclo = async () => {
+    if (!_leitorQR || !_leitorQR.ativo) return;
+    try {
+      const r = await detetor.detect(video);
+      const lido = r && r.length ? codigoDeTexto(r[0].rawValue) : null;
+      if (lido){
+        fecharLeitorQR();
+        if (navigator.vibrate) try { navigator.vibrate(40); } catch(e){}
+        if (sincLigarCom(lido.codigo, lido.servidor)){ toast("Ligado. A trazer os dados do outro aparelho…"); render(); }
+        return;
+      }
+    } catch(e){}
+    setTimeout(ciclo, 250);
+  };
+  ciclo();
+}
+/* Atalhos do ícone (toque longo no Android): o manifesto abre a página com
+   ?atalho=…, e aqui faz-se o que o atalho diz, tirando-o do endereço. */
+const ATALHOS_ICONE = {
+  registar: () => abrirRapido(),
+  movimentos: () => irPagina("movimentos"),
+  sincronizar: () => { irPagina("config"); setTimeout(() => { const e = $("#cfgSinc"); if (e) e.scrollIntoView({block: "start"}); }, 0); },
+};
+function cumprirAtalho(){
+  const p = new URLSearchParams(location.search);
+  const a = p.get("atalho");
+  if (!a) return false;
+  p.delete("atalho");
+  try { history.replaceState(null, "", location.pathname + (p.toString() ? "?" + p : "") + location.hash); } catch(e){}
+  if (!ATALHOS_ICONE[a]) return false;
+  ATALHOS_ICONE[a]();
+  return true;
+}
+
 /** Abriu-se uma ligação de emparelhamento (o QR leva a `#ligar=…`). */
 function sincLerLigacao(){
   const m = /^#ligar=([0-9A-Za-z-]+)(?:&s=([^&]+))?/.exec(location.hash || "");
@@ -19265,10 +19374,24 @@ function sincLerLigacao(){
       (semDadosProprios(estadoParaSinc(S), S.exemploDemo) ? "" :
         '<div class="note" style="margin-bottom:11px">Este aparelho já tem dados. Juntam-se aos do outro: nada se apaga.</div>') +
       (c.codigo ? '<div class="note" style="margin-bottom:11px">Deixa a ligação que tinha antes.</div>' : "") +
+      /* No iPhone e no iPad, o Safari e a app do ecrã principal guardam os dados
+         cada um no seu sítio. A câmara abre sempre o Safari: quem usa a app tem
+         de levar o código para lá. */
+      (eIOS() && !emAplicacao()
+        ? '<div class="note" style="margin-bottom:11px"><strong>Usa a app no ecrã principal?</strong> O Safari guarda os dados à parte dela. ' +
+          'Abra a app e, em <em>Definições → Sincronizar → Já tenho um código</em>, escreva:' +
+          '<div class="codigoGrande" id="dlgSincCodigo">' + esc(formatarCodigo(codigo)) + '</div>' +
+          '<button class="btn sm ghost" data-dlg="copiar">' + ic("copiar") + 'Copiar o código</button></div>'
+        : "") +
       '<div class="actions"><button class="btn ghost" data-dlg="no">Agora não</button>' +
-      '<button class="btn primary" data-dlg="yes">Ligar</button></div></div></div>';
+      '<button class="btn primary" data-dlg="yes">' + (eIOS() && !emAplicacao() ? "Ligar o Safari" : "Ligar") + '</button></div></div></div>';
   const fechar = () => { host.innerHTML = ""; };
   host.querySelector('[data-dlg="no"]').onclick = fechar;
+  const cp = host.querySelector('[data-dlg="copiar"]');
+  if (cp) cp.onclick = () => {
+    (navigator.clipboard ? navigator.clipboard.writeText(formatarCodigo(codigo)) : Promise.reject())
+      .then(() => toast("Código copiado. Cole-o na app."), () => toast(formatarCodigo(codigo)));
+  };
   host.querySelector('[data-dlg="yes"]').onclick = () => {
     fechar();
     if (sincLigarCom(codigo, srv)){ toast("Ligado. A trazer os dados do outro aparelho…"); if (VIEW === "config") render(); }
@@ -19623,6 +19746,8 @@ sincArrancar();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && SINC) SINC.agora(false); });
 window.addEventListener("online", () => { if (SINC) SINC.agora(false); });
 window.addEventListener("hashchange", sincLerLigacao);
+window.addEventListener("pageshow", (e) => { if (e.persisted && SINC) SINC.agora(false); });
+cumprirAtalho();
 if (DESKTOP && !EH_PAINEL && ecra2Cfg().auto && temSegundoEcra()) setTimeout(abrirSegundoEcra, 600);
 
 /* A sessão acompanha o que se vai fazendo, sem estorvar o que se escreve. */

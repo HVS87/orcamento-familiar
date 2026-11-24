@@ -427,7 +427,7 @@ G("macaco — sequências aleatórias de ações");
      sincronização (falaria com a rede com dados de teste) e abrir pastas. */
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
                    "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
-                   "ecra2Apresentacao","sincCriar","sincEntrar","sincAgora","sincCopiar","sincDesligar",
+                   "ecra2Apresentacao","sincCriar","sincEntrar","sincLerQR","sincAgora","sincCopiar","sincDesligar",
                    "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
   var CORRIDAS = 8, PASSOS = 45;
 
@@ -546,7 +546,7 @@ G("desfazer tudo devolve o princípio");
      sincronização (falaria com a rede com dados de teste) e abrir pastas. */
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
                    "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
-                   "ecra2Apresentacao","sincCriar","sincEntrar","sincAgora","sincCopiar","sincDesligar",
+                   "ecra2Apresentacao","sincCriar","sincEntrar","sincLerQR","sincAgora","sincCopiar","sincDesligar",
                    "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
   var vistas = ["painel","despesas","ativos","creditos","objetivos"];
 

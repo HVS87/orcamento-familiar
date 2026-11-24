@@ -56,7 +56,7 @@
     "mac": {
       "icon": "build/icon.png",
       "category": "public.app-category.finance",
-      "identity": "-",
+      "identity": null,
       "artifactName": "Orcamento-Familiar-${version}-mac-${arch}.${ext}"
     },
     "dmg": {
@@ -72,7 +72,8 @@
     },
     "deb": {
       "packageName": "orcamento-familiar"
-    }
+    },
+    "afterPack": "build/assinar-adhoc.js"
   },
   "allowScripts": {
     "electron@33.4.11": true

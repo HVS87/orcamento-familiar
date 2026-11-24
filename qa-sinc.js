@@ -710,6 +710,102 @@ if (!DESKTOP){
   ok(/aplicação de secretária/.test($("#cfgAplicacao").textContent), "o cartão diz que é a aplicação de secretária");
   ok($('#cfgAplicacao [data-act="appPastaCopias"]') != null, "com a pasta das cópias diárias");
 }
+G("telemóvel — Android e iOS");
+var vp = document.querySelector('meta[name="viewport"]');
+ok(vp && /viewport-fit=cover/.test(vp.content), "a página chega às bordas (entalhe e barra de gestos)", vp && vp.content);
+ok(!!document.querySelector('meta[name="mobile-web-app-capable"]') && !!document.querySelector('meta[name="apple-mobile-web-app-capable"]'), "declara-se app no Android e no iOS");
+var regras = [];
+Array.prototype.forEach.call(document.styleSheets, function(sh){
+  try { Array.prototype.forEach.call(sh.cssRules, function(r){ regras.push(r.cssText); }); } catch(e){}
+});
+var css = regras.join("\n");
+ok(/@media \(pointer: ?coarse\)[^@]*input, ?select, ?textarea \{ ?font-size: 16px/.test(css), "ao toque, os campos têm 16 px (o iOS não aproxima a página)");
+ok(/safe-area-inset-left/.test(css) && /safe-area-inset-right/.test(css) && /safe-area-inset-bottom/.test(css), "as margens seguras contam à esquerda, à direita e em baixo");
+ok(/100dvh/.test(css), "os diálogos medem-se pela altura visível (a barra do navegador não os corta)");
+var lidoA = codigoDeTexto(PAGINA_ONLINE + "#ligar=0123456789ABCDEFGHJKMNPQR");
+ok(lidoA && lidoA.codigo === "0123456789ABCDEFGHJKMNPQR" && lidoA.servidor === "", "um QR com a ligação dá o código");
+var lidoB = codigoDeTexto(PAGINA_ONLINE + "#ligar=0123456789ABCDEFGHJKMNPQR&s=" + encodeURIComponent("https://ntfy.exemplo.pt"));
+ok(lidoB && lidoB.servidor === "https://ntfy.exemplo.pt", "e o servidor próprio, quando o há");
+ok(codigoDeTexto("ABCDE-FGHJK-MNPQR-STVWX-YZ012") && !codigoDeTexto("https://exemplo.pt/qualquer") && !codigoDeTexto(""), "um código sozinho também; outra coisa qualquer não");
+/* Atalhos do ícone (Android) */
+var manif = null;
+try { manif = await (await fetch("./manifest.json", {cache: "no-store"})).json(); } catch(e){}
+ok(manif && Array.isArray(manif.shortcuts) && manif.shortcuts.length >= 3, "o manifesto tem atalhos para o ícone", manif && JSON.stringify(manif.shortcuts || null).slice(0, 80));
+if (manif && manif.shortcuts) manif.shortcuts.forEach(function(a){
+  var at = new URL(a.url, location.href).searchParams.get("atalho");
+  ok(!!ATALHOS_ICONE[at], "o atalho «" + a.short_name + "» é um que a página sabe cumprir");
+  ok(a.icons && a.icons.length && /192/.test(a.icons[0].sizes), "e tem ícone de 192 px");
+});
+ok(manif && manif.launch_handler && manif.launch_handler.client_mode === "navigate-existing", "um atalho com a app já aberta usa a mesma janela");
+var endereco = location.pathname + location.search + location.hash;
+history.replaceState(null, "", location.pathname + "?atalho=movimentos");
+ok(cumprirAtalho() && paginaAtual() === "movimentos", "?atalho=movimentos abre os movimentos");
+ok(location.search === "", "e sai do endereço (recarregar não o repete)");
+history.replaceState(null, "", location.pathname + "?atalho=registar&x=1");
+cumprirAtalho();
+ok(!!document.querySelector("#modalHost .overlay"), "?atalho=registar abre o registo");
+eq(new URLSearchParams(location.search).get("x"), "1", "e deixa ficar o resto do endereço");
+$("#modalHost").innerHTML = "";
+history.replaceState(null, "", location.pathname + "?atalho=nada");
+ok(!cumprirAtalho(), "um atalho desconhecido não faz nada");
+history.replaceState(null, "", endereco);
+/* Emparelhar no iPhone: o Safari e a app do ecrã principal guardam à parte */
+var cfgAntes = localStorage.getItem(SINC_KEY);
+localStorage.removeItem(SINC_KEY);
+var IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+comUA(IPHONE, function(){
+  ok(eIOS(), "reconhece o iPhone");
+  var instAntes = _instalada; _instalada = false;
+  history.replaceState(null, "", location.pathname + location.search + "#ligar=0123456789ABCDEFGHJKMNPQR");
+  sincLerLigacao();
+  var dlg = $("#modalHost .dialog");
+  if (DESKTOP){ ok(dlg && !$("#dlgSincCodigo"), "na aplicação de secretária não há aviso do Safari"); }
+  else {
+    ok(dlg && /Usa a app no ecrã principal/.test(dlg.textContent), "no Safari do iPhone, avisa que a app guarda os dados à parte");
+    ok($("#dlgSincCodigo") && $("#dlgSincCodigo").textContent === "01234-56789-ABCDE-FGHJK-MNPQR", "e mostra o código, em grupos, para escrever na app");
+    ok(/Ligar o Safari/.test(dlg.textContent), "o botão diz o que liga");
+  }
+  $("#modalHost").innerHTML = "";
+  _instalada = true;
+  irPagina("config");
+  if (!DESKTOP) ok(/escreva o código/.test($("#cfgSinc").textContent), "na app do iPhone, o cartão diz para escrever o código");
+  _instalada = instAntes;
+});
+/* Ler o QR com a câmara: o leitor nativo e a câmara, de faz-de-conta */
+var BDantes = window.BarcodeDetector, GUMantes = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+var parado = 0, deteccoes = 0;
+window.BarcodeDetector = function(){ this.detect = function(){ deteccoes++; return Promise.resolve(deteccoes < 3 ? [] : [{rawValue: PAGINA_ONLINE + "#ligar=ABCDE-FGHJK-MNPQR-STVWX-YZ012"}]); }; };
+var tela = document.createElement("canvas"); tela.width = 64; tela.height = 64; tela.getContext("2d").fillRect(0, 0, 64, 64);
+if (!navigator.mediaDevices) Object.defineProperty(navigator, "mediaDevices", {value: {}, configurable: true});
+navigator.mediaDevices.getUserMedia = function(){
+  var st = tela.captureStream(5);
+  st.getTracks().forEach(function(t){ var p = t.stop.bind(t); t.stop = function(){ parado++; p(); }; });
+  return Promise.resolve(st);
+};
+ok(podeLerQR(), "com leitor nativo e câmara, oferece ler o QR");
+irPagina("config");
+ok(!!$('#cfgSinc [data-act="sincLerQR"]'), "o cartão tem o botão «Ler o QR com a câmara»");
+transporteNtfy = function(){ return caixaFalsa().transporte(); };
+ACOES.sincLerQR();
+await dormir(150);
+ok(!!$("#leitorQR video"), "abre a imagem da câmara");
+await dormir(1200);
+eq(limparCodigo(sincCfg().codigo || ""), "ABCDEFGHJKMNPQRSTVWXYZ012", "lido o QR, fica ligado com esse código");
+ok(!$("#leitorQR") && parado > 0, "e a câmara desliga-se logo");
+sincParar();
+navigator.mediaDevices.getUserMedia = function(){ return Promise.reject(new Error("recusado")); };
+ACOES.sincLerQR();
+await dormir(200);
+ok($("#leitorQREstado") && /Sem acesso à câmara/.test($("#leitorQREstado").textContent), "sem licença para a câmara, diz o que fazer");
+fecharLeitorQR();
+window.BarcodeDetector = BDantes;
+if (BDantes === undefined) delete window.BarcodeDetector;
+if (GUMantes) navigator.mediaDevices.getUserMedia = GUMantes; else delete navigator.mediaDevices.getUserMedia;
+transporteNtfy = transporteOriginal;
+ok(podeLerQR() === (typeof window.BarcodeDetector === "function" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)), "sem leitor nativo (Safari), o botão não aparece");
+if (cfgAntes) localStorage.setItem(SINC_KEY, cfgAntes); else localStorage.removeItem(SINC_KEY);
+render();
+
 }
 
 function arrumar(){

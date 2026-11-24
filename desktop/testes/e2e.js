@@ -127,16 +127,18 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
     await pronta(P);
 
     G("arranque");
-    const info = JSON.parse(await P.v(`JSON.stringify({origem: location.origin, segura: isSecureContext, cifra: !!(crypto && crypto.subtle),
+    const info = JSON.parse(await P.v(`(async () => JSON.stringify({origem: location.origin, segura: isSecureContext, cifra: !!(crypto && crypto.subtle),
       versao: VERSAO_APP, desktop: !!window.orcamentoDesktop, vDesktop: window.orcamentoDesktop && window.orcamentoDesktop.versao,
       plataforma: window.orcamentoDesktop && window.orcamentoDesktop.plataforma, ecras: (window.orcamentoDesktop.ecras() || []).length,
-      node: typeof require, sw: !!navigator.serviceWorker && !!navigator.serviceWorker.controller, titulo: document.title,
-      bc: typeof BroadcastChannel, locks: !!(navigator.locks && navigator.locks.request)})`));
+      node: typeof require, ua: navigator.userAgent, manifesto: await fetch("./manifest.json").then(r => r.ok, () => false), sw: !!navigator.serviceWorker && !!navigator.serviceWorker.controller, titulo: document.title,
+      bc: typeof BroadcastChannel, locks: !!(navigator.locks && navigator.locks.request)}))()`));
     ok(info.origem === "app://orcamento", "a página vem do protocolo próprio, com origem verdadeira", info.origem);
     ok(info.segura && info.cifra, "contexto seguro, com a cifra disponível (precisa-a a sincronização)");
     ok(info.versao === require("../package.json").version && info.vDesktop === info.versao, "versão da página = versão da aplicação", info.versao + " / " + info.vDesktop);
     ok(info.desktop && info.plataforma === process.platform, "a ponte com o processo principal está lá");
     ok(info.node === "undefined", "a página não vê o Node (isolamento ligado)");
+    ok(/^[ -~]+$/.test(info.ua), "o identificador do navegador só tem ASCII (cabe num cabeçalho)", info.ua);
+    ok(info.manifesto, "os ficheiros da aplicação leem-se com fetch pelo protocolo próprio");
     eq2(info.ecras, 2, "vê os dois ecrãs (simulados)");
     ok(!info.sw, "sem service worker: não faz falta fora do navegador");
     ok(info.bc === "function" && info.locks, "BroadcastChannel e Web Locks disponíveis (duas janelas, um só a sincronizar)");
