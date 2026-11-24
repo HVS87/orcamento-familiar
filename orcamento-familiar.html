@@ -32,6 +32,8 @@
   --warn:#996200; --warn-soft:#fdf0d8;
   --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.07);
   --radius:14px;
+  --accent-forte:var(--accent);
+  --border-forte:color-mix(in srgb,var(--text) 24%,transparent);
 }
 html[data-theme="dark"]{
   --bg:#0c1119; --surface:#141b26; --surface-2:#1b2431; --surface-3:#243044;
@@ -112,7 +114,7 @@ html,body{margin:0;padding:0}
    `anywhere` parte a palavra em vez de partir a página, e ao contrário de
    `break-word` também encolhe a largura mínima, que é o que faz a diferença
    dentro de grelhas e flexbox. */
-#app, .dialog, #tip, #paleta, #folhaAcoes, header{overflow-wrap:anywhere}
+#app, .dialog, #tip, #paleta, .popover, #painelLateral, header{overflow-wrap:anywhere}
 /* Um filho de grelha ou de flexbox não encolhe abaixo do seu conteúdo sem se
    lhe desfazer o mínimo — é a outra metade da defesa contra conteúdo que não
    cabe, a par do `overflow-wrap` acima. Preventivo: nos ecrãs medidos, até
@@ -140,22 +142,6 @@ a{color:var(--accent)}
 .warn-txt{color:var(--warn);font-weight:600}
 .hidden{display:none !important}
 
-/* ============================================================
-   Cabeçalho
-   ============================================================ */
-header{
-  position:sticky; top:0; z-index:40;
-  background:var(--surface); border-bottom:1px solid var(--border);
-}
-.topbar{
-  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-  padding:10px 16px; max-width:1240px; margin:0 auto;
-}
-.brand{display:flex;align-items:center;gap:9px;margin-right:auto;min-width:0}
-.brand .logo{font-size:22px;line-height:1}
-.brand h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand small{display:block;font-size:11px;color:var(--muted);font-weight:400}
-.topbar .grp{display:flex;align-items:center;gap:6px}
 
 .btn{
   display:inline-flex;align-items:center;gap:6px;
@@ -188,18 +174,6 @@ input[type=checkbox]{width:auto}
 .celSel{display:flex;align-items:center;justify-content:center;cursor:pointer}
 label.field{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
 
-/* Separadores */
-nav.tabs{border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
-nav.tabs .inner{display:flex;gap:2px;max-width:1240px;margin:0 auto;padding:0 12px}
-nav.tabs button{
-  background:none;border:0;border-bottom:2.5px solid transparent;
-  padding:10px 13px;cursor:pointer;font-size:14px;font-weight:550;color:var(--muted);
-  white-space:nowrap;
-}
-nav.tabs button:hover{color:var(--text)}
-nav.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
-
-main{max-width:1240px;margin:0 auto;padding:18px 16px 80px}
 
 /* ============================================================
    Cartões e grelhas
@@ -421,7 +395,6 @@ svg text{font-variant-numeric:tabular-nums}
   animation:cairConfete 2.3s ease-in forwards}
 
 /* Ícones dos separadores */
-nav.tabs .ticon{font-size:14px;margin-right:6px;opacity:.85}
 
 /* Validação em linha */
 input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px solid var(--neg)}
@@ -454,8 +427,6 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
   text-decoration:underline;font-weight:700;font-size:13.5px;cursor:pointer;margin-left:10px;padding:0}
 #toast.show{pointer-events:auto}
 
-/* Navegação inferior (móvel) */
-#tabsMovel{display:none}
 
 /* Paleta de comandos */
 #paleta .overlay{align-items:flex-start;padding-top:12vh}
@@ -469,19 +440,6 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 #paleta li[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
 #paleta .tipo{margin-left:auto;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 
-/* Botão de transbordo do cabeçalho: só existe em ecrã estreito */
-#btnMaisAcoes{display:none}
-/* Folha de ações secundárias */
-#folhaAcoes{position:fixed;left:8px;right:8px;top:60px;z-index:75;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
-  padding:8px;display:none;max-width:420px;margin:0 auto}
-#folhaAcoes.aberta{display:block}
-#folhaAcoes button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
-  background:none;border:0;color:var(--text);border-radius:9px;padding:12px 12px;
-  font-size:14px;cursor:pointer;min-height:48px}
-#folhaAcoes button:hover{background:var(--surface-2)}
-#folhaAcoes button .ic{font-size:18px;width:24px;text-align:center;flex:0 0 auto}
-#folhaAcoes button .st{margin-left:auto;font-size:12px;color:var(--muted)}
 
 /* Ordenação das tabelas quando estão em modo cartão: o cabeçalho da
    tabela desaparece aí, e com ele os cabeçalhos ordenáveis. */
@@ -515,14 +473,6 @@ svg.mini{width:70px;height:20px;display:block}
 #fitaMeses .lx{font-size:9.5px;color:var(--muted);line-height:1;display:flex;align-items:center;gap:1px}
 #fitaMeses button[aria-current="true"] .lx{color:var(--accent);font-weight:650}
 #fitaMeses .selo{font-size:8px;opacity:.75}
-/* Em ecrãs médios a fita passa para a sua própria linha, em vez de
-   desaparecer: é a forma mais rápida de saltar de mês em qualquer
-   largura, e escondê-la deixava uma faixa sem ela. */
-@media (max-width:900px){
-  .topbar .grp{flex-wrap:wrap}
-  #fitaMeses{order:9;flex:1 1 100%;justify-content:space-between}
-  #fitaMeses button{width:auto;flex:1 1 0}
-}
 
 /* Cartões do painel: barra de colapso discreta, no canto */
 .comCab{position:relative}
@@ -536,9 +486,6 @@ svg.mini{width:70px;height:20px;display:block}
 .card.cartaoFechado .cabPainel{position:static;flex:1 1 auto}
 .card.cartaoFechado .tt{font-size:13.5px;font-weight:600;color:var(--muted)}
 
-/* Indicador de gravação */
-#estadoGuardado{font-size:11.5px;white-space:nowrap;min-width:0}
-@media (max-width:640px){ #estadoGuardado{display:none} }
 
 /* Relatório mensal */
 .relatorio .capa{border-bottom:2px solid var(--border);padding-bottom:14px;margin-bottom:4px}
@@ -591,18 +538,6 @@ svg.mini{width:70px;height:20px;display:block}
 .ldBarra span{width:70%;min-width:4px;border-radius:2px 2px 0 0;display:block}
 .ldDia{font-size:9px;color:var(--muted);line-height:1;height:10px}
 .ldCol.hoje .ldDia{color:var(--accent)}
-/* Aura da paleta: um gradiente muito ténue no topo, que dá identidade a
-   cada tema sem tocar na legibilidade nem nas cores semânticas. */
-header{position:relative}
-header::before{content:"";position:absolute;inset:0 0 auto 0;height:100%;pointer-events:none;
-  background:radial-gradient(120% 180% at 12% -40%,
-    color-mix(in srgb,var(--accent) 16%,transparent), transparent 62%);
-  opacity:.9}
-header > *{position:relative;z-index:1}
-@media (prefers-reduced-motion:no-preference){
-  header::before{transition:background .3s ease}
-}
-[data-contraste="alto"] header::before{display:none}
 
 /* Carimbo do fecho do mês: o ✓ bate como um carimbo, uma vez */
 @keyframes carimbar{
@@ -645,13 +580,11 @@ tr.diaCabec .dv{float:right;font-variant-numeric:tabular-nums}
 .passoHist .hn{font-size:14px;color:var(--muted);flex:0 0 auto}
 .passoHist .ht{flex:1 1 auto;font-size:13px;min-width:0}
 .passoHist .hq{font-size:11px;color:var(--muted);flex:0 0 auto}
-/* Emblema de pendências no separador: um ponto pequeno com o número */
-nav.tabs .inner button, #tabsMovel button, #folhaMais button{position:relative}
+/* Emblema de pendências: um ponto pequeno com o número */
+.destino, .ficha{position:relative}
 .emblema{position:absolute;top:3px;right:4px;min-width:15px;height:15px;padding:0 3px;
   border-radius:999px;background:var(--neg);color:#fff;font-size:9.5px;font-weight:700;
   line-height:15px;text-align:center;pointer-events:none;box-shadow:0 0 0 2px var(--surface)}
-#tabsMovel .emblema{top:2px;right:calc(50% - 22px)}
-#folhaMais .emblema{position:static;display:inline-block;margin-left:6px;box-shadow:none}
 /* Rosto de um membro: emoji, nome e a cor da pessoa numa pastilha */
 .rosto{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap;
   padding:2px 8px 2px 3px;border-radius:999px;background:var(--surface-3);
@@ -927,67 +860,9 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 }
 
 @media (max-width:640px){
-  .topbar{padding:9px 12px;gap:8px}
-  .brand h1{font-size:15px}
-  .brand small{display:none}
-  main{padding:14px 11px 84px}
-  /* O cabeçalho tinha 17 botões e 151 px. Os secundários passam para
-     uma folha, e ficam à vista os que se usam a toda a hora. */
-  header .secundario{display:none}
-  #btnMaisAcoes{display:inline-flex}
-  #mesSel{width:132px}
-  /* Sem isto a fita não consegue passar para a linha de baixo, e o
-     seu flex-basis de 100% empurra o cabeçalho para fora do ecrã. */
-  .topbar .grp{flex-wrap:wrap}
-  /* As setas ‹ › tornam-se redundantes: há a fita e o deslizar. Sai
-     também o subtítulo. O cabeçalho é fixo — cada linha custa ecrã. */
-  #mesPrev,#mesNext{display:none}
-  .topbar{padding:7px 12px;gap:6px}
-  header .brand .logo{font-size:19px}
-  #fitaMeses{padding-top:0}
-  #fitaMeses button{min-height:40px}
-  #fitaMeses .cx{height:18px}
-  /* O cabeçalho ocupa 190 px de um ecrã de 812. Recolhe ao descer e
-     volta ao subir — o gesto de voltar atrás traz sempre o comando. */
-  header{transition:transform .22s ease}
-  header.recolhido{transform:translateY(-100%)}
-  /* A fita de meses é boa no telemóvel — é toque em vez de setas.
-     Passa para uma linha própria, com espaço para o dedo. */
-  #fitaMeses{display:flex;order:9;flex:1 1 100%;justify-content:space-between;
-    padding-top:2px;gap:2px}
-  #fitaMeses button{width:auto;flex:1 1 0;min-height:44px;padding:4px 0}
-  #fitaMeses .cx{height:22px}
   .card{padding:13px}
   .kpi .val{font-size:21px}
   th,td{padding:7px 8px;font-size:13.5px}
-  nav.tabs{display:none}
-  #tabsMovel{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;
-    background:var(--surface);border-top:1px solid var(--border);
-    padding:4px max(6px,env(safe-area-inset-left)) max(6px,env(safe-area-inset-bottom))}
-  /* `flex:1 1 0` sozinho não chega: por omissão um item de flexbox não encolhe
-     abaixo do seu conteúdo, e cinco rótulos como «Rendimentos» são muito para
-     um ecrã de 320 px. Com o mínimo desfeito, apertam-se e cortam-se com
-     reticências em vez de alargarem a barra. */
-  #tabsMovel button{flex:1 1 0;min-width:0;background:none;border:0;color:var(--muted);font-size:11px;
-    display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:9px;
-    cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #tabsMovel button .ticon{font-size:19px}
-  #tabsMovel button[aria-selected="true"]{color:var(--accent)}
-  /* O botão de registo sobe acima da navegação inferior: pousado em cima
-     dela, tapava o último separador — e a navegação vem primeiro. */
-  #botaoRapido{bottom:calc(72px + env(safe-area-inset-bottom));width:50px;height:50px;font-size:25px}
-  #tabsMovel button:focus-visible{outline:2px solid var(--accent)}
-  /* `:not([hidden])` não é enfeite: o `display:none` que o atributo `hidden`
-     traz vem da folha do navegador e perde para qualquer regra de autor com
-     um `id`. Sem isto, a folha «Mais» ficava aberta para sempre — o JS punha
-     `hidden`, e o CSS mandava mostrar à mesma. */
-  #folhaMais:not([hidden]){position:fixed;left:8px;right:8px;bottom:64px;z-index:71;
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-    box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:4px;padding:8px}
-  #folhaMais button{flex:1 1 40%;background:var(--surface-2);border:1px solid var(--border);
-    border-radius:9px;color:var(--text);padding:10px;font-size:13px;cursor:pointer}
-  #folhaMais button[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
-  #tutorial .tutcard{bottom:84px}
 }
 
 /* ---------------------------------------------------------------
@@ -1002,42 +877,8 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
    troca em conformidade: tudo o que é vertical encolhe, e o que ganha
    com a largura espalha-se.
    --------------------------------------------------------------- */
-[data-deitado="telemovel"] header .brand h1,
-[data-deitado="telemovel"] header .brand small{display:none}
-[data-deitado="telemovel"] .topbar{padding:4px 10px;gap:5px}
-/* A fita sai: há o seletor de mês, as setas e o deslizar */
-[data-deitado="telemovel"] #fitaMeses{display:none}
-[data-deitado="telemovel"] #mesPrev,
-[data-deitado="telemovel"] #mesNext{display:inline-flex}
-[data-deitado="telemovel"] header .secundario{display:none}
-[data-deitado="telemovel"] #btnMaisAcoes{display:inline-flex}
-[data-deitado="telemovel"] header{transition:transform .22s ease}
-[data-deitado="telemovel"] header.recolhido{transform:translateY(-100%)}
-
-/* A navegação vai para baixo, como em retrato: no topo roubaria mais uma
-   faixa de altura, e em baixo o polegar alcança-a com o aparelho deitado. */
-[data-deitado="telemovel"] nav.tabs{display:none}
-[data-deitado="telemovel"] #tabsMovel{display:flex;position:fixed;left:0;right:0;bottom:0;
-  z-index:70;background:var(--surface);border-top:1px solid var(--border);
-  padding:2px max(6px,env(safe-area-inset-left)) max(2px,env(safe-area-inset-bottom))}
-/* Deitado, o ícone e o texto cabem lado a lado — poupa uma linha inteira */
-[data-deitado="telemovel"] #tabsMovel button{flex:1 1 0;background:none;border:0;
-  color:var(--muted);font-size:10px;display:flex;flex-direction:row;align-items:center;
-  justify-content:center;gap:5px;padding:5px 2px;border-radius:9px;cursor:pointer;min-height:38px}
-[data-deitado="telemovel"] #tabsMovel button .ticon{font-size:15px}
-[data-deitado="telemovel"] #tabsMovel button[aria-selected="true"]{color:var(--accent)}
-[data-deitado="telemovel"] #folhaMais:not([hidden]){position:fixed;left:8px;right:8px;bottom:46px;
-  z-index:71;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:4px;padding:6px}
-[data-deitado="telemovel"] #folhaMais button{flex:1 1 30%;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:9px;color:var(--text);padding:8px;
-  font-size:12.5px;cursor:pointer}
-[data-deitado="telemovel"] #botaoRapido{bottom:calc(50px + env(safe-area-inset-bottom));
-  right:12px;width:44px;height:44px;font-size:22px}
-[data-deitado="telemovel"] #tutorial .tutcard{bottom:56px}
 
 /* Menos ar na vertical, em todo o lado */
-[data-deitado="telemovel"] main{padding:8px 12px 56px}
 [data-deitado="telemovel"] .card{padding:10px 13px}
 [data-deitado="telemovel"] .card-head{margin-bottom:7px}
 [data-deitado="telemovel"] .kpi{padding:8px 10px}
@@ -1088,13 +929,173 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
      bolha do explicador estavam a faltar: quem tivesse o ponteiro pousado num
      indicador ao carregar em imprimir levava a bolha para a folha, e um
      diálogo aberto punha o seu véu cinzento por cima de tudo. */
-  header,nav.tabs,.no-print,#toast,#tabsMovel,#folhaMais,#paleta,#tutorial,#tutFundo,
-  #modalHost,#tip{display:none !important}
+  header,#destinos,.no-print,#toast,.popover,#painelLateral,#paleta,#tutorial,#tutFundo,
+  #modalHost,#tip,#botaoRapido{display:none !important}
+  body{padding-left:0 !important}
   body{background:#fff;color:#000;font-size:11.5pt}
   .card{box-shadow:none;border:1px solid #bbb;break-inside:avoid;page-break-inside:avoid}
   main{max-width:none;padding:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+/* ============================================================
+   Estrutura — barra de cima, destinos, páginas, menus, painel lateral
+
+   Computador e tablet: destinos numa coluna à esquerda, com o «Criar» no
+   topo. Telemóvel e janelas estreitas (`data-layout="compacto"`, posto
+   pelo JS): destinos em baixo, «Criar» no botão flutuante, menus como
+   folhas que sobem do fundo, e o painel lateral em ecrã inteiro.
+   ============================================================ */
+.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;display:inline-block;vertical-align:middle}
+
+header{position:sticky;top:0;z-index:40;background:var(--bg);margin-left:-92px}
+.topbar{display:flex;align-items:center;gap:10px;height:64px;padding:0 14px 0 12px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:0 0 auto;width:204px}
+.brand .logo{display:inline-flex;color:var(--accent-forte)}
+.brand .logo .ic{width:32px;height:32px;stroke-width:1.6}
+.brand .nome{display:block;font-size:17px;font-weight:600;white-space:nowrap;letter-spacing:-.01em}
+.brand small{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.pesquisa{flex:1 1 auto;max-width:640px;display:flex;align-items:center;gap:12px;height:46px;padding:0 18px;
+  border:0;border-radius:999px;background:var(--surface-2);color:var(--muted);cursor:text;
+  font:inherit;font-size:14.5px;text-align:left;min-width:0}
+.pesquisa:hover{background:var(--surface-3)}
+.pesquisa:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pesquisa .pt{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pesquisa kbd{font:inherit;font-size:11px;border:1px solid var(--border);border-radius:6px;padding:1px 6px;color:var(--muted)}
+.mesGrupo{display:flex;align-items:center;gap:0;flex:0 0 auto}
+.mesPill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 10px 0 14px;border:0;
+  border-radius:999px;background:transparent;color:var(--text);font:inherit;font-size:15px;font-weight:600;
+  cursor:pointer;white-space:nowrap}
+.mesPill:hover,.mesPill[aria-expanded="true"]{background:var(--surface-2)}
+.mesPill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mesPill .ic{width:18px;height:18px}
+.mCurto{display:none}
+.topbar .grp{display:flex;align-items:center;gap:2px;margin-left:auto}
+.btn.icon{width:40px;height:40px;min-width:40px;padding:0;justify-content:center;border-radius:999px}
+.btn.icon .ic{width:20px;height:20px}
+/* Refazer só aparece quando há o que refazer — o par desfazer/refazer
+   continua no teclado (Ctrl+Z, Ctrl+Shift+Z) e na linha do tempo. */
+[data-act="refazer"]:disabled{display:none}
+#estadoGuardado{font-size:12px;white-space:nowrap;min-width:0;margin-right:6px}
+
+body{padding-left:92px}
+#destinos{position:fixed;top:64px;left:0;bottom:0;width:92px;z-index:35;display:flex;flex-direction:column;
+  align-items:center;gap:8px;padding:8px 0 16px;background:var(--bg);overflow-y:auto}
+#destinos .criar{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  width:68px;height:68px;margin-bottom:12px;border:0;border-radius:20px;background:var(--accent-soft);
+  color:var(--accent-forte);font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
+#destinos .criar .ic{width:26px;height:26px;stroke-width:2}
+#destinos .criar:hover{background:color-mix(in srgb,var(--accent-soft) 80%,var(--accent))}
+#destinos .criar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.destino{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;
+  padding:2px 0 4px;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;
+  font-weight:550;cursor:pointer}
+.destino .pastilha{display:flex;align-items:center;justify-content:center;width:56px;height:32px;
+  border-radius:999px;transition:background .15s}
+.destino:hover .pastilha{background:var(--surface-2)}
+.destino[aria-current="page"]{color:var(--text);font-weight:700}
+.destino[aria-current="page"] .pastilha{background:var(--accent-soft);color:var(--accent-forte)}
+.destino:focus-visible .pastilha{outline:2px solid var(--accent);outline-offset:2px}
+.destino .emblema{top:-2px;right:auto;left:calc(50% + 10px)}
+main{max-width:1200px;margin:0 auto;padding:6px 24px 80px}
+
+/* Cabeçalho de cada página: o título e as fichas das páginas irmãs */
+.cabPagina{display:flex;flex-direction:column;gap:12px;margin:6px 0 20px}
+.tituloPagina{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.fichas{display:flex;gap:8px;flex-wrap:wrap}
+.ficha{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;
+  border:1px solid var(--border-forte);border-radius:999px;background:transparent;color:var(--text);
+  font:inherit;font-size:13.5px;font-weight:550;cursor:pointer;white-space:nowrap}
+.ficha:hover{background:var(--surface-2)}
+.ficha:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* A ficha escolhida diz-se com um visto, não só com a cor */
+.ficha[aria-pressed="true"]{background:var(--accent-soft);border-color:transparent;color:var(--accent-forte);font-weight:650}
+.ficha[aria-pressed="true"]::before{content:"✓";font-weight:700}
+.ficha .ic{width:16px;height:16px}
+.ficha .emblema{position:static;margin-left:2px;box-shadow:none}
+
+/* Menus que pairam */
+.popover{position:fixed;z-index:80;min-width:270px;max-width:min(360px,calc(100vw - 16px));
+  max-height:calc(100vh - 90px);overflow-y:auto;background:var(--surface);border-radius:16px;
+  box-shadow:0 2px 6px rgba(0,0,0,.16),0 14px 34px rgba(0,0,0,.24);padding:8px}
+.popover[hidden]{display:none}
+#menuMes{width:340px}
+.popCab{padding:6px 8px 4px}
+#menuMes #fitaMeses{padding:8px 6px 10px;justify-content:space-between}
+.linhaMenu{display:flex;align-items:center;gap:14px;width:100%;min-height:44px;padding:0 12px;border:0;
+  border-radius:10px;background:none;color:var(--text);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.linhaMenu:hover,.linhaMenu:focus-visible{background:var(--surface-2);outline:none}
+.linhaMenu:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.linhaMenu > .ic{color:var(--muted)}
+.linhaMenu .lb{flex:1 1 auto}
+.linhaMenu .st{font-size:12.5px;color:var(--muted)}
+.sepMenu{height:1px;background:var(--border);margin:6px 4px}
+.listaMenu{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+
+/* Painel lateral */
+#painelLateral{position:fixed;top:72px;right:12px;bottom:12px;width:min(460px,calc(100vw - 24px));z-index:45;
+  background:var(--surface);border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.16),0 14px 34px rgba(0,0,0,.24);
+  display:flex;flex-direction:column;overflow:hidden}
+#painelLateral[hidden]{display:none}
+.cabLateral{display:flex;align-items:center;gap:8px;padding:10px 12px 4px}
+.cabLateral h2{font-size:16px;font-weight:600}
+.corpoLateral{overflow-y:auto;padding:4px 14px 18px;flex:1 1 auto}
+.corpoLateral > .card,.corpoLateral > .comCab > .card{background:transparent;padding:4px 2px;box-shadow:none;border:0}
+@media (min-width:1300px){ body.comLateral main{margin-right:484px} }
+
+/* O «Criar» das janelas largas está na coluna; o botão flutuante é dos estreitos */
+#botaoRapido{display:none}
+.criarMais{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.criarMais .lbMais{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+
+/* Compacto: telemóvel, ou qualquer janela estreita */
+[data-layout="compacto"] body{padding-left:0}
+[data-layout="compacto"] header{margin-left:0}
+[data-layout="compacto"] .topbar{height:56px;padding:0 6px 0 10px;gap:2px}
+[data-layout="compacto"] .brand{width:auto;margin-right:auto}
+[data-layout="compacto"] .brand .nome,
+[data-layout="compacto"] .brand small{display:none}
+[data-layout="compacto"] .brand .logo .ic{width:28px;height:28px}
+[data-layout="compacto"] .pesquisa{order:3;flex:0 0 auto;width:44px;height:44px;padding:0;justify-content:center;background:none}
+[data-layout="compacto"] .pesquisa .pt,
+[data-layout="compacto"] .pesquisa kbd{display:none}
+[data-layout="compacto"] .mesGrupo{order:2}
+[data-layout="compacto"] .topbar .grp{order:4;margin-left:0}
+[data-layout="compacto"] #mesPrev,
+[data-layout="compacto"] #mesNext,
+[data-layout="compacto"] #estadoGuardado{display:none}
+[data-layout="compacto"] .mLongo{display:none}
+[data-layout="compacto"] .mCurto{display:inline}
+[data-layout="compacto"] .mesPill{padding:0 6px 0 10px;font-size:14.5px}
+[data-layout="compacto"] .btn.icon{width:44px;height:44px;min-width:44px}
+[data-layout="compacto"] #destinos{top:auto;left:0;right:0;bottom:0;width:auto;height:auto;flex-direction:row;
+  justify-content:space-around;align-items:stretch;gap:0;padding:6px 2px max(6px,env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);background:var(--surface);overflow:visible}
+[data-layout="compacto"] #destinos .criar{display:none}
+[data-layout="compacto"] .destino{width:auto;flex:1 1 0;min-width:0;font-size:11.5px;min-height:56px;justify-content:center}
+[data-layout="compacto"] .destino .lb{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-layout="compacto"] main{padding:2px 12px 96px}
+[data-layout="compacto"] #botaoRapido{display:inline-flex;align-items:center;justify-content:center;
+  bottom:calc(84px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px}
+[data-layout="compacto"] .popover{left:8px !important;right:8px;top:auto !important;
+  bottom:calc(8px + env(safe-area-inset-bottom));width:auto;max-width:none;border-radius:22px;max-height:80vh}
+[data-layout="compacto"] #painelLateral{top:0;left:0;right:0;bottom:0;width:auto;border-radius:0;z-index:85}
+[data-layout="compacto"] .tituloPagina{font-size:22px}
+[data-layout="compacto"] .cabPagina{margin:4px 0 14px}
+[data-layout="compacto"] .fichas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px 2px}
+[data-layout="compacto"] .ficha{min-height:40px}
+[data-layout="compacto"] #tutorial .tutcard{bottom:96px}
+
+/* Telemóvel deitado: a altura é que escasseia */
+[data-deitado="telemovel"] .topbar{height:48px}
+[data-deitado="telemovel"] .destino{flex-direction:row;gap:6px;min-height:42px}
+[data-deitado="telemovel"] .destino .pastilha{width:40px;height:28px}
+[data-deitado="telemovel"] #destinos{padding-top:2px;padding-bottom:max(2px,env(safe-area-inset-bottom))}
+[data-deitado="telemovel"] main{padding-bottom:64px}
+[data-deitado="telemovel"] #botaoRapido{bottom:calc(56px + env(safe-area-inset-bottom));width:46px;height:46px}
+[data-deitado="telemovel"] .tituloPagina{font-size:18px}
+[data-deitado="telemovel"] #tutorial .tutcard{bottom:58px}
+
 </style>
 </head>
 <body>
@@ -1102,68 +1103,57 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 <header>
   <div class="topbar">
     <div class="brand">
-      <span class="logo" aria-hidden="true">💶</span>
-      <div>
-        <h1>Orçamento Familiar</h1>
-        <small id="brandSub">Gestão e cálculo do orçamento do agregado</small>
-      </div>
+      <span class="logo" data-ic="marca" aria-hidden="true"></span>
+      <div><span class="nome">Orçamento Familiar</span><small id="brandSub"></small></div>
     </div>
-    <div class="grp">
-      <label class="field hidden" for="mesSel">Mês</label>
-      <input type="month" id="mesSel" style="width:150px" aria-label="Mês em análise">
-      <button class="btn icon" id="mesPrev" title="Mês anterior" aria-label="Mês anterior">‹</button>
-      <div id="fitaMeses" class="no-print" role="group" aria-label="Saltar para outro mês"></div>
-      <button class="btn icon" id="mesNext" title="Mês seguinte" aria-label="Mês seguinte">›</button>
+    <button id="pesquisaBtn" class="pesquisa" aria-label="Procurar, saltar ou criar (Ctrl+K)" data-ic="procurar">
+      <span class="pt">Procurar, saltar ou criar</span><kbd>Ctrl K</kbd></button>
+    <div class="mesGrupo" role="group" aria-label="Mês em análise">
+      <button class="btn icon ghost" id="mesPrev" aria-label="Mês anterior" data-ic="esq"></button>
+      <button class="mesPill" id="mesBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="menuMes">
+        <span class="mLongo" id="mesTxt"></span><span class="mCurto" id="mesTxtCurto"></span><span data-ic="baixo" aria-hidden="true"></span></button>
+      <button class="btn icon ghost" id="mesNext" aria-label="Mês seguinte" data-ic="dir"></button>
     </div>
     <div class="grp">
       <span id="estadoGuardado" class="muted" aria-live="polite"></span>
-      <button class="btn icon secundario" data-act="essencialAlternar" aria-label="Modo essencial" aria-pressed="false">◱</button>
-      <button class="btn icon" data-act="desfazer" aria-label="Desfazer" disabled>↶</button>
-      <button class="btn icon" data-act="refazer" aria-label="Refazer" disabled>↷</button>
-      <button class="btn icon secundario" data-act="privAlternar" title="Modo privacidade — desfoca os valores" aria-label="Modo privacidade" aria-pressed="false">👁</button>
-      <button class="btn icon secundario" data-act="tutorialIniciar" title="Visita guiada" aria-label="Visita guiada">🎓</button>
-      <button class="btn icon secundario" id="ajudaBtn" aria-label="Explicadores" aria-pressed="true">?</button>
-      <button class="btn icon secundario" id="temaBtn" title="Alternar tema" aria-label="Alternar tema">◐</button>
-      <button class="btn icon" id="btnMaisAcoes" aria-label="Mais ações" aria-expanded="false" aria-haspopup="true">⋯</button>
-      <button class="btn" id="menuBtn" aria-haspopup="true">Dados ▾</button>
+      <button class="btn icon ghost" data-act="desfazer" aria-label="Desfazer" disabled data-ic="desfazer"></button>
+      <button class="btn icon ghost" data-act="refazer" aria-label="Refazer" disabled data-ic="refazer"></button>
+      <button class="btn icon ghost" id="ajudaMenuBtn" aria-label="Ajuda" aria-haspopup="menu" aria-expanded="false" aria-controls="menuAjuda" data-ic="ajuda"></button>
+      <button class="btn icon ghost" id="definicoesBtn" aria-label="Definições rápidas" aria-haspopup="menu" aria-expanded="false" aria-controls="menuDefinicoes" data-ic="definicoes"></button>
     </div>
   </div>
 </header>
 
-<nav class="tabs">
-  <div class="inner" role="tablist" id="tabs">
-    <button role="tab" data-view="painel" aria-selected="true"><span class="ticon" aria-hidden="true">📊</span>Painel</button>
-    <button role="tab" data-view="rendimentos" aria-selected="false"><span class="ticon" aria-hidden="true">💶</span>Rendimentos</button>
-    <button role="tab" data-view="despesas" aria-selected="false"><span class="ticon" aria-hidden="true">🧾</span>Despesas</button>
-    <button role="tab" data-view="ativos" aria-selected="false"><span class="ticon" aria-hidden="true">🏦</span>Ativos</button>
-    <button role="tab" data-view="creditos" aria-selected="false"><span class="ticon" aria-hidden="true">🏠</span>Créditos</button>
-    <button role="tab" data-view="objetivos" aria-selected="false"><span class="ticon" aria-hidden="true">🎯</span>Objetivos</button>
-    <button role="tab" data-view="estrategias" aria-selected="false"><span class="ticon" aria-hidden="true">📈</span>Estratégias</button>
-    <button role="tab" data-view="ese" aria-selected="false"><span class="ticon" aria-hidden="true">🔮</span>E se…?</button>
-    <button role="tab" data-view="config" aria-selected="false"><span class="ticon" aria-hidden="true">⚙️</span>Definições</button>
-  </div>
-</nav>
+<nav id="destinos" class="no-print" aria-label="Navegação principal"></nav>
 
-<nav id="tabsMovel" class="no-print" aria-label="Navegação principal">
-  <button data-view="painel" aria-selected="true"><span class="ticon" aria-hidden="true">📊</span>Painel</button>
-  <button data-view="rendimentos" aria-selected="false"><span class="ticon" aria-hidden="true">💶</span>Rendimentos</button>
-  <button data-view="despesas" aria-selected="false"><span class="ticon" aria-hidden="true">🧾</span>Despesas</button>
-  <button data-view="ativos" aria-selected="false"><span class="ticon" aria-hidden="true">🏦</span>Ativos</button>
-  <button id="btnMais" aria-expanded="false"><span class="ticon" aria-hidden="true">⋯</span>Mais</button>
-</nav>
-<div id="folhaAcoes" class="no-print" role="menu" aria-label="Mais ações"></div>
-
-<div id="folhaMais" class="no-print" hidden>
-  <button data-view="creditos">🏠 Créditos</button>
-  <button data-view="objetivos">🎯 Objetivos</button>
-  <button data-view="estrategias">📈 Estratégias</button>
-  <button data-view="ese">🔮 E se…?</button>
-  <button data-view="config">⚙️ Definições</button>
+<div id="menuMes" class="popover no-print" role="dialog" aria-label="Mês" hidden>
+  <div class="popCab"><label class="field" for="mesSel">Ir para o mês</label>
+    <input type="month" id="mesSel" aria-label="Mês em análise"></div>
+  <div id="fitaMeses" role="group" aria-label="Saltar para outro mês"></div>
+  <div id="menuMesAcoes" role="menu" aria-label="O que fazer com este mês"></div>
 </div>
+<div id="menuAjuda" class="popover no-print" role="menu" aria-label="Ajuda" hidden>
+  <button class="linhaMenu" role="menuitem" data-act="tutorialIniciar" data-ic="bussola"><span class="lb">Visita guiada</span></button>
+  <button class="linhaMenu" role="menuitem" id="ajudaBtn" aria-pressed="true" data-ic="info"><span class="lb">Explicadores ao passar o ponteiro</span><span class="st" id="ajudaEstado"></span></button>
+  <button class="linhaMenu" role="menuitem" data-act="atalhosAbrir" data-ic="teclado"><span class="lb">Atalhos de teclado</span></button>
+  <div class="sepMenu"></div>
+  <button class="linhaMenu" role="menuitem" data-act="sobreAbrir" data-ic="escudo"><span class="lb">Sobre esta ferramenta</span></button>
+</div>
+<div id="menuDefinicoes" class="popover no-print" role="menu" aria-label="Definições rápidas" hidden>
+  <button class="linhaMenu" role="menuitem" id="temaBtn" data-ic="tema"><span class="lb">Tema</span><span class="st" id="temaEstado"></span></button>
+  <button class="linhaMenu" role="menuitem" data-act="defDensidade" data-fica data-ic="densidade"><span class="lb">Densidade</span><span class="st" id="densidadeEstado"></span></button>
+  <button class="linhaMenu" role="menuitem" data-act="defTexto" data-fica data-ic="letra"><span class="lb">Tamanho do texto</span><span class="st" id="textoEstado"></span></button>
+  <button class="linhaMenu" role="menuitem" data-act="privAlternar" data-fica aria-pressed="false" data-ic="olho"><span class="lb">Privacidade — desfocar valores</span><span class="st" id="privEstado"></span></button>
+  <button class="linhaMenu" role="menuitem" data-act="essencialAlternar" data-fica aria-pressed="false" data-ic="simples"><span class="lb">Vista simples</span><span class="st" id="simplesEstado"></span></button>
+  <div class="sepMenu"></div>
+  <button class="linhaMenu" role="menuitem" data-act="dadosAbrir" data-ic="exportar"><span class="lb">Cópias e exportações</span></button>
+  <button class="linhaMenu" role="menuitem" data-act="pagina" data-v="config" data-ic="definicoes"><span class="lb">Todas as definições</span></button>
+</div>
+<aside id="painelLateral" class="no-print" aria-label="Painel lateral" hidden></aside>
 
 <main id="app"></main>
 
-<button id="botaoRapido" class="no-print" aria-label="Registar movimento" title="Registar movimento (n depois m)">+</button>
+<button id="botaoRapido" class="no-print" aria-label="Criar — registar um movimento ou acrescentar outra coisa" title="Criar (n depois m)" data-ic="mais"></button>
 
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="tip" role="tooltip"></div>
@@ -2161,6 +2151,15 @@ const AJUDAS_VISTA = {
   estrategias: ["Estratégias", "Simuladores por objetivo — reforma, entrada de casa, automóvel, fundo de emergência, investir. Cada instrumento é projetado com o seu tratamento fiscal, e a estratégia pode ser executada para o orçamento.", ""],
   ese:         ["E se…?", "Acontecimentos de vida aplicados por cima do orçamento real — um filho, mudar de casa, tempo parcial, desemprego, carro, reforma. Vê-se o efeito no saldo e na tesouraria sem tocar nos dados.", ""],
   config:      ["Definições", "Membros do agregado, taxas fiscais, categorias e cópias de segurança dos dados.", ""],
+  analises:    ["Análises", "Gráficos, comparações e simuladores do mês. Escolhe-se aqui o que se quer ver, e por que ordem.", ""],
+};
+/* Os cinco destinos, para os explicadores da barra de navegação */
+const AJUDAS_DESTINO = {
+  inicio:     ["Início", "O mês num relance: quanto sobra, e o que precisa de si. As análises estão na segunda página.", ""],
+  movimentos: ["Movimentos", "O que entrou e saiu, dia a dia — em lista, calendário ou agenda.", ""],
+  orcamento:  ["Orçamento", "O plano: rendimentos, despesas fixas e limites por categoria.", ""],
+  patrimonio: ["Património", "O que se tem e o que se deve: ativos e dívidas, cada um com o seu detalhe.", ""],
+  planear:    ["Planear", "O futuro: objetivos, compras grandes, estratégias de poupança e investimento, e cenários de vida.", ""],
 };
 
 const AJUDAS_KPI = {
@@ -2418,6 +2417,17 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  pagina:     ["Páginas", "Cada destino tem as suas páginas, em fichas por baixo do título. A ficha marcada é a página em que está.", ""],
+  analisesPersonalizar:["Escolher os cartões", "Mostra a lista de cartões das análises: ligue, desligue e reordene o que quer ver nesta página.", ""],
+  criarAbrir: ["Criar", "Abre a lista do que se pode acrescentar — um movimento, um rendimento, uma despesa fixa, um ativo, um crédito, um objetivo ou uma compra grande.", ""],
+  criarItem:  ["Criar este tipo", "Vai à página certa e abre o formulário já com o cursor no primeiro campo.", ""],
+  lateralAbrir:["Painel lateral", "Abre esta ferramenta ao lado, sem sair da página em que está.", ""],
+  lateralFechar:["Fechar o painel", "Fecha o painel lateral. Também fecha com Esc.", ""],
+  dadosAbrir: ["Dados e cópias", "Exportar e importar cópias de segurança, CSV de movimentos e o relatório do mês; apagar tudo para recomeçar.", ""],
+  atalhosAbrir:["Atalhos de teclado", "A lista das teclas que poupam cliques: navegar entre meses, procurar, anular, refazer.", ""],
+  sobreAbrir: ["Sobre", "Versão da aplicação, onde ficam os dados (só neste dispositivo) e os pressupostos fiscais usados.", ""],
+  defDensidade:["Densidade", "Alterna entre o espaçamento confortável e o compacto, para caber mais informação no ecrã.", ""],
+  defTexto:   ["Tamanho do texto", "Aumenta ou repõe o tamanho do texto em toda a aplicação.", ""],
   secEstrategia: ["Secções das estratégias", "Poupar e investir é o simulador por objetivo; Casa ou renda compara ser dono com arrendar no seu concelho; ETF ou imobiliário põe o mesmo capital nos dois caminhos; Rendimento disponível junta tudo e diz onde há euros por mês a ganhar.", ""],
   planosRepor:   ["Repor as referências", "Devolve o preço, a renda e a taxa de IMI aos valores de referência do concelho escolhido, e a valorização à hipótese prudente.", ""],
   planosHistorico:["Valorização histórica", "Usa a valorização média anual do concelho nos últimos cinco anos. Foram anos de subida forte — é um cenário otimista, não uma previsão.", ""],
@@ -5913,9 +5923,22 @@ function viewPainel(){
     simulador:   () => simulador,
   };
 
+  /* O Início é a caixa de entrada do mês: os números e o que precisa de
+     atenção. O resto — gráficos, comparações, simuladores — vive nas
+     Análises, e é lá que se escolhe o que se quer ver. */
+  if (VIEW === "analises"){
+    const personalizar = '<div class="no-print" style="display:flex;justify-content:flex-end;margin-bottom:12px">'+
+      '<button class="btn sm" data-act="analisesPersonalizar" aria-expanded="'+!!ui.personalizarPainel+'">'+
+      ic("definicoes")+(ui.personalizarPainel ? "Concluir" : "Escolher os cartões")+'</button></div>';
+    const corpo = montarPainel(produtores, k => CARTOES_INICIO.indexOf(k) < 0);
+    return personalizar + (ui.personalizarPainel ? cartaoPainelConfig() + '<div style="height:16px"></div>' : "") +
+      (corpo || '<div class="note">Não há cartões ligados. Escolha os que quer ver.</div>');
+  }
   return dicaProximoPasso() + kpis + '<div style="height:16px"></div>' +
-         montarPainel(produtores);
+         montarPainel(produtores, k => CARTOES_INICIO.indexOf(k) >= 0);
 }
+/* Os cartões que respondem a «o que precisa de mim este mês» ficam no Início */
+const CARTOES_INICIO = ["atencao", "defice", "fecho"];
 
 /**
  * Quanto está poupado para um objetivo.
@@ -7504,8 +7527,8 @@ const cartaoFechado = (k) => ((S.painel || {}).fechados || []).indexOf(k) >= 0;
  * Junta os cartões visíveis: os largos sozinhos, os estreitos aos pares.
  * Um cartão fechado mostra só a barra de título — e não é construído.
  */
-function montarPainel(produtores){
-  const chaves = cartoesPainel();
+function montarPainel(produtores, filtro){
+  const chaves = cartoesPainel().filter(k => !filtro || filtro(k));
   const partes = [];
   let par = [];
   const fecharPar = () => {
@@ -8964,20 +8987,11 @@ function viewPlanear(){
 
 function viewDespesas(){
   const sec = ui.secaoDespesa || "plano";
-  const abas = [
-    ["plano", "Despesas fixas"],
-    ["movimentos", "Movimentos"],
-    ["limites", "Limites"],
-    ["planear", "Planear"],
-  ];
-  const nav = '<div class="seg no-print" style="margin-bottom:16px">'+
-    abas.map(([k,l]) => '<button data-act="secDespesa" data-v="'+k+'" aria-pressed="'+(sec===k)+'">'+esc(l)+'</button>').join("")+
-    '</div>';
   const corpo = sec === "movimentos" ? viewMovimentos()
               : sec === "limites"    ? viewOrcamento()
               : sec === "planear"    ? viewPlanear()
               : viewPlano();
-  return nav + corpo;
+  return corpo;
 }
 
 /* ------------------------------- Objetivos ------------------------------- */
@@ -10034,20 +10048,11 @@ function alavancasRendimento(){
    --------------------------------------------------------------- */
 function viewEstrategias(){
   const sec = ui.secaoEstrategia || "simulador";
-  const abas = [
-    ["simulador", "Poupar e investir"],
-    ["casa", "Casa ou renda"],
-    ["investir", "ETF ou imobiliário"],
-    ["maximizar", "Rendimento disponível"],
-  ];
-  const nav = '<div class="seg duasFilas no-print" style="margin-bottom:16px">'+
-    abas.map(([k, l]) => '<button data-act="secEstrategia" data-v="'+k+'" aria-pressed="'+(sec === k)+'">'+
-      esc(l)+'</button>').join("")+'</div>';
   const corpo = sec === "casa"      ? viewCasaRenda()
               : sec === "investir"  ? viewEtfImovel()
               : sec === "maximizar" ? viewRendimentoDisponivel()
               : viewSimuladorEstrategias();
-  return nav + corpo;
+  return corpo;
 }
 
 /** Escolha de concelho, e de freguesia quando o concelho é Lisboa. */
@@ -10420,7 +10425,7 @@ const SLIDERS_PLANOS = {
 };
 
 const ACOES_PLANOS = {
-  secEstrategia(el){ ui.secaoEstrategia = el.dataset.v || "simulador"; editando = {}; render(); },
+  secEstrategia(el){ ui.secaoEstrategia = el.dataset.v || "simulador"; irPara("estrategias"); },
   planosRepor(el){
     alterar(() => {
       if (el.dataset.v === "investir"){ const q = planoInv(); q.imi = null; q.retEtf = null; q.coletavel = null; q.valorizacao = PLANOS_PADRAO.inv.valorizacao; }
@@ -12164,7 +12169,7 @@ function viewConfig(){
     '</div>'+
     '<div class="note" style="margin-top:12px">As cores com significado — verde de positivo, vermelho de negativo, '+
     'âmbar de aviso — mantêm-se em todas as paletas, para que os números se leiam sempre da mesma maneira.</div>'+
-    '</div>' + '<div style="height:16px"></div>' + cartaoPainelConfig();
+    '</div>';
 
   /* O aviso do arranque fica também aqui, para poder ser relido: um aviso que
      aparece uma vez e nunca mais não serve de muito a quem o queira consultar
@@ -12687,7 +12692,7 @@ function cartaoFiscalidade(){
 const VISTAS = {
   painel: viewPainel, rendimentos: viewRendimentos, despesas: viewDespesas,
   ativos: viewAtivos, creditos: viewCreditos, objetivos: viewObjetivos,
-  estrategias: viewEstrategias, ese: viewEse, config: viewConfig,
+  estrategias: viewEstrategias, ese: viewEse, config: viewConfig, analises: viewPainel,
 };
 
 /* Os separadores antigos passaram a secções: manter as ligações internas a funcionar. */
@@ -13004,8 +13009,21 @@ function emblemasVistas(){
 
 function pintarEmblemas(){
   const e = emblemasVistas();
-  $$("#tabs button[data-view], #tabsMovel button[data-view], #folhaMais button[data-view]").forEach(b => {
-    const n = e[b.dataset.view] || 0;
+  /* Os pendentes de cada vista somam no destino dela; na ficha, cada página
+     mostra os seus. Os movimentos por categorizar são da página Movimentos. */
+  const porDestino = {}, porPagina = {};
+  Object.keys(e).forEach(v => {
+    const n = e[v] || 0;
+    if (!n) return;
+    const d = VISTA_DESTINO[v];
+    if (d) porDestino[d] = (porDestino[d] || 0) + n;
+    const pg = v === "despesas" ? "movimentos" : v;
+    porPagina[pg] = (porPagina[pg] || 0) + n;
+  });
+  const alvos = [];
+  $$("#destinos [data-destino]").forEach(b => alvos.push([b, porDestino[b.dataset.destino] || 0]));
+  $$('#app .fichas [data-act="pagina"]').forEach(b => alvos.push([b, porPagina[b.dataset.v] || 0]));
+  alvos.forEach(([b, n]) => {
     let ponto = b.querySelector(".emblema");
     if (!n){ if (ponto) ponto.remove(); b.removeAttribute("data-pendentes"); return; }
     if (!ponto){
@@ -13020,16 +13038,18 @@ function pintarEmblemas(){
 }
 
 function render(){
-  $$("#tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === VIEW)));
-  $$("#tabsMovel button[data-view], #folhaMais button[data-view]").forEach(b =>
-    b.setAttribute("aria-selected", String(b.dataset.view === VIEW)));
-  const emFolha = ["creditos","objetivos","estrategias","ese","config"].indexOf(VIEW) >= 0;
-  $("#btnMais").setAttribute("aria-selected", String(emFolha));
   $("#mesSel").value = MES;
+  const rm = rotuloMes(MES);
+  $("#mesTxt").textContent = rm.longo;
+  $("#mesTxtCurto").textContent = rm.curto;
   const fn = ui.relatorio === "ano" ? viewRelatorioAno
            : ui.relatorio ? viewRelatorio
            : (VISTAS[VIEW] || viewPainel);
-  $("#app").innerHTML = emPasse(fn);
+  // O destino lembra-se da página onde se ficou
+  const pag = paginaAtual(), dest = destinoDaPagina(pag);
+  if (dest){ ui.ultimaPagina = ui.ultimaPagina || {}; ui.ultimaPagina[dest] = pag; }
+  // O relatório é uma folha: sem título de página nem fichas
+  $("#app").innerHTML = emPasse(() => (ui.relatorio ? "" : cabecalhoPagina()) + fn());
   marcarAjudas();
   animarValores();
   _camposIniciais = camposValores();   // a régua para medir o que for escrito
@@ -13039,7 +13059,9 @@ function render(){
   pintarHistorico();
   pintarEstadoGuardado();
   pintarFita();
+  pintarDestinos();
   pintarEmblemas();
+  pintarLateral();
   guardarSessaoAdiado();
 }
 
@@ -13760,7 +13782,7 @@ const ACOES = {
   exemplo(){ carregarExemplo(); },
   cancelarEd(el){ editando[el.dataset.k] = null; render(); },
   evolMeses(el){ ui.evolucaoMeses = parseInt(el.dataset.v, 10) || 12; render(); },
-  secDespesa(el){ ui.secaoDespesa = el.dataset.v; editando = {}; render(); },
+  secDespesa(el){ ui.secaoDespesa = el.dataset.v; irPara("despesas"); },
   alternar(el){ ui.abertos[el.dataset.id] = !ui.abertos[el.dataset.id]; render(); },
 
   /* --- rendimentos --- */
@@ -14872,8 +14894,8 @@ const ACOES = {
     apontarPara(".perfis");
   },
   demoFicar(){
-    toast("À vontade. Quando quiser começar o seu: Dados ▾ → Apagar tudo.");
-    apontarPara("#menuBtn");
+    toast("À vontade. Quando quiser começar o seu: Definições → Dados e cópias → Apagar tudo.");
+    apontarPara("#definicoesBtn");
   },
 
   /* --- arranque por perfil --- */
@@ -15228,6 +15250,415 @@ const ACOES = {
   },
 };
 
+/* ===============================================================
+   Estrutura — cinco destinos, a barra de cima, os menus e o painel
+   lateral
+
+   A aplicação cresceu por acumulação até ter nove separadores, oito
+   subsecções e dezoito botões no cabeçalho, tudo ao mesmo nível. A
+   estrutura arruma isso pela pergunta que cada coisa responde:
+
+     · Início       — como está o mês, e o que precisa de mim
+     · Movimentos   — o que entrou e saiu, o uso de todos os dias
+     · Orçamento    — o plano: rendimentos, despesas fixas, limites
+     · Património   — o que se tem e o que se deve
+     · Planear      — o futuro: objetivos, compras, estratégias, cenários
+
+   Cada destino tem páginas, mostradas como fichas no topo. As vistas
+   antigas continuam a existir por baixo, com os mesmos nomes — muda o
+   caminho até elas, não o que fazem.
+   =============================================================== */
+
+/* Ícones de traço, desenhados aqui: sem dependências, herdam a cor do
+   texto e o tamanho da letra. Os emoji ficam para o que é dado de quem usa
+   a ferramenta — categorias e membros. */
+const ICONES = {
+  marca:     '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M15.5 8.4a4.5 4.5 0 1 0 0 7.2"/><path d="M7 10.6h6M7 13.4h6"/>',
+  casa:      '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
+  lista:     '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  carteira:  '<path d="M4 8V7a2 2 0 0 1 2-2h11v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M15.5 13.5h2"/>',
+  banco:     '<path d="M3.5 9 12 4l8.5 5"/><path d="M5 9.5h14"/><path d="M6.5 10v7M10.5 10v7M13.5 10v7M17.5 10v7"/><path d="M4 20h16"/>',
+  alvo:      '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  mais:      '<path d="M12 5v14M5 12h14"/>',
+  procurar:  '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+  esq:       '<path d="m14.5 6-6 6 6 6"/>',
+  dir:       '<path d="m9.5 6 6 6-6 6"/>',
+  baixo:     '<path d="m6 9.5 6 6 6-6"/>',
+  cima:      '<path d="m6 14.5 6-6 6 6"/>',
+  desfazer:  '<path d="M9 6.5 4.5 11 9 15.5"/><path d="M5 11h9.5a4.5 4.5 0 0 1 0 9H12"/>',
+  refazer:   '<path d="m15 6.5 4.5 4.5-4.5 4.5"/><path d="M19 11H9.5a4.5 4.5 0 0 0 0 9H12"/>',
+  ajuda:     '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.3"/><circle cx="12" cy="16.6" r=".7" fill="currentColor" stroke="none"/>',
+  definicoes:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  fechar:    '<path d="M6 6l12 12M18 6 6 18"/>',
+  voltar:    '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  editar:    '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="m14 7 3 3"/>',
+  copiar:    '<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15.5V7a2 2 0 0 1 2-2h8.5"/>',
+  apagar:    '<path d="M5 7h14M10 7V5h4v2"/><path d="M7 7l1 12.5h8L17 7"/><path d="M10.5 11v5M13.5 11v5"/>',
+  atualizar: '<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4.5V8h-3.5"/>',
+  pontos:    '<circle cx="12" cy="5.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor" stroke="none"/>',
+  calendario:'<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
+  agenda:    '<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4M8 14h8M8 17h5"/>',
+  importar:  '<path d="M12 15V4.5M7.5 9 12 4.5 16.5 9"/><path d="M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  exportar:  '<path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  cadeado:   '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',
+  imprimir:  '<path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7.5" rx="2"/><path d="M7 14h10v6H7z"/>',
+  olho:      '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  tema:      '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>',
+  letra:     '<path d="M4 19 9 5l5 14M5.8 14h6.4"/><path d="M15 19l2.5-7 2.5 7M15.8 17h3.4"/>',
+  densidade: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
+  simples:   '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16"/>',
+  bussola:   '<circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  visto:     '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  nota:      '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
+  comparar:  '<path d="M4 8.5h15M15.5 5 19 8.5 15.5 12"/><path d="M20 15.5H5M8.5 12 5 15.5 8.5 19"/>',
+  grafico:   '<path d="M4 4v16h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',
+  alerta:    '<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4"/><circle cx="12" cy="16.6" r=".7" fill="currentColor" stroke="none"/>',
+  info:      '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".7" fill="currentColor" stroke="none"/>',
+  relogio:   '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  etiqueta:  '<path d="M4 4h7.5l8.5 8.5-7.5 7.5L4 11.5z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
+  pega:      '<circle cx="9" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="17" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="1.1" fill="currentColor" stroke="none"/>',
+  subir:     '<path d="M12 19V5M6.5 10.5 12 5l5.5 5.5"/>',
+  descer:    '<path d="M12 5v14M6.5 13.5 12 19l5.5-5.5"/>',
+  filtro:    '<path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/>',
+  teclado:   '<rect x="3" y="6.5" width="18" height="11" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>',
+  ligar:     '<path d="M12 4v7"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>',
+  dinheiro:  '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/>',
+  pessoa:    '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+  pessoas:   '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9" r="2.5"/><path d="M15.5 13.6A4.8 4.8 0 0 1 21 18.5"/>',
+  familia:   '<circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="7.5" r="2.5"/><circle cx="12" cy="13" r="2"/><path d="M3 19a4.5 4.5 0 0 1 9 0M12 19a4.5 4.5 0 0 1 9 0"/>',
+  chave:     '<circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>',
+  carro:     '<path d="M5 16.5V12l2-5h10l2 5v4.5"/><path d="M4 12h16"/><circle cx="8" cy="16.5" r="1.6"/><circle cx="16" cy="16.5" r="1.6"/>',
+  bebe:      '<circle cx="12" cy="9" r="5"/><path d="M10 9h.01M14 9h.01M10.5 11.2a2 2 0 0 0 3 0"/><path d="M8 14.5 6 20h12l-2-5.5"/>',
+  sol:       '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+  nuvem:     '<path d="M7 17.5a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 0 9z"/>',
+  ampulheta: '<path d="M7 3.5h10M7 20.5h10"/><path d="M8 3.5c0 5 8 5 8 8.5s-8 3.5-8 8.5M16 3.5c0 5-8 5-8 8.5s8 3.5 8 8.5"/>',
+  lampada:   '<path d="M9 17.5h6M10 20.5h4"/><path d="M8 14a5.5 5.5 0 1 1 8 0c-.8.8-1 1.6-1 2.5H9c0-.9-.2-1.7-1-2.5z"/>',
+  caixa:     '<path d="M4 13.5 6.5 5h11l2.5 8.5V19H4z"/><path d="M4 13.5h5a3 3 0 0 0 6 0h5"/>',
+  pausa:     '<path d="M9 6v12M15 6v12"/>',
+  regra:     '<path d="M4 6h10M4 12h7M4 18h10"/><path d="m16 10 2 2 3-4"/>',
+  enviar:    '<path d="M4 12 20 4l-6 16-2.5-6.5z"/><path d="m11.5 13.5 8.5-9.5"/>',
+  moeda:     '<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9a3.5 3.5 0 1 0 0 6"/><path d="M8 11h5M8 13h5"/>',
+  escudo:    '<path d="M12 3.5 5 6v5.5c0 4.5 3 7.7 7 9 4-1.3 7-4.5 7-9V6z"/>',
+  setaDir:   '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  trofeu:    '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>',
+};
+/** Um ícone como `<svg>`; decorativo por omissão, porque o botão leva o rótulo. */
+function ic(nome, extra){
+  const d = ICONES[nome] || ICONES.info;
+  return '<svg class="ic'+(extra ? " "+extra : "")+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+d+'</svg>';
+}
+/** Pinta os ícones declarados no HTML estático com `data-ic`. */
+function pintarIcones(raiz){
+  (raiz || document).querySelectorAll("[data-ic]").forEach(el => {
+    if (el.querySelector(":scope > svg.ic")) return;
+    el.insertAdjacentHTML("afterbegin", ic(el.dataset.ic));
+  });
+}
+
+const DESTINOS = [
+  {k:"inicio",     lbl:"Início",     ic:"casa",     paginas:["painel","analises"]},
+  {k:"movimentos", lbl:"Movimentos", ic:"lista",    paginas:["movimentos"]},
+  {k:"orcamento",  lbl:"Orçamento",  ic:"carteira", paginas:["rendimentos","plano","limites"]},
+  {k:"patrimonio", lbl:"Património", ic:"banco",    paginas:["ativos","creditos"]},
+  {k:"planear",    lbl:"Planear",    ic:"alvo",     paginas:["objetivos","compras","simulador","casa","investir","maximizar","ese"]},
+];
+/* Cada página diz que vista desenha, e com que secção. */
+const PAGINAS = {
+  painel:      {lbl:"Resumo",                vista:"painel"},
+  analises:    {lbl:"Análises",              vista:"analises"},
+  movimentos:  {lbl:"Movimentos",            vista:"despesas",    secD:"movimentos"},
+  rendimentos: {lbl:"Rendimentos",           vista:"rendimentos"},
+  plano:       {lbl:"Despesas fixas",        vista:"despesas",    secD:"plano"},
+  limites:     {lbl:"Limites",               vista:"despesas",    secD:"limites"},
+  ativos:      {lbl:"Ativos",                vista:"ativos"},
+  creditos:    {lbl:"Dívidas",               vista:"creditos"},
+  objetivos:   {lbl:"Objetivos",             vista:"objetivos"},
+  compras:     {lbl:"Compras grandes",       vista:"despesas",    secD:"planear"},
+  simulador:   {lbl:"Poupar e investir",     vista:"estrategias", secE:"simulador"},
+  casa:        {lbl:"Casa ou renda",         vista:"estrategias", secE:"casa"},
+  investir:    {lbl:"ETF ou imobiliário",    vista:"estrategias", secE:"investir"},
+  maximizar:   {lbl:"Rendimento disponível", vista:"estrategias", secE:"maximizar"},
+  ese:         {lbl:"E se…?",                vista:"ese"},
+  config:      {lbl:"Definições",            vista:"config"},
+};
+const SEC_DESPESA_PAGINA = {movimentos:"movimentos", plano:"plano", limites:"limites", planear:"compras"};
+
+/** A página em que se está, tirada da vista e da secção. */
+function paginaAtual(){
+  if (VIEW === "despesas") return SEC_DESPESA_PAGINA[ui.secaoDespesa] || "plano";
+  if (VIEW === "estrategias") return PAGINAS[ui.secaoEstrategia] ? ui.secaoEstrategia : "simulador";
+  return PAGINAS[VIEW] ? VIEW : "painel";
+}
+const destinoDaPagina = (k) => (DESTINOS.find(d => d.paginas.indexOf(k) >= 0) || {}).k || null;
+
+/** Vai para uma página: acerta a secção e desenha a vista dela. */
+function irPagina(k){
+  const p = PAGINAS[k];
+  if (!p) return irPara(k);
+  if (p.secD) ui.secaoDespesa = p.secD;
+  if (p.secE) ui.secaoEstrategia = p.secE;
+  irPara(p.vista);
+}
+/** Um destino abre na página onde se ficou da última vez. */
+function irDestino(k){
+  const d = DESTINOS.find(x => x.k === k);
+  if (!d) return;
+  const ultima = (ui.ultimaPagina || {})[k];
+  irPagina(d.paginas.indexOf(ultima) >= 0 ? ultima : d.paginas[0]);
+}
+
+/** Título da página e as fichas das páginas irmãs. */
+function cabecalhoPagina(){
+  const pag = paginaAtual();
+  const d = DESTINOS.find(x => x.k === destinoDaPagina(pag));
+  const titulo = d ? d.lbl : (PAGINAS[pag] || {}).lbl || "";
+  const fichas = d && d.paginas.length > 1
+    ? '<nav class="fichas" aria-label="Páginas de '+esc(titulo)+'">'+d.paginas.map(k =>
+        '<button class="ficha" data-act="pagina" data-v="'+k+'" aria-pressed="'+(k === pag)+'">'+
+        esc(PAGINAS[k].lbl)+'</button>').join("")+'</nav>'
+    : "";
+  return '<div class="cabPagina no-print"><h1 class="tituloPagina">'+esc(titulo)+'</h1>'+fichas+'</div>';
+}
+
+/** Barra de destinos: lateral no computador, em baixo no telemóvel. */
+function pintarDestinos(){
+  const host = $("#destinos");
+  if (!host) return;
+  const atual = destinoDaPagina(paginaAtual());
+  if (!host.dataset.pronto){
+    host.innerHTML =
+      '<button class="criar" data-act="criarAbrir" aria-label="Criar — registar um movimento ou acrescentar outra coisa">'+
+        ic("mais")+'<span class="lb">Criar</span></button>'+
+      DESTINOS.map(d => '<button class="destino" data-destino="'+d.k+'">'+
+        '<span class="pastilha">'+ic(d.ic)+'</span><span class="lb">'+esc(d.lbl)+'</span></button>').join("");
+    host.dataset.pronto = "1";
+  }
+  host.querySelectorAll("[data-destino]").forEach(b => {
+    if (b.dataset.destino === atual) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  });
+}
+
+/* ---------------------------------------------------------------
+   Menus que pairam: o do mês, o da ajuda e as definições rápidas
+   --------------------------------------------------------------- */
+let _menuAberto = null;
+function fecharMenus(){
+  if (!_menuAberto) return;
+  const m = $("#" + _menuAberto.menu), b = $("#" + _menuAberto.botao);
+  if (m) m.hidden = true;
+  if (b) b.setAttribute("aria-expanded", "false");
+  _menuAberto = null;
+}
+function abrirMenu(menu, botao, pintar){
+  if (_menuAberto && _menuAberto.menu === menu){ fecharMenus(); return; }
+  fecharMenus();
+  const m = $("#" + menu), b = $("#" + botao);
+  if (!m || !b) return;
+  if (pintar) pintar(m);
+  m.hidden = false;
+  b.setAttribute("aria-expanded", "true");
+  _menuAberto = {menu, botao};
+  /* Ancorado ao botão no computador; no telemóvel é uma folha em baixo,
+     e o CSS trata disso sem posição nenhuma. */
+  const r = b.getBoundingClientRect();
+  const larg = m.offsetWidth || 300;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - larg - 8, r.right - larg)) + "px";
+  if (menu === "menuMes") m.style.left = Math.max(8, Math.min(window.innerWidth - larg - 8, r.left + r.width / 2 - larg / 2)) + "px";
+  m.style.top = Math.round(r.bottom + 6) + "px";
+  const foco = m.querySelector("button, input");
+  if (foco && !aoToque()) foco.focus({preventScroll:true});
+}
+document.addEventListener("click", (e) => {
+  if (!_menuAberto) return;
+  /* Dentro do menu, o que só muda uma opção deixa-o aberto (para se poder
+     carregar duas vezes no tamanho do texto); o que leva a outro sítio fecha. */
+  if (e.target.closest("#" + _menuAberto.menu) && !e.target.closest("[data-act]:not([data-fica])")){
+    if (_menuAberto.menu === "menuDefinicoes") setTimeout(pintarMenuDefinicoes, 0);
+    if (_menuAberto.menu === "menuAjuda") setTimeout(pintarMenuAjuda, 0);
+    return;
+  }
+  if (e.target.closest("#" + _menuAberto.botao)) return;
+  fecharMenus();
+});
+
+/** Linha de menu: ícone, rótulo e, à direita, o estado. */
+const linhaMenu = (icone, rotulo, attrs, estado) =>
+  '<button class="linhaMenu" role="menuitem" '+attrs+'>'+ic(icone)+
+  '<span class="lb">'+esc(rotulo)+'</span>'+(estado != null ? '<span class="st">'+esc(estado)+'</span>' : "")+'</button>';
+
+function pintarMenuMes(m){
+  const acoes = $("#menuMesAcoes");
+  pintarFita();
+  acoes.innerHTML =
+    linhaMenu("visto", "Fechar o mês", 'data-act="lateralAbrir" data-v="fecho"')+
+    linhaMenu("nota", "Nota do mês", 'data-act="lateralAbrir" data-v="nota"')+
+    linhaMenu("comparar", "Comparar com outro mês", 'data-act="lateralAbrir" data-v="comparar"')+
+    '<div class="sepMenu"></div>'+
+    linhaMenu("copiar", "Copiar o mês anterior", 'data-act="copiarMesAnterior"')+
+    linhaMenu("lista", "Lançar o plano deste mês", 'data-act="gerarPlano"')+
+    '<div class="sepMenu"></div>'+
+    linhaMenu("imprimir", "Relatório do mês", 'data-act="relatorio"')+
+    linhaMenu("calendario", "Retrato do ano", 'data-act="relatorioAno"');
+}
+function pintarMenuDefinicoes(){
+  const st = (id, t) => { const e = $("#" + id); if (e) e.textContent = t; };
+  st("temaEstado", S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático");
+  st("densidadeEstado", S.densidade === "compacta" ? "compacta" : "confortável");
+  st("textoEstado", S.texto === "maior" ? "maior" : S.texto === "grande" ? "grande" : "normal");
+  st("privEstado", ui.privado ? "ligado" : "desligado");
+  st("simplesEstado", ui.essencial ? "ligada" : "desligada");
+}
+function pintarMenuAjuda(){
+  const e = $("#ajudaEstado");
+  if (e) e.textContent = S.ajudas === false ? "desligados" : "ligados";
+}
+
+/* ---------------------------------------------------------------
+   Painel lateral — detalhe e ferramentas ao lado, sem sair do ecrã
+
+   No computador abre à direita, por cima do conteúdo; no telemóvel ocupa
+   o ecrã todo, com seta de voltar. Desenha-se a cada render(), como o
+   resto, para nunca mostrar números velhos.
+   --------------------------------------------------------------- */
+const LATERAIS = {
+  nota:      {lbl:"Nota do mês",           produz: () => cartaoNota()},
+  comparar:  {lbl:"Comparar dois meses",   produz: () => cartaoComparar()},
+  podePagar: {lbl:"Posso pagar isto?",     produz: () => cartaoPodePagar()},
+  fecho:     {lbl:"Fechar o mês",          produz: () => cartaoFechoMes() ||
+    '<div class="card"><h2>Nada por fechar</h2><p class="sub">O mês passado já está fechado, ou ainda não tem nada para arrumar.</p></div>'},
+};
+function abrirLateral(tipo, extra){
+  ui.lateral = Object.assign({tipo}, extra || {});
+  fecharMenus();
+  pintarLateral();
+  const p = $("#painelLateral");
+  const f = p && p.querySelector(".fecharLateral");
+  if (f && !aoToque()) f.focus({preventScroll:true});
+}
+function fecharLateral(){
+  if (!ui.lateral) return;
+  ui.lateral = null;
+  pintarLateral();
+}
+function pintarLateral(){
+  const p = $("#painelLateral");
+  if (!p) return;
+  const l = ui.lateral;
+  const def = l && (LATERAIS[l.tipo] || (typeof DETALHES !== "undefined" && DETALHES[l.tipo]));
+  if (!def){ p.hidden = true; p.innerHTML = ""; document.body.classList.remove("comLateral"); return; }
+  let corpo = "";
+  try { corpo = emPasse(() => def.produz(l)); } catch(err){ corpo = '<div class="note">Não foi possível desenhar este painel.</div>'; }
+  if (!corpo){ ui.lateral = null; p.hidden = true; p.innerHTML = ""; document.body.classList.remove("comLateral"); return; }
+  const titulo = typeof def.lbl === "function" ? def.lbl(l) : def.lbl;
+  p.innerHTML =
+    '<div class="cabLateral">'+
+      '<button class="btn icon ghost fecharLateral" data-act="lateralFechar" aria-label="Fechar">'+
+        ic(document.documentElement.getAttribute("data-dispositivo") === "telemovel" ? "voltar" : "fechar")+'</button>'+
+      '<h2>'+esc(titulo)+'</h2></div>'+
+    '<div class="corpoLateral">'+corpo+'</div>';
+  p.hidden = false;
+  document.body.classList.add("comLateral");
+  if (typeof marcarAjudas === "function") marcarAjudas();
+}
+
+/* ---------------------------------------------------------------
+   Cópias e exportações — o antigo menu «Dados», agora um diálogo que se
+   abre das definições rápidas e da página das definições
+   --------------------------------------------------------------- */
+function abrirDados(){
+  const host = $("#modalHost");
+  const item = (icone, rotulo, act) =>
+    '<button class="linhaMenu" data-act="'+act+'">'+ic(icone)+'<span class="lb">'+esc(rotulo)+'</span></button>';
+  host.innerHTML =
+    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-label="Cópias e exportações">'+
+      '<h3>Cópias e exportações</h3><p class="sub">Os dados vivem apenas neste navegador. Guarde cópias.</p>'+
+      '<div class="listaMenu">'+
+        item("exportar", "Exportar cópia", "exportJSON")+
+        item("cadeado", "Exportar cópia cifrada", "exportJSONCifrado")+
+        item("importar", "Importar cópia", "importJSON")+
+        '<div class="sepMenu"></div>'+
+        item("imprimir", "Relatório do mês (imprimir ou PDF)", "relatorio")+
+        item("calendario", "Retrato do ano (imprimir ou PDF)", "relatorioAno")+
+        item("exportar", "Movimentos em CSV", "exportCSV")+
+        item("exportar", "Património em CSV", "exportPatrimonioCSV")+
+        item("imprimir", "Imprimir esta página", "imprimir")+
+      '</div>'+
+      '<div class="actions" style="margin-top:12px"><button class="btn ghost" data-dlg="no">Fechar</button></div>'+
+    '</div></div>';
+  const fechar = () => { host.innerHTML = ""; };
+  host.querySelector('[data-dlg="no"]').onclick = fechar;
+  host.querySelector(".overlay").onclick = (ev) => { if (ev.target === ev.currentTarget) fechar(); };
+  host.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => setTimeout(fechar, 30)));
+}
+
+/* ---------------------------------------------------------------
+   Criar — um só ponto de entrada
+
+   Abre o registo de um movimento, que é o que se faz todos os dias, já
+   pronto a escrever o valor: dois toques, como antes. Por baixo, o resto
+   que se pode criar, cada um a levar ao seu formulário já aberto.
+   --------------------------------------------------------------- */
+const CRIAVEIS = [
+  {ic:"lista",    lbl:"Movimento completo",   pag:"movimentos", campo:"mvValor",  form:"mov"},
+  {ic:"carteira", lbl:"Rendimento",           pag:"rendimentos",campo:"rdNome",   form:"rd"},
+  {ic:"calendario",lbl:"Despesa fixa",        pag:"plano",      campo:"rcNome",   form:"rec"},
+  {ic:"banco",    lbl:"Ativo",                pag:"ativos",     campo:"ptNome",   form:"pat"},
+  {ic:"chave",    lbl:"Crédito",              pag:"creditos",   campo:"crNome",   form:"cr"},
+  {ic:"alvo",     lbl:"Objetivo",             pag:"objetivos",  campo:"obNome",   form:"obj"},
+  {ic:"carro",    lbl:"Compra grande",        pag:"compras",    campo:"plNome",   form:"plan"},
+];
+/** Leva a um formulário de criação e abre-o, com o foco no primeiro campo. */
+function criarNo(i){
+  const c = CRIAVEIS[i];
+  if (!c) return;
+  $("#modalHost").innerHTML = "";
+  ui.abertos = ui.abertos || {};
+  ui.abertos["novo-" + c.form] = true;
+  irPagina(c.pag);
+  setTimeout(() => {
+    const e = $("#" + c.campo);
+    if (e){ e.focus(); e.scrollIntoView({block:"center"}); }
+  }, 0);
+}
+
+/** Mês em análise, como aparece no botão do mês. */
+function rotuloMes(m){
+  const [a, mm] = String(m || MES).split("-").map(Number);
+  const nome = MESES[mm - 1] || "";
+  return {longo: nome.charAt(0).toUpperCase() + nome.slice(1) + " " + a,
+          curto: nome.slice(0, 3) + " " + a};
+}
+
+/* Que destino conta os pendentes de cada vista, para os emblemas. */
+const VISTA_DESTINO = {painel:"inicio", analises:"inicio", rendimentos:"orcamento", despesas:"movimentos",
+  ativos:"patrimonio", creditos:"patrimonio", objetivos:"planear", estrategias:"planear", ese:"planear"};
+
+const ACOES_ESTRUTURA = {
+  pagina(el){ irPagina(el.dataset.v); },
+  analisesPersonalizar(){ ui.personalizarPainel = !ui.personalizarPainel; render(); },
+  criarAbrir(){ fecharMenus(); abrirRapido(); },
+  criarItem(el){ criarNo(parseInt(el.dataset.i, 10)); },
+  lateralAbrir(el){ abrirLateral(el.dataset.v); },
+  lateralFechar(){ fecharLateral(); },
+  dadosAbrir(){ fecharMenus(); abrirDados(); },
+  atalhosAbrir(){ fecharMenus(); abrirAtalhos(); },
+  sobreAbrir(){
+    fecharMenus(); irPagina("config");
+    setTimeout(() => { const s = $("#cfgSobre"); if (s) s.scrollIntoView({block:"start"}); }, 0);
+  },
+  defDensidade(){
+    S.densidade = S.densidade === "compacta" ? "conforto" : "compacta";
+    guardar(); aplicarTema(); render(); pintarMenuDefinicoes();
+  },
+  defTexto(){
+    const o = ["normal", "grande", "maior"];
+    S.texto = o[(o.indexOf(S.texto || "normal") + 1) % 3];
+    guardar(); aplicarTema(); render(); pintarMenuDefinicoes();
+  },
+};
+
+
 /* ---------------------------------------------------------------
    Ligações de eventos
    --------------------------------------------------------------- */
@@ -15238,10 +15669,14 @@ document.addEventListener("click", (e) => {
   if (fn){ e.preventDefault(); fn(el); }
 });
 
-$("#tabs").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-view]");
-  if (b) irPara(b.dataset.view);
+$("#destinos").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-destino]");
+  if (b) irDestino(b.dataset.destino);
 });
+$("#pesquisaBtn").addEventListener("click", () => abrirPaleta());
+$("#mesBtn").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu("menuMes", "mesBtn", pintarMenuMes); });
+$("#ajudaMenuBtn").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu("menuAjuda", "ajudaMenuBtn", pintarMenuAjuda); });
+$("#definicoesBtn").addEventListener("click", (e) => { e.stopPropagation(); abrirMenu("menuDefinicoes", "definicoesBtn", pintarMenuDefinicoes); });
 
 /* ---------------------------------------------------------------
    Toque — o que o rato fazia e o dedo não faz
@@ -15253,46 +15688,6 @@ $("#tabs").addEventListener("click", (e) => {
    --------------------------------------------------------------- */
 const aoToque = () => window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 
-/* Folha de ações secundárias, para o cabeçalho não ter dezassete botões. */
-const ACOES_FOLHA = [
-  {ic:"◱",  lbl:"Modo essencial",  act:"essencialAlternar", estado: () => ui.essencial ? "ligado" : ""},
-  {ic:"👁", lbl:"Modo privacidade", act:"privAlternar",      estado: () => ui.privado ? "ligado" : ""},
-  {ic:"◐",  lbl:"Tema",             id:"temaBtn",             estado: () => S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático"},
-  {ic:"?",  lbl:"Explicadores",     id:"ajudaBtn",            estado: () => S.ajudas === false ? "desligados" : "ligados"},
-  {ic:"🎓", lbl:"Visita guiada",    act:"tutorialIniciar",    estado: () => ""},
-  {ic:"🖨", lbl:"Relatório mensal", act:"relatorio",          estado: () => ""},
-];
-
-function fecharFolhaAcoes(){
-  $("#folhaAcoes").classList.remove("aberta");
-  $("#btnMaisAcoes").setAttribute("aria-expanded", "false");
-}
-function abrirFolhaAcoes(){
-  const f = $("#folhaAcoes");
-  f.innerHTML = ACOES_FOLHA.map((a, i) =>
-    '<button data-folha="'+i+'" role="menuitem"><span class="ic" aria-hidden="true">'+a.ic+'</span>'+
-    esc(a.lbl)+'<span class="st">'+esc(a.estado())+'</span></button>').join("");
-  f.classList.add("aberta");
-  $("#btnMaisAcoes").setAttribute("aria-expanded", "true");
-}
-$("#btnMaisAcoes").addEventListener("click", (e) => {
-  e.stopPropagation();
-  if ($("#folhaAcoes").classList.contains("aberta")) fecharFolhaAcoes(); else abrirFolhaAcoes();
-});
-$("#folhaAcoes").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-folha]");
-  if (!b) return;
-  const a = ACOES_FOLHA[parseInt(b.dataset.folha, 10)];
-  fecharFolhaAcoes();
-  if (!a) return;
-  if (a.act && ACOES[a.act]) ACOES[a.act](b);
-  else if (a.id && $("#"+a.id)) $("#"+a.id).click();
-});
-document.addEventListener("click", (e) => {
-  if (!$("#folhaAcoes").classList.contains("aberta")) return;
-  if (e.target.closest("#folhaAcoes, #btnMaisAcoes")) return;
-  fecharFolhaAcoes();
-});
 
 /* Ao toque, um toque simples abre a célula para edição: o duplo toque
    está tomado pelo zoom do navegador. Com rato mantém-se o duplo clique. */
@@ -15377,9 +15772,13 @@ function aplicarOrientacao(){
   const mudouDispositivo = ui.ecra && ui.ecra.dispositivo !== e.dispositivo;
   ui.ecra = e;
 
-  if (!e.valido){ raiz.removeAttribute("data-orientacao"); raiz.removeAttribute("data-dispositivo"); return e; }
+  if (!e.valido){ raiz.removeAttribute("data-orientacao"); raiz.removeAttribute("data-dispositivo"); raiz.removeAttribute("data-layout"); return e; }
   raiz.setAttribute("data-orientacao", e.orientacao);
   raiz.setAttribute("data-dispositivo", e.dispositivo);
+  /* Desenho compacto — destinos em baixo, menus em folha — no telemóvel e
+     em qualquer janela estreita, onde a coluna lateral roubaria demasiado. */
+  if (e.dispositivo === "telemovel" || e.larg <= 760) raiz.setAttribute("data-layout", "compacto");
+  else raiz.removeAttribute("data-layout");
   /* Um atributo só para o caso que muda o desenho todo — telemóvel
      deitado —, para o CSS não ter de o compor a cada regra. Vale também
      para um tablet pequeno virado, que sofre do mesmo: altura escassa. */
@@ -15387,12 +15786,9 @@ function aplicarOrientacao(){
   else raiz.removeAttribute("data-deitado");
 
   if (mudouOrientacao || mudouDispositivo){
-    /* Ao rodar, o cabeçalho tem de voltar: recolhido em retrato, ficaria
-       recolhido em paisagem sem que nenhum gesto o trouxesse de volta. */
-    const h = document.querySelector("header");
-    if (h) h.classList.remove("recolhido");
-    fecharFolhaAcoes();
-    const fm = $("#folhaMais"); if (fm) fm.hidden = true;
+    /* Ao rodar, os menus que pairam fecham-se: ancorados a um botão que
+       mudou de sítio, ficariam soltos no meio do ecrã. */
+    fecharMenus();
     /* Repintar só o que depende mesmo da largura — a fita de meses e os
        emblemas. Uma repintura completa reconstruiria o `#app`, e com ele
        os formulários: quem rodasse o telemóvel a meio de escrever um
@@ -15428,23 +15824,6 @@ if (screen && screen.orientation && screen.orientation.addEventListener){
 }
 window.addEventListener("orientationchange", () => setTimeout(aplicarOrientacao, 60));
 
-let _ultimoScroll = 0;
-window.addEventListener("scroll", () => {
-  // O cabeçalho recolhe onde a altura é escassa: telemóvel de pé ou deitado
-  const e = ui.ecra || classificarEcra();
-  if (!(e.dispositivo === "telemovel" || window.innerWidth <= 640)) return;
-  const h = document.querySelector("header");
-  const y = window.scrollY;
-  if (y < 90 || $("#modalHost").innerHTML || $("#folhaAcoes").classList.contains("aberta")){
-    h.classList.remove("recolhido");
-  } else if (y > _ultimoScroll + 6){
-    h.classList.add("recolhido");
-    fecharFolhaAcoes();
-  } else if (y < _ultimoScroll - 6){
-    h.classList.remove("recolhido");
-  }
-  _ultimoScroll = y;
-}, {passive:true});
 
 /* Deslizar na horizontal muda de mês — o gesto que se espera num
    telemóvel. Ignora deslizes verticais, e o que acontece dentro de
@@ -15468,35 +15847,6 @@ document.addEventListener("touchend", (e) => {
   toast(mesLabel(MES));
 }, {passive:true});
 
-/* Navegação inferior (móvel): quatro vistas diretas e uma folha «Mais». */
-function fecharFolhaMais(){
-  $("#folhaMais").hidden = true;
-  $("#btnMais").setAttribute("aria-expanded", "false");
-}
-$("#tabsMovel").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  if (b.id === "btnMais"){
-    const f = $("#folhaMais");
-    f.hidden = !f.hidden;
-    b.setAttribute("aria-expanded", String(!f.hidden));
-    return;
-  }
-  if (b.dataset.view){ fecharFolhaMais(); irPara(b.dataset.view); }
-});
-$("#folhaMais").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-view]");
-  if (b){ fecharFolhaMais(); irPara(b.dataset.view); }
-});
-/* Uma folha que paira por cima do conteúdo tem de sair do caminho ao primeiro
-   toque ao lado — é assim que se fecha uma folha, e sem isso ficava a tapar o
-   que se quer ver até se voltar ao botão que a abriu. */
-document.addEventListener("click", (e) => {
-  const f = $("#folhaMais");
-  if (f.hidden) return;
-  if (e.target.closest("#folhaMais") || e.target.closest("#btnMais")) return;
-  fecharFolhaMais();
-});
 
 /* ---------------------------------------------------------------
    Paleta de comandos (Ctrl+K) — saltar para uma vista ou disparar
@@ -15681,6 +16031,9 @@ function abrirRapido(){
       '<button class="btn primary" data-dlg="yes">Registar</button></div>'+
     '<div class="note no-print" style="margin-top:10px">Fica com a data de hoje. Para datas passadas, '+
     'membro ou mais detalhe, use o formulário completo em Movimentos.</div>'+
+    '<div class="criarMais no-print"><div class="lbMais">Criar outra coisa</div><div class="fichas">'+
+      CRIAVEIS.map((c, i) => '<button class="ficha" data-act="criarItem" data-i="'+i+'">'+ic(c.ic)+esc(c.lbl)+'</button>').join("")+
+    '</div></div>'+
     '</div></div>';
 
   const host = $("#modalHost");
@@ -15875,7 +16228,9 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   // O Esc fecha o que estiver por cima — e a folha «Mais» está por cima.
-  if (e.key === "Escape" && !$("#folhaMais").hidden){ e.preventDefault(); fecharFolhaMais(); return; }
+  // O Esc fecha o que estiver por cima: primeiro um menu, depois o painel lateral
+  if (e.key === "Escape" && _menuAberto){ e.preventDefault(); fecharMenus(); return; }
+  if (e.key === "Escape" && ui.lateral && !$("#modalHost").innerHTML){ e.preventDefault(); fecharLateral(); return; }
   /* E tira do relatório. Em uso normal ninguém precisa disto — o relatório
      repõe-se sozinho a seguir à impressão — mas é uma vista sem um único
      botão, e uma vista sem botões tem de ter pelo menos uma saída. */
@@ -16208,7 +16563,7 @@ document.addEventListener("dragend", () => {
 const TUTORIAL_PASSOS = [
   {vista:"painel", sel:null, titulo:"Bem-vindo à visita guiada 👋",
    texto:"Esta aplicação gere o orçamento da família em <strong>três coisas</strong>: rendimentos, despesas e ativos — o resto pendura-se destas. Tudo fica <strong>no seu navegador</strong>: não há servidor, conta nem envio de dados. Use <strong>Seguinte</strong> ou as setas do teclado; <strong>Esc</strong> sai a qualquer momento."},
-  {vista:"painel", sel:"#mesSel", titulo:"O mês em análise",
+  {vista:"painel", sel:"#mesBtn", titulo:"O mês em análise",
    texto:"Todos os cálculos se referem a este mês: movimentos, prestações, balanço. As setas <strong>‹ ›</strong> percorrem o histórico — recue para ver meses passados, avance para ver o plano projetado."},
   {vista:"painel", sel:"#app .kpi", titulo:"Painel — o mês num relance",
    texto:"Rendimento, despesa, saldo e taxa de poupança, cada um com a <strong>variação face ao mês anterior</strong> e a tendência de 6 meses. Por baixo: previsto vs. real, a despesa por categoria, a regra <strong>50/30/20</strong>, a evolução e um simulador «e se poupar mais?». Passe o ponteiro sobre qualquer indicador para ver o <strong>explicador</strong> com a fórmula."},
@@ -16589,8 +16944,14 @@ function ajudaDe(el){
     if (a) return a;
   }
 
-  const sep = el.closest("nav.tabs button[data-view]");
-  if (sep && AJUDAS_VISTA[sep.dataset.view]) return AJUDAS_VISTA[sep.dataset.view];
+  const dest = el.closest("[data-destino]");
+  if (dest && AJUDAS_DESTINO[dest.dataset.destino]) return AJUDAS_DESTINO[dest.dataset.destino];
+  const ficha = el.closest('[data-act="pagina"]');
+  if (ficha){
+    const p = PAGINAS[ficha.dataset.v];
+    if (p && AJUDAS_VISTA[ficha.dataset.v]) return AJUDAS_VISTA[ficha.dataset.v];
+    if (p) return [p.lbl, "Abre a página «" + p.lbl + "».", ""];
+  }
 
   const acao = el.closest("[data-act]");
   if (acao && AJUDAS_ACAO[acao.dataset.act]) return AJUDAS_ACAO[acao.dataset.act];
@@ -16599,7 +16960,7 @@ function ajudaDe(el){
 }
 
 /** Elementos que podem ter ajuda — restringe a varredura ao que interessa. */
-const SEL_AJUDAVEL = ".kpi, th[data-sort], nav.tabs button[data-view], label.field, .ctrl, [data-act], [data-ajuda]";
+const SEL_AJUDAVEL = ".kpi, th[data-sort], [data-destino], label.field, .ctrl, [data-act], [data-ajuda]";
 
 /**
  * Assinala visualmente o que tem explicação (cursor de ajuda) e remove o
@@ -16856,9 +17217,11 @@ function aplicarTema(){
   else document.documentElement.removeAttribute("data-texto");
   if (S.contraste === "alto") document.documentElement.setAttribute("data-contraste", "alto");
   else document.documentElement.removeAttribute("data-contraste");
+  const nomeTema = S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático";
   const b = $("#temaBtn");
-  b.textContent = S.tema === "dark" ? "☾" : S.tema === "light" ? "☀" : "◐";
-  b.title = "Tema: " + (S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático");
+  if (b) b.title = "Tema: " + nomeTema + " — carregue para trocar";
+  const st = $("#temaEstado");
+  if (st) st.textContent = nomeTema;
   /* Instalada, a barra do sistema à volta da janela toma esta cor. Sem isto
      ficava um azul fixo por cima de uma aplicação verde ou bege. */
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -16873,7 +17236,8 @@ function aplicarAjudas(){
   const on = S.ajudas !== false;
   const b = $("#ajudaBtn");
   b.setAttribute("aria-pressed", String(on));
-  b.style.opacity = on ? "1" : ".5";
+  const st = $("#ajudaEstado");
+  if (st) st.textContent = on ? "ligados" : "desligados";
   b.title = on ? "Explicadores ligados — clique para desligar"
                : "Explicadores desligados — clique para ligar";
   if (!on){
@@ -16896,29 +17260,6 @@ $("#temaBtn").addEventListener("click", () => {
   guardar(); aplicarTema();
 });
 
-/* Menu "Dados" */
-$("#menuBtn").addEventListener("click", () => {
-  const host = $("#modalHost");
-  host.innerHTML =
-    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true">'+
-      '<h3>Dados</h3><p>Cópias de segurança e exportações. Os dados vivem apenas neste navegador.</p>'+
-      '<div class="row">'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="exportJSON">⬇ Exportar cópia (JSON)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="exportJSONCifrado">🔒 Exportar cópia cifrada</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="importJSON">⬆ Importar cópia (JSON)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="relatorio">🖨 Relatório mensal (imprimir ou PDF)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="relatorioAno">📅 Retrato do ano (imprimir ou PDF)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="exportCSV">⬇ Movimentos (CSV)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="exportPatrimonioCSV">⬇ Património (CSV)</button></div>'+
-        '<div style="flex:1 1 100%"><button class="btn" style="width:100%" data-act="imprimir">🖨 Imprimir / guardar PDF</button></div>'+
-      '</div>'+
-      '<div class="actions" style="margin-top:16px"><button class="btn ghost" data-dlg="no">Fechar</button></div>'+
-    '</div></div>';
-  const fechar = () => { host.innerHTML = ""; };
-  host.querySelector('[data-dlg="no"]').onclick = fechar;
-  host.querySelector(".overlay").onclick = (ev) => { if (ev.target === ev.currentTarget) fechar(); };
-  host.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => setTimeout(fechar, 30)));
-});
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && $("#modalHost").innerHTML) $("#modalHost").innerHTML = "";
@@ -16959,11 +17300,13 @@ document.addEventListener("click", (e) => {
 /* Os calculadores dos planos trazem os seus deslizadores e ações. */
 Object.assign(SLIDERS, SLIDERS_PLANOS);
 Object.assign(ACOES, ACOES_PLANOS);
+Object.assign(ACOES, ACOES_ESTRUTURA);
 
 /* ---------------------------------------------------------------
    Arranque
    --------------------------------------------------------------- */
 carregar();
+pintarIcones();
 aplicarTema();
 aplicarOrientacao();
 restaurarSessao();

@@ -70,7 +70,26 @@ function confirmarDialogo(){ return clicar('[data-dlg="yes"]'); }
 function cancelarDialogo(){ return clicar('[data-dlg="no"]'); }
 function haDialogo(){ return !!q(".overlay"); }
 function texto(){ return q("main").innerText; }
-function irA(vista){ clicar('nav.tabs button[data-view="' + vista + '"]'); }
+/* Navegar como o utilizador: o destino na barra e, se for preciso, a
+   ficha da página. "despesas" e "estrategias" são vistas com secções —
+   vai-se à página da secção em que se estava. As definições estão no
+   menu da roda dentada. */
+function paginaDeVista(v){
+  if (v === "despesas") return SEC_DESPESA_PAGINA[ui.secaoDespesa] || "plano";
+  if (v === "estrategias") return PAGINAS[ui.secaoEstrategia] ? ui.secaoEstrategia : "simulador";
+  return v;
+}
+function irA(vista){
+  var p = paginaDeVista(vista);
+  if (p === "config"){
+    clicar("#definicoesBtn");
+    clicar('#menuDefinicoes [data-act="pagina"][data-v="config"]');
+    return;
+  }
+  clicar('#destinos [data-destino="' + destinoDaPagina(p) + '"]');
+  if (paginaAtual() !== p) clicar('#app .fichas [data-act="pagina"][data-v="' + p + '"]');
+}
+function irPag(p){ irA(p); }
 function hover(el){
   if (!el) return null;
   el.dispatchEvent(new PointerEvent("pointermove", {bubbles:true, clientX:300, clientY:300}));
@@ -113,6 +132,9 @@ function contextoLimpo(){
   ui.corteAjustes = {};
   ui.planPrefill = null;
   ui.abertos = {};
+  ui.personalizarPainel = false;
+  ui.lateral = null;
+  if (typeof fecharMenus === "function") fecharMenus();
   document.body.classList.remove("privado");
 }
 
@@ -144,9 +166,13 @@ G("vistas");
   vistas.forEach(function(v){
     semErro(function(){ irA(v); }, "vista " + v + " renderiza");
     ok(texto().length > 100, "vista " + v + " tem conteúdo", texto().length);
-    var sel = q('nav.tabs button[data-view="' + v + '"]');
-    eq(sel.getAttribute("aria-selected"), "true", "separador " + v + " fica selecionado");
-    eq(qq('nav.tabs button[aria-selected="true"]').length, 1, "só um separador selecionado em " + v);
+    eq(VIEW, v, "a vista " + v + " fica aberta");
+    eq(qq('#destinos [aria-current="page"]').length, v === "config" ? 0 : 1, "só um destino marcado em " + v);
+    if (v !== "config"){
+      var sel = q('#destinos [data-destino="' + destinoDaPagina(paginaDeVista(v)) + '"]');
+      eq(sel && sel.getAttribute("aria-current"), "page", "o destino de " + v + " fica marcado");
+    }
+    ok(q("#app .cabPagina h1.tituloPagina") != null, "a vista " + v + " tem título de página");
   });
 
   // Aliases das vistas antigas
@@ -162,13 +188,14 @@ G("secções das despesas");
 (function(){
   irA("despesas");
   ["plano","movimentos","limites"].forEach(function(s){
-    ok(clicar('[data-act="secDespesa"][data-v="' + s + '"]'), "secção " + s + " tem botão");
+    semErro(function(){ irPag(SEC_DESPESA_PAGINA[s]); }, "secção " + s + " abre");
     eq(ui.secaoDespesa, s, "secção " + s + " fica ativa");
     ok(texto().length > 100, "secção " + s + " tem conteúdo");
-    var b = q('[data-act="secDespesa"][data-v="' + s + '"]');
-    eq(b.getAttribute("aria-pressed"), "true", "secção " + s + " marcada");
+    var b = q('#app .fichas [data-act="pagina"][data-v="' + SEC_DESPESA_PAGINA[s] + '"]');
+    if (s !== "movimentos") eq(b && b.getAttribute("aria-pressed"), "true", "secção " + s + " marcada na ficha");
+    else ok(b == null, "Movimentos é um destino só com uma página: sem fichas");
   });
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
 })();
 
 /* ============================================================
@@ -435,7 +462,7 @@ G("prestações sociais em Definições");
 G("rubrica de despesa");
 (function(){
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
   var antes = S.recorrentes.length;
 
   clicar('[data-act="recSalvar"]');
@@ -473,7 +500,7 @@ G("rubrica de despesa");
 G("movimentos");
 (function(){
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var antes = S.movimentos.length;
 
   clicar('[data-act="movSalvar"]');
@@ -496,7 +523,7 @@ G("movimentos");
   eq(novo.valor, 30, "guarda sempre em positivo");
 
   // Filtros
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   preencher("fTexto", "QA");
   ok(texto().indexOf("QA — compra") >= 0, "o filtro de texto encontra");
   preencher("fTexto", "zzzznadaaqui");
@@ -948,7 +975,7 @@ G("deslizadores");
   }
 
   // Simulador do painel
-  irA("painel");
+  irA("analises");
   var se = q('[data-slider="simExtra"]');
   if (se){
     se.value = 300; se.dispatchEvent(new Event("input", {bubbles:true}));
@@ -1062,7 +1089,7 @@ G("gráficos interativos");
   ok(t.innerText.indexOf("€") >= 0, "com valores");
 
   // Barras da evolução
-  irA("painel");
+  irA("analises");
   var zona = q(".chart .hit");
   if (zona){
     var t2 = hover(zona);
@@ -1079,11 +1106,11 @@ G("gráficos interativos");
 
 G("explicadores");
 (function(){
-  irA("painel");
+  irA("analises");
   ok(S.ajudas !== false, "os explicadores começam ligados");
   ok(qq(".temAjuda").length > 10, "há elementos assinalados: " + qq(".temAjuda").length);
 
-  var t = hover(q('nav.tabs button[data-view="ativos"]'));
+  var t = hover(q('#destinos [data-destino="patrimonio"]'));
   ok(t.classList.contains("show") && t.classList.contains("prosa"), "separador tem explicador em prosa");
 
   var k = qq(".kpi").filter(function(x){ return /TAXA DE POUPAN/i.test(x.innerText); })[0];
@@ -1130,7 +1157,7 @@ G("explicadores");
   clicar("#ajudaBtn");
   eq(S.ajudas, false, "o interruptor desliga");
   eq(qq(".temAjuda").length, 0, "e limpa as marcas");
-  var t4 = hover(q('nav.tabs button[data-view="ativos"]'));
+  var t4 = hover(q('#destinos [data-destino="patrimonio"]'));
   ok(!t4.classList.contains("show"), "desligado não mostra prosa");
   var fat = q("svg[data-donut] .slice");
   if (fat){
@@ -1180,7 +1207,7 @@ G("tema");
 G("limites por categoria");
 (function(){
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="limites"]');
+  irPag("limites");
   var inp = q(".limIn");
   ok(inp != null, "há campos de limite");
   if (inp){
@@ -1418,7 +1445,7 @@ G("injeção de HTML");
 
   // Compras planeadas: o nome atravessa cartão, faixa e tabela das realizadas
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="planear"]');
+  irPag("compras");
   preencher("plNome", mau);
   preencher("plValor", "900");
   clicar('[data-act="planSalvar"]');
@@ -1500,9 +1527,9 @@ G("estados vazios");
   ok(q('[data-act="exemplo"]') != null, "e oferece o exemplo");
 
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="limites"]');
+  irPag("limites");
   ok(texto().length > 40, "os limites não rebentam sem dados");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(texto().indexOf("Sem movimentos") >= 0, "os movimentos avisam que estão vazios");
 
   S = normalizar(backupS);
@@ -1579,64 +1606,82 @@ G("dica do próximo passo");
 
 G("melhorias visuais");
 (function(){
-  // Navegação inferior: existe, com as vistas principais e a folha «Mais»
-  ok(q("#tabsMovel") != null, "há navegação inferior para o telemóvel");
-  eq(qq("#tabsMovel button[data-view]").length, 4, "com quatro vistas diretas");
-  ok(q("#btnMais") != null, "e o botão «Mais»");
-  eq(qq("#folhaMais button[data-view]").length, 5, "a folha traz as restantes cinco");
+  // Barra de destinos: cinco destinos e o «Criar», cada um com ícone
+  eq(qq("#destinos [data-destino]").length, 5, "há cinco destinos");
+  eq(DESTINOS.map(function(d){ return d.k; }).join(","), "inicio,movimentos,orcamento,patrimonio,planear",
+     "pela ordem de uso: início, movimentos, orçamento, património, planear");
+  ok(q('#destinos [data-act="criarAbrir"]') != null, "e o botão «Criar» à cabeça");
+  eq(qq("#destinos [data-destino] svg").length, 5, "cada destino tem ícone");
+  ok(qq("#destinos [data-destino] .lb").every(function(l){ return l.textContent.trim().length > 2; }),
+     "e rótulo escrito — o ícone nunca está sozinho");
+  /* Todas as páginas estão num destino, exceto as definições (no menu). */
+  Object.keys(PAGINAS).forEach(function(p){
+    if (p === "config") return;
+    ok(destinoDaPagina(p) != null, "a página " + p + " pertence a um destino");
+    ok(VISTAS[PAGINAS[p].vista] != null, "a página " + p + " desenha uma vista que existe");
+  });
 
-  /* A folha «Mais» esteve permanentemente aberta no telemóvel: o JS punha-lhe
-     `hidden`, mas a regra de CSS que lhe dá `display:flex` traz um `id`, e um
-     `id` ganha ao `[hidden]{display:none}` que vem da folha do navegador.
-     O atributo dizia uma coisa e o desenho fazia outra — e ficava a tapar o
-     conteúdo para sempre. Testa-se o desenho, não só o atributo. */
-  (function(){
-    var f = q("#folhaMais"), btn = q("#btnMais");
-    var raiz = document.documentElement, antesDisp = raiz.getAttribute("data-dispositivo");
-    raiz.setAttribute("data-dispositivo", "telemovel");
-    var mostrada = function(){ return getComputedStyle(f).display !== "none"; };
-
-    f.hidden = true;
-    ok(!mostrada(), "com `hidden` posto, a folha «Mais» não se vê", getComputedStyle(f).display);
-
+  /* Os menus que pairam: abrem com o botão, fecham ao tocar fora, com Esc
+     e ao escolher. Testa-se o desenho, não só o atributo — um id no CSS
+     ganha ao [hidden] do navegador, e já houve uma folha que ficava aberta
+     para sempre por isso. */
+  [["#definicoesBtn","#menuDefinicoes"],["#ajudaMenuBtn","#menuAjuda"],["#mesBtn","#menuMes"]].forEach(function(par){
+    var btn = q(par[0]), m = q(par[1]);
+    ok(btn && m, par[1] + " existe");
+    if (!btn || !m) return;
+    var visto = function(){ return !m.hidden && getComputedStyle(m).display !== "none"; };
+    fecharMenus();
+    ok(!visto(), par[1] + " começa fechado", getComputedStyle(m).display);
     btn.click();
-    ok(!f.hidden && mostrada(), "o botão abre-a");
-    eq(btn.getAttribute("aria-expanded"), "true", "e anuncia-a aberta");
-
+    ok(visto(), par[0] + " abre-o");
+    eq(btn.getAttribute("aria-expanded"), "true", par[0] + " anuncia-o aberto");
     btn.click();
-    ok(f.hidden && !mostrada(), "e volta a fechá-la");
-    eq(btn.getAttribute("aria-expanded"), "false", "anunciando-a fechada");
-
-    /* Uma folha que paira por cima do conteúdo tem de sair ao primeiro toque
-       ao lado — senão fica no caminho até se voltar ao botão que a abriu. */
+    ok(!visto(), "o mesmo botão fecha-o");
+    eq(btn.getAttribute("aria-expanded"), "false", par[0] + " anuncia-o fechado");
     btn.click();
     q("#app").click();
-    ok(f.hidden && !mostrada(), "tocar fora fecha-a");
-
+    ok(!visto(), "tocar fora fecha " + par[1]);
     btn.click();
-    f.click();
-    ok(!f.hidden, "tocar dentro, sem ser num botão, não a fecha");
-
+    m.click();
+    ok(visto(), "tocar dentro, sem ser numa ação, não fecha " + par[1]);
     document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
-    ok(f.hidden && !mostrada(), "e o Esc fecha-a");
+    ok(!visto(), "e o Esc fecha " + par[1]);
+  });
+  // Ações marcadas para ficar deixam o menu aberto (alternar sem perder o sítio)
+  clicar("#definicoesBtn");
+  var densAntes = S.densidade;
+  clicar('#menuDefinicoes [data-act="defDensidade"]');
+  ok(!q("#menuDefinicoes").hidden, "alternar a densidade deixa o menu aberto");
+  ok(S.densidade !== densAntes, "e alterna mesmo", S.densidade);
+  ok(q("#densidadeEstado").textContent.trim().length > 0, "o menu diz o estado atual");
+  clicar('#menuDefinicoes [data-act="defDensidade"]');
+  eq(S.densidade, densAntes, "voltar a carregar repõe");
+  fecharMenus();
 
-    btn.click();
-    q("#folhaMais button[data-view]").click();
-    ok(f.hidden && !mostrada(), "escolher uma vista fecha-a também");
-
-    if (antesDisp) raiz.setAttribute("data-dispositivo", antesDisp);
-    else raiz.removeAttribute("data-dispositivo");
+  // No telemóvel, a barra vai para baixo e o «Criar» flutua
+  (function(){
+    var raiz = document.documentElement, antes = raiz.getAttribute("data-dispositivo");
+    eq(raiz.getAttribute("data-layout"), window.innerWidth <= 760 ? "compacto" : null,
+       "o arranjo segue a largura da janela", window.innerWidth);
+    raiz.setAttribute("data-dispositivo", "telemovel");
+    raiz.setAttribute("data-layout", "compacto");
+    var r = q("#destinos").getBoundingClientRect();
+    ok(r.bottom >= window.innerHeight - 2 && r.width >= document.documentElement.clientWidth - 2,
+       "a barra de destinos fica em baixo, a toda a largura", JSON.stringify([r.top, r.bottom, r.width]));
+    ok(getComputedStyle(q("#botaoRapido")).display !== "none", "o «Criar» flutua por cima");
+    qq("#destinos [data-destino]").forEach(function(b){
+      var rb = b.getBoundingClientRect();
+      ok(rb.height >= 44 && rb.width >= 44, "o destino " + b.dataset.destino + " tem alvo de toque de 44 px",
+         Math.round(rb.width) + "×" + Math.round(rb.height));
+    });
+    if (antes) raiz.setAttribute("data-dispositivo", antes); else raiz.removeAttribute("data-dispositivo");
     aplicarOrientacao();
   })();
-
-  // Ícones nos separadores — um por separador, sejam quantos forem
-  eq(qq("nav.tabs .ticon").length, qq("nav.tabs button[data-view]").length,
-     "cada separador tem ícone");
 
   // Movimentos e ativos têm rótulos para o modo cartão
   comExemplo();
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(q('.tblcards td[data-lbl="Valor"]') != null, "os movimentos têm rótulos por célula");
   irA("ativos");
   ok(q('.tblcards td[data-lbl="Capital próprio"]') != null, "os ativos também");
@@ -1665,10 +1710,10 @@ G("visita guiada");
   S.tutorialVisto = false;
 
   // Pontos de entrada
-  ok(q('header [data-act="tutorialIniciar"]') != null, "há botão no cabeçalho");
+  ok(q('#menuAjuda [data-act="tutorialIniciar"]') != null, "há entrada no menu da ajuda");
 
   // Abrir e percorrer todos os passos
-  clicar('header [data-act="tutorialIniciar"]');
+  clicar('#menuAjuda [data-act="tutorialIniciar"]');
   ok(q("#tutorial .tutcard") != null, "a visita abre");
   ok(q("#tutFundo") != null, "com pano de fundo");
   ok(texto().length > 0, "a aplicação continua por trás");
@@ -1724,7 +1769,7 @@ G("visita guiada");
   ok(q("#modalHost .dialog") == null, "escolher continuar fecha o diálogo");
   ok(temDados(), "e os dados ficam");
   eq(S.exemploDemo, true, "ainda marcados como demonstração");
-  ok(q("#menuBtn").classList.contains("aponta"), "o menu Dados fica apontado");
+  ok(q("#definicoesBtn").classList.contains("aponta"), "as definições ficam apontadas");
   irA("painel");
   ok(/família de exemplo/i.test(texto()),
      "e o painel passa a lembrar que aqueles números não são de ninguém");
@@ -1757,7 +1802,7 @@ G("visita guiada");
   alterar(function(){ S.movimentos.push({id:"mvX", data: MES+"-05", descricao:"Meu café",
     valor:-1.2, categoriaId: S.categorias[0].id, membroId:"", tipo:"despesa"}); });
   eq(S.exemploDemo, false, "mas lançar um movimento sim");
-  clicar('header [data-act="tutorialIniciar"]');
+  clicar('#menuAjuda [data-act="tutorialIniciar"]');
   for (var j = 0; j < total; j++) clicar('[data-act="tutorialSeguinte"]');
   ok(q("#modalHost .dialog") == null,
      "e com dados tocados a visita já não se oferece para os apagar");
@@ -1768,7 +1813,7 @@ G("visita guiada");
   S.tutorialVisto = false;
 
   // Anterior recua; Esc sai
-  clicar('header [data-act="tutorialIniciar"]');
+  clicar('#menuAjuda [data-act="tutorialIniciar"]');
   clicar('[data-act="tutorialSeguinte"]');
   clicar('[data-act="tutorialAnterior"]');
   ok(q("#tutorial h3").textContent.indexOf("Bem-vindo") >= 0, "Anterior recua ao primeiro passo");
@@ -1776,7 +1821,7 @@ G("visita guiada");
   ok(q("#tutorial .tutcard") == null, "Escape sai da visita");
 
   // Setas do teclado navegam
-  clicar('header [data-act="tutorialIniciar"]');
+  clicar('#menuAjuda [data-act="tutorialIniciar"]');
   document.dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowRight", bubbles:true}));
   ok(q("#tutorial h3").textContent.indexOf("mês em análise") >= 0, "a seta direita avança");
   document.dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowLeft", bubbles:true}));
@@ -1787,7 +1832,7 @@ G("visita guiada");
   localStorage.removeItem(STORE_KEY);
   S = estadoVazio(); MES = isoMes(hoje()); render();
   ok(q('#app [data-act="tutorialIniciar"]') != null, "o ecrã de boas-vindas oferece a visita");
-  clicar('header [data-act="tutorialIniciar"]');
+  clicar('#menuAjuda [data-act="tutorialIniciar"]');
   ok(temDados(), "sem dados, a visita carrega o exemplo");
   ok(q("#tutorial .tutcard") != null, "e abre na mesma");
   clicar('[data-act="tutorialSair"]');
@@ -1847,7 +1892,7 @@ G("aparência — modos e paletas");
 G("visualizações do painel");
 (function(){
   comExemplo();
-  irA("painel");
+  irA("analises");
   // Sankey
   // O Sankey deixou de vir ligado por omissão: liga-se para o testar
   mostrarCartoes(["sankey", "evolucao"]);
@@ -1859,11 +1904,13 @@ G("visualizações do painel");
   ok(q("#drillDonut") != null, "clicar numa fatia abre o detalhe da categoria");
   q("[data-foco]").dispatchEvent(new MouseEvent("click", {bubbles:true}));
   ok(q("#drillDonut") == null, "clicar de novo fecha o detalhe");
-  // Comparação homóloga
+  // Comparação homóloga: nos indicadores do Início
+  irA("painel");
   clicar('[data-act="compararAlternar"]');
   ok(/Há 1 ano/.test(texto()), "a comparação homóloga muda as legendas");
   clicar('[data-act="compararAlternar"]');
   ok(!/Há 1 ano/.test(texto()), "e desliga-se");
+  irA("analises");
   // Marcos na evolução (o exemplo tem eventos a 36 meses)
   clicar('[data-act="evolMeses"][data-v="36"]');
   ok(qq("[data-marco]").length >= 1, "há marcos na linha do tempo a 36 meses");
@@ -1879,7 +1926,7 @@ G("visualizações do painel");
   render();
   // Calendário de calor nos movimentos
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(q(".hmap") != null, "há calendário-mapa de calor");
   ok(qq(".hmap .hcel.hit").length > 0, "com dias assinalados");
 })();
@@ -1930,7 +1977,7 @@ G("reordenação e ícones de categoria");
   ok(!reordenarCategoria(a, a), "arrastar para o próprio sítio não faz nada");
   // Rubricas: a primeira arrumação grava a ordem manual
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
   ok(qq('tr[data-drag="rec"]').length >= 2, "as rubricas têm linhas arrastáveis");
   var recs = S.recorrentes.filter(function(r){ return r.tipo === "despesa"; });
   ok(reordenarRubrica(recs[0].id, recs[1].id), "reordenar rubricas funciona");
@@ -1969,7 +2016,7 @@ G("importador de extratos CSV");
   // Fluxo completo no modal
   var antes = S.movimentos.length;
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   clicar('[data-act="csvAbrir"]');
   ok(q("#csvTexto") != null, "o diálogo de importação abre");
   q("#csvTexto").value = "Data;Descrição;Valor\n02-07-2026;COMPRA CONTINENTE QA;-34,50\n03-07-2026;ORDENADO QA;1.500,00\n02-07-2026;COMPRA CONTINENTE QA;-34,50";
@@ -2077,7 +2124,7 @@ G("regras de categorização e recorrências");
      "valores muito diferentes não são recorrência");
 
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(/repetem-se/.test(texto()), "os movimentos sugerem pôr no plano");
   var n0 = S.recorrentes.length;
   clicar('[data-act="recorrenciaCriar"]');
@@ -2103,12 +2150,12 @@ G("ritmo, mapa anual e tesouraria");
   ok(/excedeu/.test(textoRitmo(150, 100)), "acima do limite, di-lo");
   eq(textoRitmo(10, 0), "—", "sem limite não há leitura de ritmo");
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="limites"]');
+  irPag("limites");
   var cabec = qq("#app thead th").map(function(x){ return x.textContent.trim(); });
   ok(cabec.indexOf("Ritmo") >= 0, "os limites ganham coluna de ritmo", cabec.join(" | "));
 
   // Mapa anual
-  irA("painel");
+  irA("analises");
   mostrarCartoes(["mapa", "tesouraria"]);
   ok(q(".mapa") != null, "há mapa anual");
   eq(qq(".mapa .mc").length % 12, 0, "com doze colunas por categoria");
@@ -2142,27 +2189,19 @@ G("rotação: atributos, reposição e repintura");
   aplicarOrientacao(); aplicarOrientacao();
   eq(raiz.getAttribute("data-orientacao"), depois1, "aplicar duas vezes dá o mesmo");
 
-  /* Rodar tem de repor o cabeçalho: recolhido em retrato, ficaria recolhido
-     em paisagem sem que nenhum gesto o trouxesse de volta. Só se verifica
-     com uma janela medível — sem dimensões, `aplicarOrientacao` sai cedo de
-     propósito, e bem: mudar o desenho com base em zero seria pior. */
+  /* Rodar fecha os menus que pairam: ancorados a um botão que mudou de
+     sítio, ficariam soltos no meio do ecrã. Só se verifica com uma janela
+     medível — sem dimensões, `aplicarOrientacao` sai cedo de propósito. */
   var medivel = classificarEcra().valido;
   ok(true, medivel ? "a janela é medível ("+window.innerWidth+"×"+window.innerHeight+")"
-                   : "janela sem dimensões: a reposição ao rodar fica de fora");
+                   : "janela sem dimensões: o fecho ao rodar fica de fora");
   if (medivel){
-    var h = q("header");
-    h.classList.add("recolhido");
+    clicar("#definicoesBtn");
+    ok(!q("#menuDefinicoes").hidden, "o menu das definições abre");
     ui.ecra = {orientacao: (raiz.getAttribute("data-orientacao") === "retrato" ? "paisagem" : "retrato"),
                dispositivo: "telemovel", larg:1, alt:1, valido:true, deitado:false};
     aplicarOrientacao();
-    ok(!h.classList.contains("recolhido"), "ao rodar, o cabeçalho volta");
-
-    // E fecha as folhas que ficariam mal colocadas
-    var fm = q("#folhaMais");
-    fm.hidden = false;
-    ui.ecra = {orientacao:"nenhuma", dispositivo:"telemovel", larg:1, alt:1, valido:true, deitado:false};
-    aplicarOrientacao();
-    ok(fm.hidden, "e a folha «Mais» fecha-se");
+    ok(q("#menuDefinicoes").hidden, "ao rodar, o menu fecha-se");
   }
 
   /* Regressão: rodar repintava a vista inteira, e com ela os formulários.
@@ -2172,7 +2211,7 @@ G("rotação: atributos, reposição e repintura");
   if (classificarEcra().valido){
     comExemplo();
     ui.secaoDespesa = "movimentos"; irA("despesas");
-    clicar('[data-act="secDespesa"][data-v="movimentos"]');
+    irPag("movimentos");
     var campoV = q("#mvValor"), campoD = q("#mvDesc");
     if (campoV && campoD){
       campoV.value = "47,80";
@@ -2220,7 +2259,8 @@ G("E se…? — eventos de vida");
   comExemplo();
   ui.cenarioVida = {eventos: [], meses: 24};
   irA("ese");
-  ok(q('nav.tabs button[data-view="ese"]') != null, "há separador próprio para o simulador");
+  eq(paginaAtual(), "ese", "o simulador tem página própria");
+  ok(q('#app .fichas [data-act="pagina"][data-v="ese"][aria-pressed="true"]') != null, "marcada nas fichas de Planear");
   eq(qq('[data-act="eseJuntar"]').length, Object.keys(EVENTOS_VIDA).length,
      "com todos os acontecimentos à escolha");
   ok(/Nenhum acontecimento/.test(texto()), "vazio, explica-se e ilustra-se");
@@ -2275,7 +2315,7 @@ G("provisões, saúde e défice no painel");
   S.recorrentes.push({id:"pv", tipo:"despesa", nome:"Seguro auto", valor:600, frequencia:"anual",
     ativo:true, categoriaId:catPorNome("Seguros"), membroId:"", inicio:mesShift(MES,-3)+"-01"});
   limparCacheCredito();
-  irA("painel");
+  irA("analises");
   ok(/Provisões/.test(texto()), "o cartão das provisões aparece");
   ok(/devia ter de parte/i.test(texto()), "com o que devia estar guardado");
   ok(/Saúde financeira/.test(texto()), "e o da saúde financeira");
@@ -2293,8 +2333,9 @@ G("provisões, saúde e défice no painel");
   S.movimentos.push({id:"x2", data:MES+"-04", tipo:"despesa", descricao:"G",
     categoriaId:catPorNome("Restauração"), membroId:"", valor:1500});
   limparCacheCredito();
+  irA("painel");
   render();
-  ok(/Resolver o défice/.test(texto()), "com o mês em défice, o cartão aparece");
+  ok(/Resolver o défice/.test(texto()), "com o mês em défice, o cartão aparece no Início");
   ok(/faltam/i.test(texto()), "e diz quanto falta");
   var btnCortar = q('[data-act="deficeCortar"]');
   if (btnCortar){
@@ -2425,8 +2466,8 @@ G("emblemas, dias e teclado dos meses");
   render();
   var emb = emblemasVistas();
   ok(emb.despesas >= 1, "um movimento sem categoria acende o emblema das despesas", emb.despesas);
-  var pontoDesp = q('#tabs button[data-view="despesas"] .emblema');
-  ok(pontoDesp != null, "e o ponto aparece no separador");
+  var pontoDesp = q('#destinos [data-destino="movimentos"] .emblema');
+  ok(pontoDesp != null, "e o ponto aparece no destino Movimentos");
   ok(/^\d|9\+/.test(pontoDesp.textContent), "com o número", pontoDesp.textContent);
   // Resolver a lacuna baixa a contagem. O exemplo já traz movimentos por
   // categorizar, por isso o emblema não tem de desaparecer — tem de descer.
@@ -2441,7 +2482,7 @@ G("emblemas, dias e teclado dos meses");
   limparCacheCredito();
   render();
   ok(emblemasVistas().despesas == null, "sem lacunas nenhumas, não há emblema");
-  ok(q('#tabs button[data-view="despesas"] .emblema') == null, "e o ponto desaparece do separador");
+  ok(q('#destinos [data-destino="movimentos"] .emblema') == null, "e o ponto desaparece do destino");
 
   // Movimentos agrupados por dia
   ui.secaoDespesa = "movimentos"; irA("despesas");
@@ -2546,10 +2587,10 @@ G("rostos dos membros");
 
   // O rosto aparece nos movimentos e nos seletores
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(q(".rosto") != null || S.movimentos.every(function(m){ return !m.membroId; }),
      "os movimentos mostram o rosto de quem gastou");
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
   var opts = qq("#rcMembro option").map(function(o){ return o.textContent; });
   ok(opts.some(function(t){ return /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(t); }),
      "o seletor de membro mostra o emoji", opts.join(" | "));
@@ -2568,7 +2609,7 @@ G("dia do mês nas despesas fixas");
 (function(){
   comExemplo();
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
   ok(q("#rcDia") != null, "o formulário da rubrica tem campo de dia");
 
   // Validação: um dia impossível não passa
@@ -2620,7 +2661,7 @@ G("linha do mês e previsão de fecho");
   S.painel.ocultos = [];
   // Dar dias às rubricas para a linha do mês ter conteúdo
   S.recorrentes.forEach(function(r, i){ if (r.frequencia === "mensal") r.dia = [1,5,12,20,28][i % 5]; });
-  irA("painel");
+  irA("analises");
   ok(/Linha do mês/.test(texto()), "a linha do mês aparece no painel");
   ok(q(".linhaMes") != null, "com a faixa dos dias");
   var cols = qq(".linhaMes .ldCol").length;
@@ -2662,7 +2703,7 @@ G("linha do mês e previsão de fecho");
   S.movimentos.push({id:"pvAr", data:MES+"-01", tipo:"rendimento", descricao:"Salário",
     categoriaId:catR, membroId:"", valor:2000});
   limparCacheCredito();
-  irA("painel");
+  irA("analises");
   ok(/Como vai fechar o mês/.test(texto()), "a previsão aparece no painel");
   var f = preverFechoMes();
   ok(f != null, "e há previsão calculada");
@@ -2734,7 +2775,7 @@ G("nota do mês");
   MES = isoMes(hoje());
   S.painel.ocultos = [];
   S.notas = {};
-  irA("painel");
+  irA("analises");
   ok(q("#notaMes") != null, "há campo para a nota do mês");
 
   preencher("notaMes", "Férias no Algarve");
@@ -2776,7 +2817,7 @@ G("subscrições, inflação e sequências no painel");
       frequencia:"mensal", ativo:true, categoriaId:catSub, membroId:"", dia:15});
   });
   limparCacheCredito();
-  irA("painel");
+  irA("analises");
   ok(/Subscrições ao ano/.test(texto()), "o cartão das subscrições aparece");
   ok(/por ano/i.test(texto()), "com o custo anual");
   var subs = subscricoes();
@@ -2837,7 +2878,7 @@ G("património ao longo do tempo");
   MES = isoMes(hoje());
   S.painel.ocultos = [];
   S.patrimonioHist = [];
-  irA("painel");
+  irA("analises");
   ok(/Património ao longo do tempo/.test(texto()), "o cartão aparece");
   ok(/Ainda só há um ponto/.test(texto()), "com um ponto só, convida a guardar instantâneos");
 
@@ -2880,7 +2921,7 @@ G("limites pelo histórico e plano de corte");
   }
   limparCacheCredito();
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="limites"]');
+  irPag("limites");
   ok(q('[data-act="limDoHistorico"]') != null, "há botão de sugerir pelo histórico");
   var limAntes = JSON.stringify(S.limites);
   clicar('[data-act="limDoHistorico"]');
@@ -2939,10 +2980,10 @@ G("planear despesa");
 (function(){
   comExemplo();
   S.planeadas = [];
-  irA("despesas");
-  var abas = qq('[data-act="secDespesa"]').map(function(b){ return b.textContent.trim(); });
-  ok(abas.indexOf("Planear") >= 0, "as despesas ganham a secção Planear", abas.join(" | "));
-  clicar('[data-act="secDespesa"][data-v="planear"]');
+  irA("objetivos");
+  var abas = qq('#app .fichas [data-act="pagina"]').map(function(b){ return b.textContent.trim(); });
+  ok(abas.indexOf("Compras grandes") >= 0, "Planear tem a página das compras grandes", abas.join(" | "));
+  irPag("compras");
   eq(ui.secaoDespesa, "planear", "e abre-se");
   ok(q("#plNome") != null, "com o formulário da compra");
   eq(qq('[data-act="planPreset"]').length, PRESETS_PLANEIO.length, "e os exemplos de compra");
@@ -3083,7 +3124,7 @@ G("planear despesa");
   eq(S.planeadas.length, n, "e a anulação devolve-a");
 
   // A ponte a partir do «Posso pagar isto?»
-  irA("painel");
+  irA("analises");
   mostrarCartoes(["podePagar"]);
   preencher("cpValorCompra", "2500");
   ok(q('[data-act="planDaCompra"]') != null, "o «posso pagar isto?» oferece planear a compra");
@@ -3136,7 +3177,7 @@ G("seleção em lote e edição em linha");
 (function(){
   comExemplo();
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var lista = movimentosFiltrados();
   ok(lista.length >= 2, "há movimentos para trabalhar", lista.length);
 
@@ -3174,7 +3215,7 @@ G("seleção em lote e edição em linha");
 
   // Edição em linha
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var td = q('td[data-edit="descricao"]');
   var idm = td.dataset.id;
   editarCelula(td);
@@ -3205,7 +3246,7 @@ G("seleção em lote e edição em linha");
 
   // Teclado: setas percorrem as linhas
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var linhas = qq("tr[data-mov]");
   linhas[0].focus();
   linhas[0].dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowDown", bubbles:true}));
@@ -3296,7 +3337,7 @@ G("arranque por perfil e estados vazios");
     ok(q(".vazio .ilu") != null, "a vista "+v+" tem estado vazio ilustrado");
   });
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(q(".vazio .ilu") != null, "e os movimentos também");
 
   S = normalizar(backupS);
@@ -3363,19 +3404,16 @@ G("português europeu, e não do Brasil");
      pedaços por `+` parece ter espaços a dobrar sem os ter no ecrã. */
   var textos = [];
   var juntar = function(onde, t){ if (t && String(t).trim()) textos.push([onde, String(t)]); };
-  ["painel","rendimento","despesas","credito","objetivos","estrategias","fiscal","config"]
-    .forEach(function(v){
-      irA(v);
-      juntar(v, q("#app").innerText);
-      qq('[data-act^="sec"]').map(function(b){ return {a:b.dataset.act, v:b.dataset.v}; })
-        .forEach(function(s){
-          irA(v);
-          var b = q('[data-act="'+s.a+'"][data-v="'+s.v+'"]');
-          if (b){ b.click(); juntar(v+"/"+s.v, q("#app").innerText); }
-        });
-    });
+  Object.keys(PAGINAS).forEach(function(p){
+    irA(p);
+    juntar(p, q("#app").innerText);
+  });
   juntar("cabeçalho", q("header").innerText);
-  juntar("navegação", q("nav.tabs").innerText);
+  juntar("navegação", q("#destinos").innerText);
+  ["#menuMes","#menuAjuda","#menuDefinicoes"].forEach(function(m){
+    pintarMenuDefinicoes(); pintarMenuAjuda();
+    juntar(m, q(m).textContent.replace(/\s+/g, " "));
+  });
   /* Os dicionários são `const` no topo do script da aplicação: vivem no
      ambiente léxico global, não em `window`. Referem-se pelo nome. */
   [["AJUDAS_VISTA", AJUDAS_VISTA], ["AJUDAS_KPI", AJUDAS_KPI], ["AJUDAS_COL", AJUDAS_COL],
@@ -3476,7 +3514,7 @@ G("texto do utilizador não parte o desenho");
 G("detalhe por categoria alcançável sem rato");
 (function(){
   comExemplo();
-  irA("painel");
+  irA("analises");
   /* As fatias do donut só respondem ao ponteiro — são desenho. O comando é a
      legenda, e era feita de `div`: a função de ver só uma categoria não
      existia para quem navega por teclado. */
@@ -3899,8 +3937,8 @@ G("impressão: o que flutua fica fora do papel");
   /* Tudo o que paira por cima da página: o diálogo e a bolha do explicador
      estavam a faltar — quem tivesse o ponteiro num indicador ao imprimir
      levava a bolha para o papel. */
-  ["header", "nav.tabs", ".no-print", "#toast", "#tabsMovel", "#folhaMais",
-   "#paleta", "#tutorial", "#modalHost", "#tip"].forEach(function(sel){
+  ["header", "#destinos", ".no-print", "#toast", ".popover", "#painelLateral",
+   "#paleta", "#tutorial", "#modalHost", "#tip", "#botaoRapido"].forEach(function(sel){
     ok(oculta.indexOf(sel) >= 0, "a impressão esconde "+sel);
   });
   ok(q("#botaoRapido") == null || q("#botaoRapido").classList.contains("no-print"),
@@ -3978,12 +4016,12 @@ G("tipografia: sem rede, do sistema, e algarismos que alinham");
   ok(/Emoji/.test(pilha), "e com recurso de emoji, porque os ícones são emoji");
 
   /* Algarismos de largura fixa onde há números a alinhar em coluna. */
-  irA("painel");
+  irA("analises");
   var svgTexto = q("#app svg text");
   if (svgTexto) eq(getComputedStyle(svgTexto).fontVariantNumeric, "tabular-nums",
      "os rótulos dos gráficos têm algarismos de largura fixa");
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var valor = qq("#app td.num")[0];
   if (valor) eq(getComputedStyle(valor).fontVariantNumeric, "tabular-nums",
      "e as colunas de dinheiro também");
@@ -3996,7 +4034,7 @@ G("alvos de dedo: a coluna de seleção");
 (function(){
   comExemplo();
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   var td = q("#app td.colSel");
   ok(td != null, "os movimentos têm coluna de seleção");
   if (td){
@@ -4037,10 +4075,12 @@ G("alvos de dedo: a coluna de seleção");
   // A fita de meses é estreita de propósito, mas não ao ponto de não se acertar
   var raiz = document.documentElement, antes = raiz.getAttribute("data-dispositivo");
   raiz.setAttribute("data-dispositivo", "telemovel");
+  clicar("#mesBtn");
   var mes = q("#fitaMeses button");
   if (mes && mes.getBoundingClientRect().width > 0)
     ok(mes.getBoundingClientRect().width >= 32, "os meses da fita alargam ao dedo",
        Math.round(mes.getBoundingClientRect().width));
+  fecharMenus();
   if (antes) raiz.setAttribute("data-dispositivo", antes); else raiz.removeAttribute("data-dispositivo");
   aplicarOrientacao();
 })();
@@ -4070,7 +4110,7 @@ G("acessibilidade e relatório");
      cabeçalho de coluna, não botão, senão perde-se a que coluna pertence
      cada célula. */
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   /* `ordem` é global e sobrevive aos grupos: guarda-se para a devolver, senão
      os grupos seguintes recebem a tabela ordenada por outra coluna. */
   var ordemMovAntes = JSON.stringify(ordem.mov || null);
@@ -4358,15 +4398,15 @@ G("toque — o que o rato fazia e o dedo não faz");
 (function(){
   comExemplo();
 
-  // Folha de ações: o cabeçalho tinha 17 botões
-  ok(q("#btnMaisAcoes") != null, "há botão de transbordo no cabeçalho");
-  q("#btnMaisAcoes").click();
-  ok(q("#folhaAcoes").classList.contains("aberta"), "abre a folha de ações");
-  eq(qq("#folhaAcoes button").length, ACOES_FOLHA.length, "com todas as ações secundárias");
+  // O cabeçalho tinha 17 botões: as preferências vivem no menu das definições
+  ok(qq("header button").length <= 9, "o cabeçalho tem poucos botões", qq("header button").length);
+  clicar("#definicoesBtn");
+  ok(!q("#menuDefinicoes").hidden, "o menu das definições abre");
   var essencialAntes = ui.essencial;
-  qq("#folhaAcoes button")[0].click();
-  ok(ui.essencial !== essencialAntes, "acionar pela folha funciona");
-  ok(!q("#folhaAcoes").classList.contains("aberta"), "e a folha fecha depois de escolher");
+  clicar('#menuDefinicoes [data-act="essencialAlternar"]');
+  ok(ui.essencial !== essencialAntes, "acionar pelo menu funciona");
+  ok(!q("#menuDefinicoes").hidden, "e o menu fica aberto, para alternar outra coisa");
+  fecharMenus();
   ui.essencial = essencialAntes; render();
 
   // Subir e descer: o arrasto HTML5 não existe em telemóvel
@@ -4391,14 +4431,17 @@ G("toque — o que o rato fazia e o dedo não faz");
 
   // Reordenar rubricas e cartões do painel pelos mesmos botões
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="plano"]');
+  irPag("plano");
   ok(qq('[data-act="ordemMover"][data-tipo="rec"]').length > 0, "as rubricas também têm os botões");
-  irA("config");
-  ok(qq('[data-act="ordemMover"][data-tipo="painel"]').length > 0, "e os cartões do painel");
+  irA("analises");
+  clicar('[data-act="analisesPersonalizar"]');
+  ok(qq('[data-act="ordemMover"][data-tipo="painel"]').length > 0, "e os cartões das análises");
+  clicar('[data-act="analisesPersonalizar"]');
+  ok(qq('[data-act="ordemMover"][data-tipo="painel"]').length === 0, "e «Concluir» volta a esconder a lista");
 
   // Ordenação das tabelas quando viram cartões
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(q("#ordMov") != null, "há seletor de ordenação para o modo cartão");
   q("#ordMov").value = "valor";
   q("#ordMov").dispatchEvent(new Event("change", {bubbles:true}));
@@ -4408,16 +4451,12 @@ G("toque — o que o rato fazia e o dedo não faz");
   eq(ordem.mov.dir, -dirAntes, "e inverte o sentido");
   ordem.mov = {col:"data", dir:-1}; render();
 
-  // O cabeçalho recolhe ao descer, mas só em ecrã estreito
-  var h = q("header");
-  h.classList.remove("recolhido");
+  // O cabeçalho fica fixo: descer a página não o leva
   window.scrollTo(0, 400);
   window.dispatchEvent(new Event("scroll"));
-  ok(!h.classList.contains("recolhido") || window.innerWidth <= 640,
-     "em ecrã largo o cabeçalho não recolhe");
+  var rh = q("header").getBoundingClientRect();
+  ok(rh.bottom > 0, "o cabeçalho continua à vista depois de descer", Math.round(rh.top));
   window.scrollTo(0, 0);
-  window.dispatchEvent(new Event("scroll"));
-  ok(!h.classList.contains("recolhido"), "no topo está sempre visível");
 })();
 
 G("desktop intacto");
@@ -4425,13 +4464,15 @@ G("desktop intacto");
   comExemplo();
   var vis = function(sel){ var e = q(sel); return e && getComputedStyle(e).display !== "none"; };
   // Nada do que existia em ecrã grande se perdeu para o telemóvel
-  ok(vis("#mesSel"), "o seletor de mês continua lá");
-  ok(vis("nav.tabs") || window.innerWidth <= 640, "os separadores do topo continuam lá");
+  ok(vis("#mesBtn"), "o botão do mês está no cabeçalho");
+  ok(vis("#mesPrev") && vis("#mesNext"), "com as setas dos dois lados");
+  ok(vis("#destinos"), "a barra de destinos está lá");
+  ok(vis("#pesquisaBtn") || window.innerWidth <= 760, "e a pesquisa também");
   irA("config");   // é aqui que há linhas arrastáveis
   ok(qq('[draggable="true"]').length > 0, "o arrasto continua disponível", qq('[draggable="true"]').length);
   ok(q(".pega") != null, "e a pega ⠿ continua a existir");
   irA("despesas");
-  clicar('[data-act="secDespesa"][data-v="movimentos"]');
+  irPag("movimentos");
   ok(qq("th.sortable").length > 0, "os cabeçalhos ordenáveis continuam lá");
   ok(qq("td[data-edit]").length > 0, "a edição em linha continua disponível");
   // A fita deixou de estar escondida na faixa dos ecrãs médios
@@ -4444,16 +4485,16 @@ G("planos: secções das estratégias");
   comExemplo();
   ui.secaoEstrategia = "simulador";
   irA("estrategias");
-  var abas = qq('[data-act="secEstrategia"]');
-  eq(abas.length, 4, "quatro secções nas estratégias");
-  ok(q('[data-act="secEstrategia"][data-v="simulador"][aria-pressed="true"]') != null, "começa no simulador de sempre");
+  var fichas = function(v){ return q('#app .fichas [data-act="pagina"][data-v="' + v + '"]'); };
+  ok(["simulador","casa","investir","maximizar"].every(function(v){ return fichas(v) != null; }),
+     "as quatro estratégias são páginas de Planear");
+  ok(fichas("simulador").getAttribute("aria-pressed") === "true", "começa no simulador de sempre");
   ok(/Estratégias de poupança e investimento/.test(texto()), "que continua lá, igual");
 
   ["casa", "investir", "maximizar"].forEach(function(s){
-    clicar('[data-act="secEstrategia"][data-v="' + s + '"]');
+    clicar(fichas(s));
     eq(ui.secaoEstrategia, s, "a secção «" + s + "» abre");
-    ok(q('[data-act="secEstrategia"][data-v="' + s + '"]').getAttribute("aria-pressed") === "true",
-       "e fica marcada");
+    ok(fichas(s) && fichas(s).getAttribute("aria-pressed") === "true", "e fica marcada");
   });
 
   // Endereços próprios, para a paleta e para as ligações
