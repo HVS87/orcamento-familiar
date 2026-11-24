@@ -423,8 +423,12 @@ G("macaco — sequências aleatórias de ações");
      É aqui que aparecem os erros que nenhum caso escolhido apanha —
      eliminar durante uma edição, desfazer no meio de um formulário,
      mudar de mês com a paleta aberta. */
+  /* Também o que sai da página: abrir a janela companheira, ligar a
+     sincronização (falaria com a rede com dados de teste) e abrir pastas. */
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
-                   "imprimir","tutorialIniciar"];
+                   "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
+                   "ecra2Apresentacao","sincCriar","sincEntrar","sincAgora","sincCopiar","sincDesligar",
+                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
   var CORRIDAS = 8, PASSOS = 45;
 
   for (var c = 0; c < CORRIDAS; c++){
@@ -538,8 +542,12 @@ G("desfazer tudo devolve o princípio");
     APARENCIA.forEach(function(k){ delete o[k]; });
     return JSON.stringify(o);
   }
+  /* Também o que sai da página: abrir a janela companheira, ligar a
+     sincronização (falaria com a rede com dados de teste) e abrir pastas. */
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
-                   "imprimir","tutorialIniciar"];
+                   "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
+                   "ecra2Apresentacao","sincCriar","sincEntrar","sincAgora","sincCopiar","sincDesligar",
+                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
   var vistas = ["painel","despesas","ativos","creditos","objetivos"];
 
   for (var c = 0; c < 8; c++){

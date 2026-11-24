@@ -23,6 +23,7 @@ var backupSessao = localStorage.getItem(SESSAO_KEY);
 var temaAntes = S.tema, mesAntes = MES, vistaAntes = VIEW;
 var secD = ui.secaoDespesa, secE = ui.secaoEstrategia, movVista = ui.movVista;
 var ultima = JSON.parse(JSON.stringify(ui.ultimaPagina || {}));
+var sincAntes = localStorage.getItem(SINC_KEY), ecra2Antes = localStorage.getItem(ECRA2_KEY);
 
 var LIXO = /\bNaN\b|\bundefined\b|\[object Object\]|\bnull\b|Infinity/;
 var raiz = document.documentElement;
@@ -66,6 +67,11 @@ function medir(onde){
         !b.classList.contains("saberMais"))
       problemas.push(tam + " " + onde + ": alvo pequeno (" + Math.round(r.width) + "×" + Math.round(r.height) + ") — " +
         (b.dataset.act || b.id || b.className || b.textContent.trim().slice(0, 20)));
+  });
+  /* O que a aplicação escondeu tem de estar escondido: uma classe com display
+     próprio sobrepunha-se ao atributo hidden e mostrava-o na mesma. */
+  Array.prototype.forEach.call(document.querySelectorAll("[hidden]"), function(h){
+    if (h.getClientRects().length) problemas.push(tam + " " + onde + ": escondido mas à vista — " + (h.id || h.className || h.tagName));
   });
   Array.prototype.forEach.call(document.querySelectorAll(".popover:not([hidden]), #painelLateral:not([hidden]), #modalHost .dialog"), function(p){
     if (!visivel(p)) return;
@@ -115,6 +121,24 @@ try {
     ui.perfil.agregado = "familia"; ui.boasPasso = 2; render(); medir(modo + " boas-vindas 2");
     ui.boasPasso = 3; render(); medir(modo + " boas-vindas 3");
     S = guarda; ui.boasPasso = 1;
+    // Sincronização: por ligar, à espera do outro aparelho (QR aberto) e ligada a dois
+    localStorage.removeItem(SINC_KEY); irPagina("config"); medir(modo + " sincronizar por ligar");
+    localStorage.setItem(SINC_KEY, JSON.stringify({codigo: "ABCDE-FGHJK-MNPQR-STVWX-YZ012", servidor: SINC_SERVIDOR,
+      aparelho: {id: "qa", nome: "Computador (Windows)"}, pares: {}}));
+    render(); var sv = document.getElementById("cfgSinc"); if (sv) sv.scrollIntoView();
+    medir(modo + " sincronizar com o QR");
+    sincGravarCfg({pares: {t1: {nome: "Telemóvel", visto: Date.now() - 90000}, t2: {nome: "Tablet da sala com um nome comprido", visto: Date.now() - 7200000}}});
+    render(); medir(modo + " sincronizar ligada a dois");
+    var av = document.querySelector("#cfgSinc details:not(.sincLigar)"); if (av){ av.open = true; medir(modo + " sincronizar, avançado"); }
+    localStorage.removeItem(SINC_KEY); render();
+    // Dois ecrãs: o cartão com a companheira aberta, e a própria companheira
+    _painelVivo = Date.now(); irPagina("config"); medir(modo + " dois ecrãs com a companheira aberta"); _painelVivo = 0;
+    raiz.classList.add("janelaPainel"); pintarBarraPainel(); irPagina("limites"); medir(modo + " companheira (limites)");
+    ecra2Gravar({modo: "fixo", pagina: "objetivos"}); pintarBarraPainel(); medir(modo + " companheira, página fixa");
+    raiz.classList.add("apresentacao"); irPagina("painel"); medir(modo + " companheira em apresentação");
+    raiz.classList.remove("apresentacao", "janelaPainel");
+    var bp = document.getElementById("barraPainel"); if (bp) bp.remove();
+    localStorage.removeItem(ECRA2_KEY);
   });
 } catch (e) {
   problemas.push(tam + ": a varredura parou — " + ((e && e.stack) || e));
@@ -123,6 +147,10 @@ try {
 // Repor
 if (backup) localStorage.setItem(STORE_KEY, backup); else localStorage.removeItem(STORE_KEY);
 if (backupSessao) localStorage.setItem(SESSAO_KEY, backupSessao); else localStorage.removeItem(SESSAO_KEY);
+if (sincAntes) localStorage.setItem(SINC_KEY, sincAntes); else localStorage.removeItem(SINC_KEY);
+if (ecra2Antes) localStorage.setItem(ECRA2_KEY, ecra2Antes); else localStorage.removeItem(ECRA2_KEY);
+raiz.classList.remove("apresentacao", "janelaPainel"); _painelVivo = 0;
+var bpx = document.getElementById("barraPainel"); if (bpx) bpx.remove();
 S = backup ? normalizar(JSON.parse(backup)) : estadoVazio();
 limparCacheCredito();
 S.tema = temaAntes; aplicarTema();

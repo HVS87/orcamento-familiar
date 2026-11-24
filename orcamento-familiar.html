@@ -1269,6 +1269,46 @@ input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offse
   background:var(--accent);color:var(--on-accent);font-weight:650;text-decoration:none;transition:top .12s}
 .saltar:focus{top:12px;outline:2px solid var(--text);outline-offset:2px}
 main:focus{outline:none}
+
+/* O atributo hidden manda sempre: sem isto, um display de classe (flex, inline-flex)
+   mostrava o que a aplicação escondeu */
+[hidden]{display:none!important}
+/* Sincronizar entre aparelhos */
+.estadoSinc{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap}
+.estadoSinc svg{width:14px;height:14px;flex:0 0 auto}
+.estadoSinc.warn{color:var(--neg)}
+.sincPassos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px;margin-top:10px}
+.sincPasso{border:1px solid var(--border);border-radius:12px;padding:14px}
+.sincPasso h3{margin:0 0 4px;font-size:15px}
+.sincPasso .btn svg,.card .actions .btn svg{width:16px;height:16px;margin-right:6px;vertical-align:-3px}
+details.sincLigar,.card details{margin-top:12px}
+.card details > summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+.sincQR{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.sincQR > div{flex:1 1 220px;min-width:0}
+svg.qr{width:208px;height:208px;max-width:100%;flex:0 0 auto;border-radius:10px;border:1px solid var(--border)}
+.codigoSinc{font:600 16px/1.45 ui-monospace,Consolas,monospace;letter-spacing:.04em;word-break:break-all;margin:6px 0 10px}
+/* Dois ecrãs */
+.opcoesEcra{display:grid;gap:6px;margin-top:12px}
+.opcoesEcra label.chk{align-items:flex-start;min-height:0;padding:4px 0}
+.opcoesEcra label.chk input{margin-top:2px;flex:0 0 auto}
+#barraPainel{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;
+  background:var(--surface);border-bottom:1px solid var(--border-forte)}
+#barraPainel .tit{display:inline-flex;gap:6px;align-items:center;font-weight:650;margin-right:auto}
+#barraPainel .tit svg{width:18px;height:18px}
+#barraPainel select{width:auto;max-width:100%}
+#barraPainel .btn svg{width:16px;height:16px;margin-right:4px;vertical-align:-3px}
+#barraPainel .btn.icon svg{margin:0}
+html.janelaPainel #botaoRapido{display:none!important}
+html.apresentacao #app{zoom:1.32}
+html.apresentacao header .grp,html.apresentacao header .pesquisa,html.apresentacao #destinos,
+html.apresentacao #botaoRapido,html.apresentacao .acoesLinha,html.apresentacao details.novoForm,
+html.apresentacao .fichas,html.apresentacao .no-apresentacao{display:none!important}
+html.apresentacao body{padding-left:0!important;padding-bottom:0!important}
+html.apresentacao header{margin-left:0!important}
+html.apresentacao .dica,html.apresentacao #app .card-head .btn,html.apresentacao #app .alertaAcoes{display:none!important}
+html.apresentacao main#app{margin-left:auto!important;margin-right:auto!important}
+/* Em ecrãs estreitos fica só o ícone; a palavra continua lá para os leitores de ecrã */
+@media (max-width:900px){ .estadoSinc .lb{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:-1px} }
 </style>
 </head>
 <body>
@@ -1290,6 +1330,7 @@ main:focus{outline:none}
     </div>
     <div class="grp">
       <span id="estadoGuardado" class="muted" aria-live="polite"></span>
+      <span id="estadoSinc" class="estadoSinc muted" role="status" hidden></span>
       <button class="btn icon ghost" data-act="desfazer" aria-label="Desfazer" disabled data-ic="desfazer"></button>
       <button class="btn icon ghost" data-act="refazer" aria-label="Refazer" disabled data-ic="refazer"></button>
       <button class="btn icon ghost" id="ajudaMenuBtn" aria-label="Ajuda" aria-haspopup="menu" aria-expanded="false" aria-controls="menuAjuda" data-ic="ajuda"></button>
@@ -1320,6 +1361,9 @@ main:focus{outline:none}
   <button class="linhaMenu" role="menuitem" data-act="privAlternar" data-fica aria-pressed="false" data-ic="olho"><span class="lb">Privacidade — desfocar valores</span><span class="st" id="privEstado"></span></button>
   <button class="linhaMenu" role="menuitem" data-act="essencialAlternar" data-fica aria-pressed="false" data-ic="simples"><span class="lb">Vista simples</span><span class="st" id="simplesEstado"></span></button>
   <div class="sepMenu"></div>
+  <button class="linhaMenu" role="menuitem" id="instalarMenu" data-act="appMenuInstalar" data-ic="telemovel" hidden><span class="lb">Instalar como app</span></button>
+  <button class="linhaMenu" role="menuitem" id="ecra2Menu" data-act="ecra2Menu" data-ic="ecra" hidden><span class="lb">Janela companheira</span></button>
+  <button class="linhaMenu" role="menuitem" data-act="sincIr" data-ic="sinc"><span class="lb">Sincronizar aparelhos</span><span class="st" id="sincMenuEstado"></span></button>
   <button class="linhaMenu" role="menuitem" data-act="dadosAbrir" data-ic="exportar"><span class="lb">Cópias e exportações</span></button>
   <button class="linhaMenu" role="menuitem" data-act="pagina" data-v="config" data-ic="definicoes"><span class="lb">Todas as definições</span></button>
 </div>
@@ -2597,6 +2641,20 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  sincCriar:  ["Criar código", "Liga a sincronização neste aparelho e mostra um código QR para o outro. A chave nasce aqui e só passa pelo QR.", ""],
+  sincEntrar: ["Ligar com um código", "Junta este aparelho a outro que já mostra um código. Os dados dos dois juntam-se: nada se apaga.", ""],
+  sincAgora:  ["Sincronizar agora", "Vai buscar o que mudou no outro aparelho e envia o que mudou aqui, sem esperar pela próxima alteração.", ""],
+  sincDesligar:["Desligar a sincronização", "Este aparelho deixa de enviar e receber. Os dados ficam como estão, aqui e no outro.", ""],
+  sincCopiar: ["Copiar a ligação", "Copia o endereço com o código, para abrir no outro aparelho quando a câmara não dá jeito.", ""],
+  sincGuardarAvancado:["Guardar", "Muda o nome com que este aparelho aparece no outro, ou o serviço de passagem (os dois aparelhos têm de usar o mesmo).", ""],
+  sincIr:     ["Sincronizar aparelhos", "Leva às definições da sincronização entre o telemóvel e o computador.", ""],
+  ecra2Abrir: ["Janela companheira", "Abre uma segunda janela, no outro ecrã quando há, que segue esta e mostra o que completa a página em que está.", ""],
+  ecra2Fechar:["Fechar a companheira", "Fecha a segunda janela. As fichas e ferramentas voltam a abrir ao lado, nesta.", ""],
+  ecra2Apresentacao:["Apresentação", "Letra grande e sem botões, em ecrã inteiro — para mostrar o mês num televisor ou projetor.", ""],
+  ecra2Trocar:["Trocar de ecrã", "Passa esta janela para o ecrã da principal, e a principal para este.", ""],
+  ecra2Menu:  ["Janela companheira", "Abre ou fecha a segunda janela que acompanha esta (Ctrl+Shift+2).", ""],
+  appPastaCopias:["Pasta das cópias", "Abre a pasta onde a aplicação de secretária guarda uma cópia dos dados por dia. Qualquer uma importa-se em Cópias e exportações.", ""],
+  appMenuInstalar:["Instalar como app", "Guarda a ferramenta no ecrã principal: ícone próprio, janela sem barra de endereço e arranque sem rede.", ""],
   alertaAdiar:["Adiar ou dispensar", "Esconde este aviso por três dias, ou até ao fim do mês. Volta sozinho, ou mais cedo em «Mostrar os adiados».", ""],
   alertasAdiadosVer:["Ver os adiados", "Mostra os avisos que adiou, com a data em que voltam, e deixa repô-los já.", ""],
   alertaRetomar:["Repor", "Devolve o aviso à lista do que precisa de si.", ""],
@@ -2937,6 +2995,9 @@ function guardar(jaSerializado){
   try{
     localStorage.setItem(STORE_KEY, jaSerializado || JSON.stringify(S));
     _guardado = {em: Date.now(), erro: false};
+    // Uma alteração feita aqui segue para os outros aparelhos (se a sincronização estiver ligada)
+    try { sincAposGuardar(); } catch(e){}
+    try { copiaDesktopAdiada(); } catch(e){}
   }catch(e){
     // Só avisa à primeira: um armazenamento cheio falharia a cada tecla.
     if (!_guardado.erro) toast("Não foi possível guardar — o armazenamento do navegador está cheio ou bloqueado.");
@@ -3017,6 +3078,7 @@ function camposEmEdicao(){
 }
 
 function guardarSessao(){
+  if (EH_PAINEL) return;   // a janela companheira não é sítio onde se esteja sentado
   try{
     const campos = camposEmEdicao();
     localStorage.setItem(SESSAO_KEY, JSON.stringify({
@@ -3054,6 +3116,7 @@ function lerSessao(){
  * honesto do que devolver texto que a pessoa já não espera ver.
  */
 function restaurarSessao(){
+  if (EH_PAINEL) return;
   const s = lerSessao();
   if (!s) return;
   if (mesValido(s.mes)) MES = s.mes;
@@ -12373,7 +12436,8 @@ function viewConfig(){
      aparece uma vez e nunca mais não serve de muito a quem o queira consultar
      seis meses depois. */
   const sobre = '<div class="card"><h2>Sobre esta ferramenta</h2>'+
-    '<div class="sub" style="margin-bottom:10px">Versão '+esc(VERSAO_APP)+' · os dados ficam só neste dispositivo, no armazenamento do navegador.</div>'+
+    '<div class="sub" style="margin-bottom:10px">Versão '+esc(VERSAO_APP)+(DESKTOP ? ' · aplicação de secretária' : '')+' · '+
+      (sincCfg().codigo ? 'os dados ficam nos seus aparelhos e passam entre eles cifrados.' : 'os dados ficam só neste dispositivo, no armazenamento '+(DESKTOP ? 'da aplicação.' : 'do navegador.'))+'</div>'+
     avisoLongoHTML() +'</div>';
 
   /* Por ordem de uso: primeiro o agregado e os impostos, que mudam as
@@ -12386,7 +12450,9 @@ function viewConfig(){
     ["cfgRegras",    "Regras",        cartaoRegras()],
     ["cfgAparencia", "Aparência",     aparencia],
     ["cfgDados",     "Dados e cópias",dados + '<div style="height:16px"></div>' + cartaoSaudeDados()],
-    ["cfgAplicacao", "Aplicação",     cartaoAplicacao()],
+    ["cfgSinc",      "Sincronizar",   cartaoSinc()],
+    ["cfgEcras",     "Dois ecrãs",    cartaoEcras()],
+    ["cfgAplicacao", DESKTOP ? "Aplicação" : podeInstalar() ? "Instalar como app" : "Aplicação", cartaoAplicacao()],
     ["cfgSobre",     "Sobre",         sobre],
   ].filter(x => x[2]);
   return '<nav class="indiceCfg no-print" aria-label="Secções das definições">'+
@@ -12413,7 +12479,7 @@ let _conviteInstalar = null;   // o convite adiado, quando o navegador o dá
 let _instalada = false;        // confirmada nesta sessão
 
 const emAplicacao = () =>
-  _instalada ||
+  _instalada || !!window.orcamentoDesktop ||
   (window.matchMedia && matchMedia("(display-mode: standalone)").matches) ||
   (window.matchMedia && matchMedia("(display-mode: window-controls-overlay)").matches) ||
   navigator.standalone === true;   // Safari no iPhone e no iPad
@@ -12423,6 +12489,11 @@ function caminhoDeInstalacao(){
   const ua = navigator.userAgent;
   const iOS = /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (/Android/.test(ua) && /SamsungBrowser/.test(ua)) return {nome:"Samsung Internet", passos:["Menu ≡",
+    "Adicionar página a", "Ecrã principal"]};
+  if (/Android/.test(ua) && /Firefox/.test(ua)) return {nome:"Firefox", passos:["Menu ⋮", "Instalar"]};
+  if (/Android/.test(ua)) return {nome:"Chrome", passos:["Menu ⋮",
+    "Adicionar ao ecrã principal", "Instalar"]};
   if (iOS) return {nome:"Safari", passos:["Partilhar (o quadrado com a seta)",
     "Adicionar ao ecrã principal", "Adicionar"]};
   if (/Firefox/.test(ua)) return {nome:"Firefox", passos:["Menu ⋯",
@@ -12525,13 +12596,21 @@ function cartaoAplicacao(){
   const deDisco = location.protocol === "file:";
 
   let corpo;
-  if (dentro){
+  if (DESKTOP){
+    corpo = '<div class="note" style="border-left-color:var(--pos)">'+
+      '<strong>Esta é a aplicação de secretária.</strong> Arranca sem navegador e sem rede, e sabe usar dois ecrãs. '+
+      'No telemóvel, abra <code>'+esc(PAGINA_ONLINE.replace(/^https:\/\//, ""))+'</code> e instale-a de lá; '+
+      'a sincronização junta os dois.</div>'+
+      '<p class="sub" style="margin-top:10px">Todos os dias fica uma cópia dos dados numa pasta deste computador (guardam-se as últimas 30).</p>'+
+      '<div class="actions"><button class="btn" data-act="appPastaCopias">'+ic("exportar")+'Abrir a pasta das cópias</button></div>';
+  } else if (dentro){
     corpo = '<div class="note" style="border-left-color:var(--pos)">'+
       '<strong>Já está instalada.</strong> Abre em janela própria e funciona sem rede. '+
       'Os dados são os mesmos de sempre — ficam neste aparelho, no armazenamento deste navegador.</div>';
   } else if (deDisco){
     corpo = '<div class="note"><strong>Aberta a partir do disco.</strong> Para instalar, o ficheiro '+
-      'tem de ser servido por um endereço — ponha-o num servidor, ou abra-o pelo endereço da rede local. '+
+      'tem de ser servido por um endereço — ponha-o num servidor, ou abra a versão online em '+
+      '<a href="'+PAGINA_ONLINE+'" rel="noopener">'+esc(PAGINA_ONLINE.replace(/^https:\/\//, ""))+'</a>. '+
       'Nenhum navegador instala uma página aberta com <code>file://</code>.</div>';
   } else if (podeJa){
     corpo = '<p class="sub">Fica com ícone próprio, abre em janela sem barra de endereço, '+
@@ -12570,7 +12649,7 @@ function cartaoAplicacao(){
     }
   }
 
-  return '<div class="card"><h2>Guardar como aplicação</h2>'+ corpo + porque +
+  return '<div class="card"><h2>'+(DESKTOP ? "Aplicação de secretária" : "Instalar como app")+'</h2>'+ corpo + porque +
     '<div class="note" style="margin-top:12px"><strong>Instalar não copia nada para lado nenhum.</strong> '+
     'A aplicação continua sem servidor e sem conta: o que muda é a janela e o ícone. '+
     'As cópias de segurança continuam a ser suas, em <em>Definições → Cópias e exportações</em>.</div></div>';
@@ -13277,6 +13356,7 @@ function render(){
   pintarEmblemas();
   pintarLateral();
   guardarSessaoAdiado();
+  try { ecraAposRender(); pintarEstadoSinc(); } catch(e){}
 }
 
 /**
@@ -14262,8 +14342,18 @@ const ACOES = {
   exportJSON, exportJSONCifrado, exportCSV, exportPatrimonioCSV, importJSON,
 
   limpar(){
-    confirmar("Apagar tudo", "Todos os dados do orçamento serão eliminados deste navegador. Esta ação não pode ser anulada.", () => {
-      S = estadoVazio(); guardar(); irPara("painel"); toast("Dados eliminados.");
+    const ligada = !!sincCfg().codigo;
+    confirmar("Apagar tudo", "Todos os dados do orçamento serão eliminados deste "+(DESKTOP ? "computador" : "navegador")+". Esta ação não pode ser anulada."+
+      (ligada ? " A sincronização é desligada antes, para os outros aparelhos ficarem com os dados deles." : ""), () => {
+      /* Apagar aqui não é apagar em todo o lado: primeiro desliga-se a
+         sincronização, e só depois se esvazia. */
+      if (ligada){
+        sincParar();
+        const c = sincCfg();
+        try { localStorage.setItem(SINC_KEY, JSON.stringify({aparelho: c.aparelho})); localStorage.removeItem(SINC_VERSOES_KEY); } catch(e){}
+      }
+      S = estadoVazio(); guardar(); irPara("painel");
+      toast(ligada ? "Dados eliminados neste aparelho. A sincronização ficou desligada." : "Dados eliminados.");
     });
   },
 
@@ -15519,6 +15609,9 @@ const ACOES = {
    texto e o tamanho da letra. Os emoji ficam para o que é dado de quem usa
    a ferramenta — categorias e membros. */
 const ICONES = {
+  ecra:      '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  sinc:      '<path d="M4.5 10a8 8 0 0 1 14-3.2L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M19.5 14a8 8 0 0 1-14 3.2L4 15.5"/><path d="M4 20v-4.5h4.5"/>',
+  telemovel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
   marca:     '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M15.5 8.4a4.5 4.5 0 1 0 0 7.2"/><path d="M7 10.6h6M7 13.4h6"/>',
   casa:      '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
   lista:     '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
@@ -15754,6 +15847,8 @@ function pintarMenuDefinicoes(){
   st("textoEstado", S.texto === "maior" ? "maior" : S.texto === "grande" ? "grande" : "normal");
   st("privEstado", ui.privado ? "ligado" : "desligado");
   st("simplesEstado", ui.essencial ? "ligada" : "desligada");
+  st("sincMenuEstado", sincCfg().codigo ? "ligada" : "desligada");
+  pintarMenuInstalar();
 }
 function pintarMenuAjuda(){
   const e = $("#ajudaEstado");
@@ -15775,6 +15870,8 @@ const LATERAIS = {
     '<div class="card"><h2>Nada por fechar</h2><p class="sub">O mês passado já está fechado, ou ainda não tem nada para arrumar.</p></div>'},
 };
 function abrirLateral(tipo, extra){
+  // Com a janela companheira aberta, o detalhe vai para o outro ecrã
+  if (typeof lateralNoOutroEcra === "function" && lateralNoOutroEcra(tipo, extra)){ fecharMenus(); return; }
   ui.lateral = Object.assign({tipo}, extra || {});
   fecharMenus();
   pintarLateral();
@@ -16420,6 +16517,7 @@ function abrirAtalhos(){
       "Novo: Movimento, Rubrica, Ativo, Crédito, Objetivo")+
     linha(k("←")+" "+k("→"), "Navegar na visita guiada")+
     linha(k("Esc"), "Fechar diálogos, paleta e visita")+
+    (ecrasDisponiveis() ? linha(k("Ctrl")+" + "+k("Shift")+" + "+k("2"), "Abrir ou fechar a janela companheira (segundo ecrã)") : "")+
     '</tbody></table></div>'+
     '<div class="actions"><button class="btn" data-dlg="no">Fechar</button></div>'+
     '</div></div>';
@@ -17568,7 +17666,7 @@ const reduzMovimento = () => !!(window.matchMedia && matchMedia("(prefers-reduce
    ficou aberta), as fichas grandes abrem-se no lugar ou ao lado, e as
    ações de cada linha aparecem quando o ponteiro passa ou o foco chega.
    --------------------------------------------------------------- */
-const VERSAO_APP = "2.0.0";
+const VERSAO_APP = "2.1.0";
 
 /** Que lista cada formulário alimenta — vazia, o formulário é o ponto de partida. */
 const FORM_TEM_LISTA = {
@@ -18132,6 +18230,1383 @@ const ACOES_INICIO = {
 Object.assign(ACOES, ACOES_INICIO);
 
 /* ---------------------------------------------------------------
+   Código QR — para passar o código de ligação ao telemóvel
+
+   Codificação em modo de bytes, com correção de erros de nível M, das
+   versões 1 a 10 (chega para um endereço com o código). Gera a matriz
+   de módulos; o desenho em SVG fica à parte. Sem dependências: a
+   aplicação continua a ser um ficheiro só.
+   --------------------------------------------------------------- */
+/* QR-INICIO */
+const QR_ECC_M = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];   // palavras de correção por bloco
+const QR_BLOCOS_M = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];           // número de blocos
+function qrModulosDados(v){
+  let r = (16 * v + 128) * v + 64;
+  if (v >= 2){
+    const na = Math.floor(v / 7) + 2;
+    r -= (25 * na - 10) * na - 55;
+    if (v >= 7) r -= 36;
+  }
+  return r;
+}
+const qrPalavrasDados = (v) => Math.floor(qrModulosDados(v) / 8) - QR_ECC_M[v] * QR_BLOCOS_M[v];
+function qrAlinhamentos(v){
+  if (v === 1) return [];
+  const n = Math.floor(v / 7) + 2;
+  const passo = (v === 32) ? 26 : Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2;
+  const out = [6];
+  for (let p = v * 4 + 10; out.length < n; p -= passo) out.splice(1, 0, p);
+  return out;
+}
+/* Reed-Solomon em GF(256), polinómio 0x11D */
+function qrMult(x, y){
+  let z = 0;
+  for (let i = 7; i >= 0; i--){
+    z = (z << 1) ^ ((z >>> 7) * 0x11D);
+    z ^= ((y >>> i) & 1) * x;
+  }
+  return z & 0xFF;
+}
+function qrDivisor(grau){
+  const r = new Array(grau).fill(0); r[grau - 1] = 1;
+  let raiz = 1;
+  for (let i = 0; i < grau; i++){
+    for (let j = 0; j < r.length; j++){
+      r[j] = qrMult(r[j], raiz);
+      if (j + 1 < r.length) r[j] ^= r[j + 1];
+    }
+    raiz = qrMult(raiz, 0x02);
+  }
+  return r;
+}
+function qrResto(dados, div){
+  const r = new Array(div.length).fill(0);
+  dados.forEach(b => {
+    const f = b ^ r.shift(); r.push(0);
+    div.forEach((c, i) => { r[i] ^= qrMult(c, f); });
+  });
+  return r;
+}
+/** Matriz de módulos (true = escuro) para o texto dado. */
+function qrMatriz(texto){
+  const bytes = Array.from(new TextEncoder().encode(texto));
+  let v = 1;
+  for (; v <= 10; v++){
+    const bitsCont = v < 10 ? 8 : 16;
+    if (4 + bitsCont + bytes.length * 8 <= qrPalavrasDados(v) * 8) break;
+  }
+  if (v > 10) throw new Error("texto longo de mais para o código QR");
+  // Fluxo de bits: modo byte, contagem, dados, terminador e enchimento
+  const bits = [];
+  const por = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+  por(4, 4); por(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => por(b, 8));
+  const cap = qrPalavrasDados(v) * 8;
+  por(0, Math.min(4, cap - bits.length));
+  por(0, (8 - bits.length % 8) % 8);
+  for (let p = 0xEC; bits.length < cap; p ^= 0xEC ^ 0x11) por(p, 8);
+  const dados = [];
+  for (let i = 0; i < bits.length; i += 8) dados.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+  // Blocos, correção e entrelaçamento
+  const nBlocos = QR_BLOCOS_M[v], eccLen = QR_ECC_M[v];
+  const totalPal = Math.floor(qrModulosDados(v) / 8);
+  const nCurtos = nBlocos - totalPal % nBlocos;
+  const lenCurto = Math.floor(totalPal / nBlocos);
+  const div = qrDivisor(eccLen);
+  const blocos = [];
+  for (let i = 0, k = 0; i < nBlocos; i++){
+    const n = lenCurto - eccLen + (i < nCurtos ? 0 : 1);
+    const dat = dados.slice(k, k + n); k += n;
+    const ecc = qrResto(dat, div);
+    if (i < nCurtos) dat.push(0);   // marcador de posição para entrelaçar
+    blocos.push(dat.concat(ecc));
+  }
+  const final = [];
+  for (let i = 0; i < blocos[0].length; i++){
+    blocos.forEach((b, j) => {
+      if (i !== lenCurto - eccLen || j >= nCurtos) final.push(b[i]);
+    });
+  }
+  // Matriz e padrões fixos
+  const tam = v * 4 + 17;
+  const m = Array.from({length: tam}, () => new Array(tam).fill(false));
+  const fixo = Array.from({length: tam}, () => new Array(tam).fill(false));
+  const pinta = (x, y, escuro) => { m[y][x] = escuro; fixo[y][x] = true; };
+  for (let i = 0; i < tam; i++){ pinta(6, i, i % 2 === 0); pinta(i, 6, i % 2 === 0); }
+  const localizador = (cx, cy) => {
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++){
+      const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+      if (x >= 0 && x < tam && y >= 0 && y < tam) pinta(x, y, d !== 2 && d !== 4);
+    }
+  };
+  localizador(3, 3); localizador(tam - 4, 3); localizador(3, tam - 4);
+  const al = qrAlinhamentos(v);
+  al.forEach((a, i) => al.forEach((b, j) => {
+    if ((i === 0 && j === 0) || (i === 0 && j === al.length - 1) || (i === al.length - 1 && j === 0)) return;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
+      pinta(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+  }));
+  const formato = (mascara) => {
+    const d = (0 << 3) | mascara;   // nível M = 00
+    let r = d;
+    for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+    const b = ((d << 10) | r) ^ 0x5412;
+    const bit = (i) => ((b >>> i) & 1) !== 0;
+    for (let i = 0; i <= 5; i++) pinta(8, i, bit(i));
+    pinta(8, 7, bit(6)); pinta(8, 8, bit(7)); pinta(7, 8, bit(8));
+    for (let i = 9; i < 15; i++) pinta(14 - i, 8, bit(i));
+    for (let i = 0; i < 8; i++) pinta(tam - 1 - i, 8, bit(i));
+    for (let i = 8; i < 15; i++) pinta(8, tam - 15 + i, bit(i));
+    pinta(8, tam - 8, true);
+  };
+  formato(0);
+  if (v >= 7){
+    let r = v;
+    for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+    const b = (v << 12) | r;
+    for (let i = 0; i < 18; i++){
+      const bit = ((b >>> i) & 1) !== 0, a = tam - 11 + i % 3, c = Math.floor(i / 3);
+      pinta(a, c, bit); pinta(c, a, bit);
+    }
+  }
+  // Dados em ziguezague
+  let i = 0;
+  for (let dir = tam - 1; dir >= 1; dir -= 2){
+    if (dir === 6) dir = 5;
+    for (let vert = 0; vert < tam; vert++){
+      for (let j = 0; j < 2; j++){
+        const x = dir - j, sobe = ((dir + 1) & 2) === 0;
+        const y = sobe ? tam - 1 - vert : vert;
+        if (!fixo[y][x] && i < final.length * 8){
+          m[y][x] = ((final[i >>> 3] >>> (7 - (i & 7))) & 1) !== 0;
+          i++;
+        }
+      }
+    }
+  }
+  // Máscara com menor penalização
+  const aplicarMascara = (k) => {
+    for (let y = 0; y < tam; y++) for (let x = 0; x < tam; x++){
+      if (fixo[y][x]) continue;
+      let inv;
+      switch (k){
+        case 0: inv = (x + y) % 2 === 0; break;
+        case 1: inv = y % 2 === 0; break;
+        case 2: inv = x % 3 === 0; break;
+        case 3: inv = (x + y) % 3 === 0; break;
+        case 4: inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; break;
+        case 5: inv = x * y % 2 + x * y % 3 === 0; break;
+        case 6: inv = (x * y % 2 + x * y % 3) % 2 === 0; break;
+        default: inv = ((x + y) % 2 + x * y % 3) % 2 === 0;
+      }
+      if (inv) m[y][x] = !m[y][x];
+    }
+  };
+  const penalizacao = () => {
+    let p = 0, escuros = 0;
+    const linha = (get) => {
+      let corrida = 1;
+      for (let k = 1; k < tam; k++){
+        if (get(k) === get(k - 1)){ corrida++; if (corrida === 5) p += 3; else if (corrida > 5) p++; }
+        else corrida = 1;
+      }
+      const s = Array.from({length: tam}, (_, k) => get(k) ? 1 : 0).join("");
+      p += 40 * ((s.match(/(?=1011101(0000))/g) || []).length + (s.match(/(?=(0000)1011101)/g) || []).length);
+    };
+    for (let y = 0; y < tam; y++) linha(k => m[y][k]);
+    for (let x = 0; x < tam; x++) linha(k => m[k][x]);
+    for (let y = 0; y < tam - 1; y++) for (let x = 0; x < tam - 1; x++){
+      const c = m[y][x];
+      if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3;
+    }
+    m.forEach(l => l.forEach(c => { if (c) escuros++; }));
+    p += Math.floor(Math.abs(escuros * 20 - tam * tam * 10) / (tam * tam)) * 10;
+    return p;
+  };
+  let melhor = 0, menor = Infinity;
+  for (let k = 0; k < 8; k++){
+    aplicarMascara(k); formato(k);
+    const p = penalizacao();
+    if (p < menor){ menor = p; melhor = k; }
+    aplicarMascara(k);
+  }
+  aplicarMascara(melhor); formato(melhor);
+  return m;
+}
+/* QR-FIM */
+/** O código em SVG: preto sobre branco em qualquer tema, que é o que as câmaras leem. */
+function qrSVG(texto, rotulo){
+  const m = qrMatriz(texto), n = m.length, q = 4, t = n + q * 2;
+  let d = "";
+  m.forEach((l, y) => l.forEach((c, x) => { if (c) d += "M" + (x + q) + " " + (y + q) + "h1v1h-1z"; }));
+  return '<svg class="qr" viewBox="0 0 ' + t + ' ' + t + '" role="img" aria-label="' + esc(rotulo || "Código QR") + '" ' +
+    'shape-rendering="crispEdges"><rect width="' + t + '" height="' + t + '" fill="#fff"/>' +
+    '<path d="' + d + '" fill="#000"/></svg>';
+}
+
+/* ---------------------------------------------------------------
+   Sincronizar entre aparelhos
+
+   O telemóvel e o computador ficam com os mesmos dados sem conta nem
+   servidor próprio. Cada aparelho guarda tudo como sempre; quando muda
+   alguma coisa, envia uma cópia cifrada para uma caixa de correio de
+   passagem (um serviço público de mensagens, ntfy.sh por omissão), e o
+   outro aparelho vai lá buscá-la e junta-a à sua.
+
+   - A chave nunca sai dos aparelhos: nasce de um código de 25 letras que
+     passa de um para o outro por código QR ou à mão. O serviço só vê
+     bytes cifrados (AES-GCM de 256 bits) numa caixa com nome aleatório.
+   - Cada peça (um movimento, uma categoria, um limite, a nota de um mês)
+     sabe quando e onde mudou pela última vez. Ao juntar, ganha a mudança
+     mais recente de cada peça: duas alterações a coisas diferentes ficam
+     as duas, e um movimento apagado deixa uma marca para não voltar. Seja
+     qual for a ordem por que as mensagens chegam, todos acabam iguais.
+   - O que é do aparelho (tema, paleta, tamanho do texto…) não viaja.
+   --------------------------------------------------------------- */
+const SINC_KEY = "orcamento-familiar-sinc";
+const SINC_VERSOES_KEY = "orcamento-familiar-sinc-versoes";
+const SINC_SERVIDOR = "https://ntfy.sh";
+const PAGINA_ONLINE = "https://hvs87.github.io/orcamento-familiar/orcamento-familiar.html";
+const CHAVES_DO_APARELHO = ["tema", "paleta", "densidade", "texto", "contraste", "ajudas",
+  "painel", "dicasOcultas", "tutorialVisto", "exemploDemo"];
+const ALFABETO_CODIGO = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+/** JSON com as chaves por ordem: dois aparelhos que têm o mesmo escrevem o mesmo. */
+function jsonEstavel(v, cache){
+  if (v === null || typeof v !== "object"){
+    const s = JSON.stringify(v);
+    return s === undefined ? "null" : s;
+  }
+  if (cache && cache.has(v)) return cache.get(v);
+  let s;
+  if (Array.isArray(v)) s = "[" + v.map(x => jsonEstavel(x, cache)).join(",") + "]";
+  else s = "{" + Object.keys(v).filter(k => v[k] !== undefined).sort()
+    .map(k => JSON.stringify(k) + ":" + jsonEstavel(v[k], cache)).join(",") + "}";
+  if (cache) cache.set(v, s);
+  return s;
+}
+const _eObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+
+/* ---- Unidades: o estado partido nas peças que se versionam ----
+   Cada movimento, rubrica, ativo, categoria… é uma peça; cada entrada dos
+   mapas (fiscalidade, limites, notas…) é outra; a ordem de cada lista é
+   outra ainda. Cada peça guarda quando e em que aparelho mudou pela última
+   vez, e ao juntar ganha a mudança mais recente de cada peça. É a mesma
+   receita que, dê por onde der a conversa (mensagens repetidas, perdidas,
+   fora de ordem, três aparelhos), deixa todos com o mesmo resultado. */
+const LISTAS_SINC = {movimentos: "id", recorrentes: "id", rendimentos: "id", ativos: "id", creditos: "id",
+  objetivos: "id", categorias: "id", membros: "id", planeadas: "id", patrimonioHist: "mes", regrasCategoria: "padrao"};
+const MAPAS_SINC = ["fiscal", "limites", "notas", "fechados", "projecao", "estrategia", "planos", "alertasAdiados"];
+function listaComChave(v, ch){
+  if (!Array.isArray(v)) return false;
+  const vistos = new Set();
+  return v.every(x => {
+    if (!_eObj(x) || x[ch] == null || vistos.has(String(x[ch]))) return false;
+    vistos.add(String(x[ch])); return true;
+  });
+}
+function unidades(e){
+  const u = new Map();
+  Object.keys(e || {}).forEach(k => {
+    const v = e[k];
+    if (v === undefined) return;
+    const ch = LISTAS_SINC[k];
+    if (ch && listaComChave(v, ch)){
+      v.forEach(x => u.set(k + "/" + x[ch], x));
+      u.set(k + "#", v.map(x => String(x[ch])));
+    } else if (MAPAS_SINC.indexOf(k) >= 0 && _eObj(v)){
+      Object.keys(v).forEach(s => { if (v[s] !== undefined) u.set(k + "." + s, v[s]); });
+    } else u.set(k, v);
+  });
+  return u;
+}
+/** O estado outra vez inteiro, a partir das peças. */
+function montar(u){
+  const e = {}, listas = {};
+  const lista = (k) => listas[k] || (listas[k] = {ordem: null, regs: new Map()});
+  u.forEach((val, nome) => {
+    let m;
+    if ((m = /^([^/#.]+)#$/.exec(nome))) lista(m[1]).ordem = val;
+    else if ((m = /^([^/#.]+)\/([\s\S]*)$/.exec(nome))) lista(m[1]).regs.set(m[2], val);
+    else if ((m = /^([^/#.]+)\.([\s\S]*)$/.exec(nome))){ if (!_eObj(e[m[1]])) e[m[1]] = {}; e[m[1]][m[2]] = val; }
+    else e[nome] = val;
+  });
+  Object.keys(listas).forEach(k => {
+    const l = listas[k], vistos = new Set(), out = [];
+    (Array.isArray(l.ordem) ? l.ordem : []).forEach(id => {
+      if (l.regs.has(id) && !vistos.has(id)){ vistos.add(id); out.push(l.regs.get(id)); }
+    });
+    // O que a ordem vencedora não conhecia entra no fim, por chave: igual em todos os aparelhos
+    Array.from(l.regs.keys()).filter(id => !vistos.has(id)).sort().forEach(id => out.push(l.regs.get(id)));
+    e[k] = out;
+  });
+  return e;
+}
+/** Impressão digital curta de um texto (duas voltas de FNV e o tamanho). */
+function marca(s){
+  let a = 0x811c9dc5, b = 0x9747b28c ^ s.length;
+  for (let i = 0; i < s.length; i++){
+    const c = s.charCodeAt(i);
+    a = Math.imul(a ^ c, 16777619);
+    b = Math.imul(b ^ c, 0x5bd1e995);
+    b ^= b >>> 13;
+  }
+  return (a >>> 0).toString(36) + "." + (b >>> 0).toString(36) + "." + s.length.toString(36);
+}
+const marcaDe = (v) => marca(jsonEstavel(v));
+/** Qual das duas versões é mais recente: o tempo e, no empate, o aparelho. */
+function compararVersao(a, b){
+  if (!a && !b) return 0;
+  if (!a) return -1;
+  if (!b) return 1;
+  if (a[0] !== b[0]) return a[0] > b[0] ? 1 : -1;
+  const x = String(a[1]), y = String(b[1]);
+  return x > y ? 1 : x < y ? -1 : 0;
+}
+/** As versões sem as impressões digitais: o que se compara entre aparelhos. */
+function versoesSoTempo(V){
+  const o = {};
+  Object.keys(V || {}).sort().forEach(k => { o[k] = [V[k][0], V[k][1], V[k][2] === null ? 0 : 1]; });
+  return o;
+}
+/**
+ * Junta dois estados com as suas versões: peça a peça, ganha a mais recente.
+ * É comutativo, associativo e idempotente — a ordem por que as coisas
+ * chegam não muda o resultado.
+ */
+function fundirVersoes(L, VL, R, VR){
+  const uL = unidades(L), uR = unidades(R);
+  const nomes = new Set(Object.keys(VL || {}).concat(Object.keys(VR || {}), Array.from(uL.keys()), Array.from(uR.keys())));
+  const uM = new Map(), VM = {};
+  nomes.forEach(n => {
+    const vl = (VL || {})[n], vr = (VR || {})[n];
+    const c = compararVersao(vr, vl);
+    // Empate exato de versão com conteúdos diferentes não devia acontecer; desempata-se pelo conteúdo
+    const ganhaR = c > 0 || (c === 0 && uR.has(n) && (!uL.has(n) || jsonEstavel(uR.get(n)) > jsonEstavel(uL.get(n))));
+    const u = ganhaR ? uR : uL, v = ganhaR ? vr : vl;
+    if (u.has(n)) uM.set(n, u.get(n));
+    if (v) VM[n] = [v[0], v[1], u.has(n) ? marcaDe(u.get(n)) : null];
+  });
+  return {M: montar(uM), VM};
+}
+
+/**
+ * Dois aparelhos que começaram cada um o seu orçamento têm as mesmas
+ * categorias com identificadores diferentes (nascem ao acaso). Juntar sem
+ * mais dava tudo em dobro. Categorias com o mesmo nome e tipo, e membros
+ * com o mesmo nome, passam a ter um identificador só — o menor dos dois,
+ * para os dois aparelhos escolherem o mesmo — e tudo o que os referia segue,
+ * incluindo os nomes das peças versionadas.
+ */
+function alinharIds(L, R){
+  const mapa = new Map();
+  const par = (lista, chave) => {
+    const porNome = new Map();
+    ((L && L[lista]) || []).forEach(x => { if (x && x.id) porNome.set(chave(x), String(x.id)); });
+    ((R && R[lista]) || []).forEach(x => {
+      if (!x || !x.id) return;
+      const idL = porNome.get(chave(x)), idR = String(x.id);
+      if (idL && idL !== idR){
+        const can = idL < idR ? idL : idR;
+        mapa.set(idL, can); mapa.set(idR, can);
+      }
+    });
+  };
+  par("categorias", c => (c.tipo || "") + "|" + String(c.nome || "").trim().toLowerCase());
+  par("membros", m => String(m.nome || "").trim().toLowerCase());
+  return mapa;
+}
+function trocarIds(v, mapa){
+  if (!mapa.size) return v;
+  if (typeof v === "string") return mapa.has(v) ? mapa.get(v) : v;
+  if (Array.isArray(v)) return v.map(x => trocarIds(x, mapa));
+  if (v && typeof v === "object"){
+    const o = {};
+    Object.keys(v).forEach(k => { o[mapa.has(k) ? mapa.get(k) : k] = trocarIds(v[k], mapa); });
+    return o;
+  }
+  return v;
+}
+function trocarIdsVersoes(V, mapa){
+  if (!mapa.size) return V;
+  const out = {};
+  Object.keys(V || {}).forEach(n => {
+    const m = /^([^/#.]+)([/.])([\s\S]*)$/.exec(n);
+    const novo = m && mapa.has(m[3]) ? m[1] + m[2] + mapa.get(m[3]) : n;
+    if (!out[novo] || compararVersao(V[n], out[novo]) > 0) out[novo] = V[n];
+  });
+  return out;
+}
+
+/** O que viaja: o estado sem o que é deste aparelho. */
+function estadoParaSinc(s){
+  const o = JSON.parse(JSON.stringify(s));
+  CHAVES_DO_APARELHO.forEach(k => { delete o[k]; });
+  return o;
+}
+/** Um aparelho sem nada de seu, ou só com o exemplo, recebe o do outro tal e qual. */
+function semDadosProprios(o, demo){
+  if (demo) return true;
+  if (!o || typeof o !== "object") return true;
+  return ["movimentos", "recorrentes", "rendimentos", "ativos", "creditos", "objetivos", "planeadas", "membros"]
+    .every(k => !Array.isArray(o[k]) || o[k].length === 0);
+}
+
+/* Bytes, texto e cifra */
+const b64u = {
+  de(bytes){
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  },
+  para(txt){
+    const s = atob(String(txt).replace(/-/g, "+").replace(/_/g, "/") + "===".slice((String(txt).length + 3) % 4));
+    const out = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out;
+  },
+};
+/** Código novo: 25 símbolos de um alfabeto sem letras que se confundam (125 bits). */
+function codigoNovo(){
+  const a = crypto.getRandomValues(new Uint8Array(25));
+  return formatarCodigo(Array.from(a, x => ALFABETO_CODIGO[x & 31]).join(""));
+}
+/** Aceita o código como vier: minúsculas, espaços, traços, O por 0, I e L por 1. */
+function limparCodigo(c){
+  return String(c || "").toUpperCase().replace(/O/g, "0").replace(/[IL]/g, "1").replace(/U/g, "V")
+    .replace(/[^0-9A-Z]/g, "").split("").filter(x => ALFABETO_CODIGO.indexOf(x) >= 0).join("");
+}
+const codigoValido = (c) => limparCodigo(c).length === 25;
+const formatarCodigo = (c) => limparCodigo(c).replace(/(.{5})(?=.)/g, "$1-");
+
+async function sincChaves(codigo){
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode("orcamento-familiar/" + limparCodigo(codigo)), "HKDF", false, ["deriveKey", "deriveBits"]);
+  const sal = enc.encode("orcamento-familiar-sinc-v1");
+  const chave = await crypto.subtle.deriveKey({name: "HKDF", hash: "SHA-256", salt: sal, info: enc.encode("chave")},
+    base, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({name: "HKDF", hash: "SHA-256", salt: sal, info: enc.encode("topico")}, base, 128));
+  const topico = "of-" + Array.from(bits, x => x.toString(16).padStart(2, "0")).join("");
+  return {chave, topico};
+}
+async function cifrar(chave, bytes){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, chave, bytes));
+  const out = new Uint8Array(1 + 12 + ct.length);
+  out[0] = 1; out.set(iv, 1); out.set(ct, 13);
+  return out;
+}
+async function decifrar(chave, bytes){
+  if (!bytes || bytes.length < 30 || bytes[0] !== 1) throw new Error("formato desconhecido");
+  return new Uint8Array(await crypto.subtle.decrypt({name: "AES-GCM", iv: bytes.subarray(1, 13)}, chave, bytes.subarray(13)));
+}
+/* Comprimido quando o navegador sabe (quase todos): um ano de movimentos
+   passa de centenas de KB a poucas dezenas. O primeiro byte diz qual foi. */
+async function comprimir(texto){
+  const raw = new TextEncoder().encode(texto);
+  if (typeof CompressionStream === "undefined"){ const o = new Uint8Array(raw.length + 1); o.set(raw, 1); return o; }
+  const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+  const o = new Uint8Array(z.length + 1); o[0] = 1; o.set(z, 1); return o;
+}
+async function descomprimir(bytes){
+  if (bytes[0] === 0) return new TextDecoder().decode(bytes.subarray(1));
+  if (typeof DecompressionStream === "undefined") throw new Error("este navegador não sabe descomprimir");
+  return await new Response(new Blob([bytes.subarray(1)]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+}
+async function resumo(texto){
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)));
+  return Array.from(h.subarray(0, 12), x => x.toString(16).padStart(2, "0")).join("");
+}
+
+/** A caixa de passagem: um tópico do ntfy, que guarda cada envio umas horas. */
+function transporteNtfy(servidor, topico){
+  const raiz = String(servidor || SINC_SERVIDOR).replace(/\/+$/, "");
+  const base = raiz + "/" + topico;
+  const verificar = async (r) => { if (!r.ok) throw new Error("o serviço respondeu " + r.status); return r; };
+  return {
+    async publicarEstado(bytes, meta){
+      const r = await verificar(await fetch(base, {method: "PUT", headers: {"Filename": "estado.bin", "X-Message": meta}, body: bytes}));
+      return r.json().catch(() => ({}));
+    },
+    async publicarTexto(meta){
+      await verificar(await fetch(base, {method: "POST", body: meta}));
+    },
+    async desde(desde){
+      const r = await verificar(await fetch(base + "/json?poll=1&since=" + encodeURIComponent(desde || "12h")));
+      return (await r.text()).split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch(e){ return null; } })
+        .filter(m => m && m.event === "message");
+    },
+    async baixar(url){
+      // Só se vai buscar ao próprio serviço: um endereço estranho numa mensagem não leva a lado nenhum.
+      if (String(url).indexOf(raiz + "/") !== 0) throw new Error("anexo fora do serviço");
+      const r = await verificar(await fetch(url));
+      return new Uint8Array(await r.arrayBuffer());
+    },
+    escutar(desde, aoMsg, aoEstado){
+      if (typeof EventSource === "undefined") return () => {};
+      const es = new EventSource(base + "/sse" + (desde ? "?since=" + encodeURIComponent(desde) : ""));
+      es.onmessage = (e) => { try { const m = JSON.parse(e.data); if (m.event === "message") aoMsg(m); } catch(err){} };
+      es.onopen = () => aoEstado(true);
+      es.onerror = () => aoEstado(false);
+      return () => es.close();
+    },
+  };
+}
+
+/**
+ * O motor da sincronização, sem saber nada da página: recebe como ler e
+ * aplicar o estado, onde guardar as versões e as notas, e por onde falar.
+ * Assim a suite de testes põe dois e três motores a conversar por uma caixa
+ * de faz-de-conta, com as maldades da rede à mão.
+ */
+function criarSinc(o){
+  const agora = o.agora || Date.now;
+  const st = {ligado: false, online: false, erro: "", ultimaTroca: 0, comQuem: "", aEnviar: false, recebidas: 0, enviadas: 0};
+  const ATRASO = o.atraso == null ? 2500 : o.atraso;   // espera depois de uma alteração, para juntar as seguidas
+  let parar = null, tEnvio = null, tRegisto = null, fila = Promise.resolve(), ultimoPedido = 0;
+  const vistos = new Set();
+  const emFila = (fn) => (fila = fila.then(fn).catch(e => { st.erro = String(e && e.message || e); o.aoMudar && o.aoMudar(); }));
+  const meta = () => o.meta.ler() || {};
+  const metaCifrada = async (obj) => b64u.de(await cifrar(o.chave, new TextEncoder().encode(JSON.stringify(obj))));
+  const lerMeta = async (txt) => {
+    try { return JSON.parse(new TextDecoder().decode(await decifrar(o.chave, b64u.para(txt)))); }
+    catch(e){ return null; }
+  };
+  /* Relógio que nunca anda para trás nem fica atrás do que já se viu: uma
+     alteração feita aqui ganha sempre ao que já chegou de outro aparelho,
+     mesmo que o relógio do outro esteja adiantado. */
+  const relogio = () => {
+    const t = Math.max(agora(), (meta().relogio || 0) + 1);
+    o.meta.gravar({relogio: t});
+    return t;
+  };
+  const viuRelogio = (V) => {
+    let max = meta().relogio || 0;
+    Object.keys(V || {}).forEach(k => { if (V[k] && V[k][0] > max) max = V[k][0]; });
+    if (max > (meta().relogio || 0)) o.meta.gravar({relogio: max});
+  };
+  /**
+   * Regista o que mudou aqui desde a última vez: as peças novas ou
+   * diferentes ganham a hora de agora, as que desapareceram ficam marcadas
+   * como apagadas (para não voltarem). Um aparelho que se liga sem dados
+   * seus regista tudo com hora zero: o primeiro estado que chegar ganha.
+   */
+  function registar(L){
+    const V = Object.assign({}, o.versoes.ler() || {});
+    const u = unidades(L);
+    const primeiraVez = Object.keys(V).length === 0;
+    const adota = primeiraVez && o.vazio(L, true);
+    let t = null, mexeu = false;
+    const hora = () => (t == null ? (t = adota ? 0 : relogio()) : t);
+    u.forEach((val, n) => {
+      const h = marcaDe(val);
+      if (!V[n] || V[n][2] !== h){ V[n] = [hora(), o.eu.id, h]; mexeu = true; }
+    });
+    Object.keys(V).forEach(n => {
+      if (!u.has(n) && V[n][2] !== null){ V[n] = [hora(), o.eu.id, null]; mexeu = true; }
+    });
+    if (mexeu) o.versoes.gravar(V);
+    if (primeiraVez) o.meta.gravar({adotar: adota});
+    else if (mexeu && meta().adotar) o.meta.gravar({adotar: false});
+    return V;
+  }
+  async function enviar(forcar){
+    const L = o.ler();
+    const V = registar(L);
+    const h = await resumo(jsonEstavel(versoesSoTempo(V)));
+    if (!forcar && h === meta().publicado) return false;
+    st.aEnviar = true; o.aoMudar && o.aoMudar();
+    try {
+      const bytes = await cifrar(o.chave, await comprimir(jsonEstavel({e: L, v: V})));
+      const m = await metaCifrada({t: "estado", de: o.eu.id, nome: o.eu.nome, em: agora(), h});
+      await o.transporte.publicarEstado(bytes, m);
+      o.meta.gravar({publicado: h});
+      st.enviadas++; st.erro = "";
+    } finally { st.aEnviar = false; o.aoMudar && o.aoMudar(); }
+    return true;
+  }
+  function agendarEnvio(forcar, atraso){
+    if (!st.ligado) return;
+    clearTimeout(tEnvio);
+    tEnvio = setTimeout(() => emFila(() => enviar(forcar)), atraso == null ? ATRASO : Math.min(atraso, ATRASO));
+  }
+  async function pedir(){
+    if (ultimoPedido && agora() - ultimoPedido < (o.intervaloPedidos == null ? 20000 : o.intervaloPedidos)) return;
+    ultimoPedido = agora();
+    await o.transporte.publicarTexto(await metaCifrada({t: "pedido", de: o.eu.id, nome: o.eu.nome, em: agora()}));
+  }
+  /** Junta o que chegou com o que há aqui, sem esperas pelo meio. */
+  function juntar(L, R, VR){
+    const VL = registar(L);
+    viuRelogio(VR);
+    if (meta().adotar && Object.keys(VL).every(n => VL[n][0] === 0)){
+      // Aparelho sem nada seu: fica com o que veio, tal e qual
+      const VM = {};
+      const u = unidades(R);
+      Object.keys(VR).forEach(n => { VM[n] = [VR[n][0], VR[n][1], u.has(n) ? marcaDe(u.get(n)) : null]; });
+      return {M: o.normalizar ? o.normalizar(R) : R, VM, adotou: true};
+    }
+    const mapa = alinharIds(L, R);
+    const r = fundirVersoes(trocarIds(L, mapa), trocarIdsVersoes(VL, mapa), trocarIds(R, mapa), trocarIdsVersoes(VR, mapa));
+    let M = o.normalizar ? o.normalizar(r.M) : r.M;
+    /* Uma peça pode sair diferente da versão que ganhou: a ordem de uma lista
+       a que se juntaram registos do outro lado, ou um valor que a normalização
+       acertou. Essa peça é uma alteração nova, feita aqui — leva hora nova, e
+       assim cada versão corresponde sempre ao mesmo conteúdo em todo o lado. */
+    const uM = unidades(M);
+    let t = null;
+    const hora = () => (t == null ? (t = relogio()) : t);
+    Object.keys(r.VM).forEach(n => {
+      const v = r.VM[n], h = uM.has(n) ? marcaDe(uM.get(n)) : null;
+      if (v[2] !== h) r.VM[n] = [hora(), o.eu.id, h];
+    });
+    uM.forEach((val, n) => { if (!r.VM[n]) r.VM[n] = [0, "", marcaDe(val)]; });
+    return {M, VM: r.VM};
+  }
+  async function processar(msg, m){
+    if (!msg || vistos.has(msg.id)) return;
+    vistos.add(msg.id);
+    const info = m || await lerMeta(msg.message || "");
+    o.meta.gravar({ultimoId: msg.id});
+    if (!info || info.de === o.eu.id) return;      // de outra família, ou deste próprio aparelho
+    const pares = Object.assign({}, meta().pares);
+    pares[info.de] = {nome: String(info.nome || "outro aparelho").slice(0, 60), visto: agora()};
+    o.meta.gravar({pares});
+    if (info.t === "pedido"){ agendarEnvio(true, 400); return; }
+    if (info.t !== "estado" || !msg.attachment) return;
+    const ultimos = Object.assign({}, meta().ultimos);
+    if (ultimos[info.de] && (info.em || 0) <= ultimos[info.de]) return;   // já se juntou um mais recente
+    st.comQuem = pares[info.de].nome;
+    // Se as versões são as mesmas que as daqui, nem vale a pena descarregar
+    const V0 = registar(o.ler());
+    const j0 = jsonEstavel(versoesSoTempo(V0));
+    if (info.h && info.h === await resumo(j0) && jsonEstavel(versoesSoTempo(registar(o.ler()))) === j0){
+      ultimos[info.de] = info.em || agora();
+      o.meta.gravar({publicado: info.h, ultimos});
+      st.ultimaTroca = agora(); st.recebidas++;
+      o.aoMudar && o.aoMudar();
+      return;
+    }
+    let bytes;
+    try { bytes = await o.transporte.baixar(msg.attachment.url); }
+    catch(e){ await pedir().catch(() => {}); return; }   // o anexo já expirou: pede-se o atual
+    const pacote = JSON.parse(await descomprimir(await decifrar(o.chave, bytes)));
+    const R = pacote.e, VR = pacote.v || {};
+    /* Daqui até aplicar, nada de esperas: o estado não pode mudar entre ser
+       lido e ser substituído, senão perdia-se o que se fez nesse instante. */
+    const L = o.ler(), jsonL = jsonEstavel(L);
+    let res = juntar(L, R, VR);
+    ultimos[info.de] = info.em || agora();
+    o.meta.gravar({ultimos});
+    if (res.adotou) o.meta.gravar({adotar: false});
+    const concluir = () => o.versoes.gravar(res.VM);
+    if (jsonEstavel(res.M) !== jsonL){
+      o.aplicar(res.M, {de: st.comQuem, concluir, refundir: (Lnovo) => { res = juntar(Lnovo, R, VR); return res.M; }});
+    } else concluir();
+    st.ultimaTroca = agora(); st.recebidas++; st.erro = "";
+    const hM = await resumo(jsonEstavel(versoesSoTempo(res.VM)));
+    if (hM !== info.h) agendarEnvio(false, 600);    // há aqui alguma coisa que o outro não tem
+    else o.meta.gravar({publicado: hM});
+    o.aoMudar && o.aoMudar();
+  }
+  /** Tudo o que ficou na caixa desde a última vez: de cada aparelho basta o envio mais recente. */
+  async function apanhar(){
+    const msgs = await o.transporte.desde(meta().ultimoId || "12h");
+    const lidas = [];
+    for (const msg of msgs) lidas.push({msg, m: await lerMeta(msg.message || "")});
+    const ultimo = {};
+    lidas.forEach((x, i) => { if (x.m && x.m.t === "estado" && x.m.de !== o.eu.id) ultimo[x.m.de] = i; });
+    for (let i = 0; i < lidas.length; i++){
+      const x = lidas[i];
+      const velho = (x.m && x.m.t === "estado" && ultimo[x.m.de] !== i) ||
+        (x.m && x.m.t === "pedido" && agora() - (x.m.em || 0) > 120000);
+      if (velho){ vistos.add(x.msg.id); o.meta.gravar({ultimoId: x.msg.id}); continue; }
+      await processar(x.msg, x.m);
+    }
+  }
+  return {
+    estado: st,
+    async ligar(){
+      if (st.ligado) return;
+      st.ligado = true;
+      registar(o.ler());
+      await emFila(apanhar);
+      parar = o.transporte.escutar(meta().ultimoId || "", (msg) => emFila(() => processar(msg)),
+        (on) => { st.online = on; o.aoMudar && o.aoMudar(); });
+      agendarEnvio(false, 800);
+      emFila(pedir);
+    },
+    desligar(){
+      st.ligado = false; st.online = false;
+      clearTimeout(tEnvio); clearTimeout(tRegisto);
+      if (parar) parar();
+      parar = null;
+    },
+    /** Depois de uma alteração feita aqui: regista-a já, com a hora certa, e envia daqui a pouco. */
+    mudou(){
+      clearTimeout(tRegisto);
+      tRegisto = setTimeout(() => { try { registar(o.ler()); } catch(e){} }, 300);
+      agendarEnvio(false);
+    },
+    /** Ao voltar ao separador ou ao carregar em «Sincronizar agora». */
+    agora(forcar){
+      if (!st.ligado) return Promise.resolve();
+      return emFila(async () => { await apanhar(); await enviar(!!forcar); await pedir(); });
+    },
+    _processar: (msg) => emFila(() => processar(msg)),
+    _fila: () => fila,
+    _registar: () => registar(o.ler()),
+  };
+}
+
+/* --- Ligação à página --- */
+let SINC = null;            // o motor, quando ligado
+let _sincAplicando = false; // a alteração que está a acontecer veio do outro aparelho
+let _sincPendente = null;   // estado recebido à espera de que se acabe de escrever
+function sincCfg(){
+  try { const c = JSON.parse(localStorage.getItem(SINC_KEY) || "null"); return c && typeof c === "object" ? c : {}; }
+  catch(e){ return {}; }
+}
+function sincGravarCfg(patch){
+  const c = Object.assign(sincCfg(), patch);
+  try { localStorage.setItem(SINC_KEY, JSON.stringify(c)); } catch(e){}
+  return c;
+}
+function nomeDesteAparelho(){
+  const ua = navigator.userAgent;
+  if (window.orcamentoDesktop){
+    const p = window.orcamentoDesktop.plataforma;
+    return "Computador" + (p === "darwin" ? " (Mac)" : p === "linux" ? " (Linux)" : p === "win32" ? " (Windows)" : "");
+  }
+  if (/iPad/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "Tablet";
+  if (/Android/.test(ua) && !/Mobile/.test(ua)) return "Tablet";
+  if (/iPhone|Android|Mobile/.test(ua)) return "Telemóvel";
+  return "Navegador" + (/Mac OS X/.test(ua) ? " (Mac)" : /Windows/.test(ua) ? " (Windows)" : /Linux/.test(ua) ? " (Linux)" : "");
+}
+function sincAparelho(){
+  const c = sincCfg();
+  if (c.aparelho && c.aparelho.id) return c.aparelho;
+  const ap = {id: b64u.de(crypto.getRandomValues(new Uint8Array(9))), nome: nomeDesteAparelho()};
+  sincGravarCfg({aparelho: ap});
+  return ap;
+}
+/** Há alguma coisa a meio que uma repintura deitaria fora? */
+function aEscreverAgora(){
+  if ($("#modalHost .overlay")) return true;
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest("#app, #painelLateral") && a.type !== "checkbox" && a.type !== "radio" && a.type !== "button") return true;
+  try { return camposEmEdicao().preenchidos > 0; } catch(e){ return false; }
+}
+let _quandoLivreT = null;
+const _quandoLivreFila = new Map();
+/** Faz `fn` assim que a pessoa não estiver a escrever. Por cada chave fica só o pedido mais recente. */
+function quandoLivre(chave, fn){
+  _quandoLivreFila.set(chave, fn);
+  if (_quandoLivreT) return;
+  const tentar = () => {
+    if (aEscreverAgora()){ _quandoLivreT = setTimeout(tentar, 1200); return; }
+    _quandoLivreT = null;
+    const fs = Array.from(_quandoLivreFila.values()); _quandoLivreFila.clear();
+    fs.forEach(f => { try { f(); } catch(e){} });
+  };
+  tentar();
+}
+function sincEstadoLocal(){
+  return estadoParaSinc(S);
+}
+/* As versões de cada peça, guardadas ao lado dos dados. */
+function sincVersoes(){
+  try { const v = JSON.parse(localStorage.getItem(SINC_VERSOES_KEY) || "{}"); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+  catch(e){ return {}; }
+}
+/* Chega uma versão nova: aplica-se já, ou, se a pessoa estiver a escrever,
+   guarda-se a receita e volta-se a juntar com o que houver na altura. */
+function sincAplicar(M, info){
+  _sincPendente = {M, info, jsonL: jsonEstavel(estadoParaSinc(S))};
+  if (!aEscreverAgora()){ sincAplicarPendente(); return; }
+  pintarEstadoSinc();
+  quandoLivre("sinc", sincAplicarPendente);
+}
+function sincAplicarPendente(){
+  {
+    const p = _sincPendente; _sincPendente = null;
+    if (!p) return;
+    const atual = estadoParaSinc(S);
+    const novo = p.info && p.info.refundir && jsonEstavel(atual) !== p.jsonL ? p.info.refundir(atual) : p.M;
+    const local = {};
+    CHAVES_DO_APARELHO.forEach(k => { if (k in S) local[k] = S[k]; });
+    local.exemploDemo = false;   // chegaram dados de alguém: já não é a família de exemplo
+    _sincAplicando = true;
+    try {
+      alterar(() => { S = normalizar(Object.assign({}, novo, local)); }, "sincronização");
+    } finally { _sincAplicando = false; }
+    if (p.info && p.info.concluir) p.info.concluir();
+    pintarEstadoSinc();
+  }
+}
+/** Chamado por `guardar()`: uma alteração feita aqui marca a hora e segue para o outro lado. */
+function sincAposGuardar(){
+  if (_sincAplicando || !sincCfg().codigo) return;
+  if (SINC) SINC.mudou();
+}
+let _trinco = null, _trincoPedido = false;
+async function sincArrancar(){
+  const c0 = sincCfg();
+  if (!c0.codigo || SINC || EH_PAINEL) return;
+  if (!(window.crypto && crypto.subtle)){ sincGravarCfg({erro: "este navegador não tem cifra disponível aqui (é preciso https)"}); return; }
+  const iniciar = async () => {
+    const c = sincCfg();
+    if (!c.codigo || SINC) return;
+    const {chave, topico} = await sincChaves(c.codigo);
+    SINC = criarSinc({
+      chave, eu: sincAparelho(),
+      transporte: transporteNtfy(c.servidor || SINC_SERVIDOR, topico),
+      ler: sincEstadoLocal,
+      aplicar: sincAplicar,
+      vazio: (x, local) => semDadosProprios(x, local && !!S.exemploDemo),
+      normalizar: (M) => estadoParaSinc(normalizar(JSON.parse(JSON.stringify(M)))),
+      meta: {ler: sincCfg, gravar: sincGravarCfg},
+      versoes: {
+        ler: sincVersoes,
+        gravar: (v) => { try { localStorage.setItem(SINC_VERSOES_KEY, JSON.stringify(v)); } catch(e){} },
+      },
+      aoMudar: pintarEstadoSinc,
+    });
+    await SINC.ligar();
+    pintarEstadoSinc();
+  };
+  /* Com vários separadores abertos, só um fala com a caixa: os outros
+     esperam a vez, e recebem as alterações pelo armazenamento partilhado. */
+  if (navigator.locks && navigator.locks.request){
+    if (_trincoPedido) return;
+    _trincoPedido = true;
+    navigator.locks.request("orcamento-familiar-sinc", () => new Promise(res => {
+      // Fica com a vez até se desligar (ou até a página fechar, que a liberta sozinha)
+      _trinco = () => { _trinco = null; _trincoPedido = false; res(); };
+      if (!sincCfg().codigo){ _trinco(); return; }
+      iniciar().catch(e => { sincGravarCfg({erro: String(e.message || e)}); pintarEstadoSinc(); });
+    }));
+  } else {
+    iniciar().catch(e => { sincGravarCfg({erro: String(e.message || e)}); pintarEstadoSinc(); });
+  }
+}
+function sincParar(){
+  if (SINC) SINC.desligar();
+  SINC = null;
+  if (_trinco) _trinco();
+}
+/** Liga este aparelho com um código (criado aqui ou trazido de outro). */
+function sincLigarCom(codigo, servidor){
+  if (!codigoValido(codigo)){ toast("O código tem 25 letras e números. Confira e tente outra vez."); return false; }
+  sincParar();
+  const c = sincCfg();
+  sincGravarCfg({codigo: formatarCodigo(codigo), servidor: servidor || c.servidor || SINC_SERVIDOR,
+    ultimoId: "", publicado: "", pares: {}, ultimos: {}, ligadoEm: Date.now(), erro: ""});
+  sincArrancar();
+  return true;
+}
+function sincLinkLigacao(){
+  const c = sincCfg();
+  const pagina = location.protocol.indexOf("http") === 0 && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"
+    ? location.origin + location.pathname : PAGINA_ONLINE;
+  return pagina + "#ligar=" + limparCodigo(c.codigo) +
+    (c.servidor && c.servidor !== SINC_SERVIDOR ? "&s=" + encodeURIComponent(c.servidor) : "");
+}
+const _rel = (t) => {
+  if (!t) return "";
+  const s = Math.round((Date.now() - t) / 1000);
+  return s < 10 ? "agora mesmo" : s < 60 ? "há " + s + " s" : s < 3600 ? "há " + Math.round(s / 60) + " min"
+    : s < 86400 ? "há " + Math.round(s / 3600) + " h" : "há " + Math.round(s / 86400) + " dias";
+};
+function pintarEstadoSinc(){
+  const el = $("#estadoSinc");
+  const c = sincCfg();
+  if (el){
+    if (!c.codigo){ el.hidden = true; el.textContent = ""; }
+    else {
+      el.hidden = false;
+      const st = SINC ? SINC.estado : null;
+      /* No cabeçalho, uma palavra ou duas; a frase inteira fica na dica */
+      let t, longo, cl = "muted";
+      if (c.erro || (st && st.erro)){ t = "sem sincronizar"; longo = "com erro: " + (c.erro || st.erro); cl = "warn"; }
+      else if (!st || !st.ligado){ t = "a ligar…"; longo = "a ligar ao serviço"; }
+      else if (_sincPendente){ t = "por aplicar"; longo = "chegaram alterações; entram quando acabar de escrever"; }
+      else if (st.aEnviar){ t = "a enviar…"; longo = "a enviar as alterações daqui"; }
+      else if (!st.online){ t = "sem rede"; longo = "sem ligação ao serviço — tenta de novo sozinho"; }
+      else if (!Object.keys(c.pares || {}).length){ t = "à espera"; longo = "à espera do outro aparelho"; }
+      else { t = "sincronizado"; longo = "sincronizado"; }
+      el.className = "estadoSinc " + cl;
+      el.innerHTML = ic("sinc") + '<span class="lb">' + esc(t) + '</span>';
+      el.title = "Sincronização: " + longo + (st && st.ultimaTroca ? " · última troca " + _rel(st.ultimaTroca) + (st.comQuem ? " com " + st.comQuem : "") : "");
+
+    }
+  }
+  if (VIEW === "config" && $("#cfgSinc") && !aEscreverAgora()){
+    const s = $("#cfgSinc");
+    s.innerHTML = cartaoSinc();
+    pintarIcones && pintarIcones();
+  }
+}
+setInterval(() => { if (sincCfg().codigo) pintarEstadoSinc(); }, 20000);
+
+function cartaoSinc(){
+  const c = sincCfg();
+  const titulo = '<h2>Sincronizar entre aparelhos</h2>';
+  if (!c.codigo){
+    return '<div class="card">' + titulo +
+      '<p class="sub">Os mesmos dados no telemóvel e no computador, sem conta nem palavra-passe. ' +
+      'A cada alteração, este aparelho envia uma cópia cifrada; o outro abre-a com um código que só os dois conhecem.</p>' +
+      '<div class="sincPassos">' +
+        '<div class="sincPasso"><h3>Começar aqui</h3><p class="muted">Cria um código e mostra-o em QR. Aponte a câmara do outro aparelho.</p>' +
+          '<button class="btn primary" data-act="sincCriar">' + ic("sinc") + 'Criar código</button></div>' +
+        '<div class="sincPasso"><h3>Já tenho um código</h3><p class="muted">O que aparece no outro aparelho, por baixo do QR.</p>' +
+          '<div class="row"><div style="flex:1 1 200px"><label class="field" for="sincCodigo">Código</label>' +
+          '<input id="sincCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"></div>' +
+          '<div class="shrink" style="align-self:flex-end"><button class="btn" data-act="sincEntrar">Ligar</button></div></div></div>' +
+      '</div>' +
+      '<div class="note" style="margin-top:12px"><strong>Por onde passa.</strong> As cópias seguem por um serviço público de mensagens ' +
+      '(<code>ntfy.sh</code>, ou um servidor seu), cifradas com AES de 256 bits antes de sair do aparelho. Sem o código são ruído. ' +
+      'Cada envio fica lá algumas horas e apaga-se; os dados continuam a viver nos seus aparelhos. ' +
+      'Se a mesma coisa mudar nos dois ao mesmo tempo, fica a alteração mais recente — e a outra pode recuperar-se com Ctrl+Z.</div></div>';
+  }
+  const st = SINC ? SINC.estado : null;
+  const pares = Object.values(c.pares || {});
+  const linhas = [];
+  linhas.push(['Este aparelho', esc((c.aparelho || {}).nome || nomeDesteAparelho())]);
+  linhas.push(['Ligado a', pares.length ? pares.map(p => esc(p.nome) + ' <span class="muted">(' + esc(_rel(p.visto)) + ')</span>').join(", ") : '<span class="muted">ainda nenhum — mostre o código no outro aparelho</span>']);
+  linhas.push(['Estado', esc(c.erro || (st && st.erro) ? "com erro: " + (c.erro || st.erro)
+    : !st ? "a ligar…" : !st.online ? "sem ligação ao serviço — tenta de novo sozinho" : "ligado")]);
+  if (st && st.ultimaTroca) linhas.push(['Última troca', esc(_rel(st.ultimaTroca)) + (st.comQuem ? " com " + esc(st.comQuem) : "")]);
+  const link = sincLinkLigacao();
+  return '<div class="card">' + titulo +
+    '<div class="tblwrap"><table><tbody>' + linhas.map(l => '<tr><th scope="row" style="width:34%">' + l[0] + '</th><td>' + l[1] + '</td></tr>').join("") + '</tbody></table></div>' +
+    '<div class="actions" style="margin-top:12px">' +
+      '<button class="btn primary" data-act="sincAgora">' + ic("sinc") + 'Sincronizar agora</button>' +
+      '<button class="btn ghost" data-act="sincDesligar">Desligar neste aparelho</button></div>' +
+    '<details class="sincLigar"' + (pares.length ? "" : " open") + '><summary>Ligar outro aparelho</summary>' +
+      '<div class="sincQR">' + qrSVG(link, "Código QR para ligar outro aparelho") +
+        '<div><p class="sub">No telemóvel, aponte a câmara a este quadrado e abra a ligação. Se preferir, escreva o código em ' +
+        '<em>Definições → Sincronizar → Já tenho um código</em>:</p>' +
+        '<p class="codigoSinc" aria-label="Código de ligação">' + esc(c.codigo) + '</p>' +
+        '<button class="btn sm ghost" data-act="sincCopiar">' + ic("copiar") + 'Copiar a ligação</button>' +
+        '<p class="muted" style="font-size:12px;margin-top:8px">Quem tiver este código vê os seus dados: guarde-o como guardaria uma chave. ' +
+        'Para o mudar, desligue e crie outro.</p></div></div></details>' +
+    '<details><summary>Avançado</summary><div class="row" style="margin-top:10px">' +
+      '<div style="flex:1 1 180px"><label class="field" for="sincNome">Nome deste aparelho</label>' +
+        '<input id="sincNome" maxlength="40" value="' + esc((c.aparelho || {}).nome || "") + '"></div>' +
+      '<div style="flex:2 1 240px"><label class="field" for="sincServidor">Serviço de passagem</label>' +
+        '<input id="sincServidor" inputmode="url" value="' + esc(c.servidor || SINC_SERVIDOR) + '"></div>' +
+      '<div class="shrink" style="align-self:flex-end"><button class="btn" data-act="sincGuardarAvancado">Guardar</button></div></div>' +
+      '<p class="muted" style="font-size:12px">Um servidor ntfy próprio também serve; os dois aparelhos têm de usar o mesmo.</p></details>' +
+    '</div>';
+}
+
+const ACOES_SINC = {
+  sincCriar(){
+    sincLigarCom(codigoNovo());
+    render();
+    toast("Código criado. Aponte a câmara do outro aparelho ao quadrado.");
+  },
+  sincEntrar(){
+    const v = ($("#sincCodigo") || {}).value || "";
+    if (!codigoValido(v)){ invalido("sincCodigo", "O código tem 25 letras e números, em cinco grupos."); return; }
+    $("#sincCodigo").value = "";
+    if (sincLigarCom(v)){ render(); toast("Ligado. A trazer os dados do outro aparelho…"); }
+  },
+  sincAgora(){
+    if (!SINC){ sincArrancar(); toast("A ligar…"); return; }
+    SINC.agora(true).then(() => { pintarEstadoSinc(); toast("Sincronizado."); });
+  },
+  sincDesligar(){
+    confirmar("Desligar a sincronização neste aparelho?",
+      "Os dados ficam aqui como estão. Este aparelho deixa de enviar e receber; o outro continua com os seus. Para voltar a ligar é preciso o código.",
+      () => {
+        sincParar();
+        const c = sincCfg();
+        try { localStorage.setItem(SINC_KEY, JSON.stringify({aparelho: c.aparelho, relogio: c.relogio})); } catch(e){}
+        render(); pintarEstadoSinc();
+        toast("Sincronização desligada neste aparelho.");
+      }, "Desligar");
+  },
+  sincCopiar(){
+    const l = sincLinkLigacao();
+    (navigator.clipboard ? navigator.clipboard.writeText(l) : Promise.reject())
+      .then(() => toast("Ligação copiada. Envie-a só para si próprio."), () => toast(l));
+  },
+  sincGuardarAvancado(){
+    const nome = (($("#sincNome") || {}).value || "").trim().slice(0, 40) || nomeDesteAparelho();
+    let srv = (($("#sincServidor") || {}).value || "").trim().replace(/\/+$/, "") || SINC_SERVIDOR;
+    if (!/^https:\/\/[^\s/]+/.test(srv) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(srv)){
+      invalido("sincServidor", "Tem de ser um endereço https://"); return;
+    }
+    const c = sincCfg();
+    const mudouSrv = srv !== (c.servidor || SINC_SERVIDOR);
+    sincGravarCfg({aparelho: {id: sincAparelho().id, nome}, servidor: srv});
+    if (mudouSrv){ sincParar(); sincGravarCfg({ultimoId: "", publicado: ""}); sincArrancar(); }
+    else if (SINC) SINC.agora(true);
+    render();
+    toast("Guardado.");
+  },
+};
+
+/** Abriu-se uma ligação de emparelhamento (o QR leva a `#ligar=…`). */
+function sincLerLigacao(){
+  const m = /^#ligar=([0-9A-Za-z-]+)(?:&s=([^&]+))?/.exec(location.hash || "");
+  if (!m) return;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  const codigo = m[1], srv = m[2] ? decodeURIComponent(m[2]) : "";
+  if (!codigoValido(codigo)) return;
+  const c = sincCfg();
+  if (c.codigo && limparCodigo(c.codigo) === limparCodigo(codigo)){ toast("Este aparelho já está ligado com este código."); return; }
+  const host = $("#modalHost");
+  host.innerHTML =
+    '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgSincT">' +
+      '<h3 id="dlgSincT">Ligar este aparelho?</h3>' +
+      '<p>Este aparelho passa a ter os mesmos dados que o outro, e o que mudar num aparece no outro.</p>' +
+      (semDadosProprios(estadoParaSinc(S), S.exemploDemo) ? "" :
+        '<div class="note" style="margin-bottom:11px">Este aparelho já tem dados. Juntam-se aos do outro: nada se apaga.</div>') +
+      (c.codigo ? '<div class="note" style="margin-bottom:11px">Deixa a ligação que tinha antes.</div>' : "") +
+      '<div class="actions"><button class="btn ghost" data-dlg="no">Agora não</button>' +
+      '<button class="btn primary" data-dlg="yes">Ligar</button></div></div></div>';
+  const fechar = () => { host.innerHTML = ""; };
+  host.querySelector('[data-dlg="no"]').onclick = fechar;
+  host.querySelector('[data-dlg="yes"]').onclick = () => {
+    fechar();
+    if (sincLigarCom(codigo, srv)){ toast("Ligado. A trazer os dados do outro aparelho…"); if (VIEW === "config") render(); }
+  };
+  host.querySelector('[data-dlg="yes"]').focus();
+}
+
+/* ---------------------------------------------------------------
+   Dois ecrãs — a mesma ferramenta, dividida por duas janelas
+
+   Com um segundo ecrã, abre-se lá uma janela companheira que acompanha
+   a principal: segue o mês, e mostra o que completa a página em que se
+   está — a lista de movimentos ao lado dos limites, os créditos ao lado
+   dos ativos, o resumo ao lado das análises. As fichas de detalhe e as
+   ferramentas do mês passam a abrir lá, deixando a lista inteira aqui.
+   Há também o modo apresentação, com letra grande e sem botões, para pôr
+   o mês num televisor durante a conversa de família.
+
+   Funciona na aplicação de secretária (que sabe onde está cada ecrã) e
+   no navegador (que pede licença para saber). Os dados são os mesmos:
+   as duas janelas partilham o armazenamento, e a que não mexeu redesenha-se
+   quando a outra grava.
+   --------------------------------------------------------------- */
+/* `var`, e não `const`: a sessão e a gravação perguntam por elas, e um
+   `const` ainda por chegar rebentaria em vez de responder «não». */
+var JANELA = new URLSearchParams(location.search).get("janela") || "";
+var EH_PAINEL = JANELA === "painel";
+var DESKTOP = window.orcamentoDesktop || null;
+const ECRA2_KEY = "orcamento-familiar-ecra2";
+const CANAL_ECRAS = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("orcamento-familiar-ecras") : null;
+/* O que completa cada página, no outro ecrã */
+const COMPLEMENTO = {
+  painel: "analises", analises: "painel", movimentos: "limites", limites: "movimentos", plano: "movimentos",
+  rendimentos: "plano", ativos: "creditos", creditos: "ativos", objetivos: "simulador", compras: "objetivos",
+  simulador: "objetivos", casa: "creditos", investir: "ativos", maximizar: "rendimentos", ese: "analises", config: "painel",
+};
+const MODOS_ECRA2 = {
+  contexto: "O que completa esta página",
+  espelho: "A mesma página",
+  fixo: "Uma página escolhida",
+};
+function ecra2Cfg(){
+  let c = {};
+  try { c = JSON.parse(localStorage.getItem(ECRA2_KEY) || "{}") || {}; } catch(e){}
+  return Object.assign({modo: "contexto", pagina: "painel", apresentacao: false, auto: false, detalhes: true, seguirMes: true}, c);
+}
+function ecra2Gravar(patch){
+  const c = Object.assign(ecra2Cfg(), patch);
+  try { localStorage.setItem(ECRA2_KEY, JSON.stringify(c)); } catch(e){}
+  return c;
+}
+let _painelVivo = 0;            // última notícia da janela companheira
+let _ecras = DESKTOP && DESKTOP.ecras ? (DESKTOP.ecras() || []).length : 1;
+const painelAberto = () => !EH_PAINEL && Date.now() - _painelVivo < 6000;
+/** Pode haver uma segunda janela? Em aparelhos de toque, não: lá não há onde a pôr. */
+const ecrasDisponiveis = () => !EH_PAINEL && (!!DESKTOP || (!aoToque() && typeof window.open === "function"));
+const temSegundoEcra = () => DESKTOP ? _ecras > 1 : !!(window.screen && screen.isExtended);
+function avisarEcras(msg){ if (CANAL_ECRAS) try { CANAL_ECRAS.postMessage(msg); } catch(e){} }
+
+let _ultimoEnviado = "";
+/** A principal diz à companheira onde está, sempre que se redesenha. */
+function ecraAposRender(){
+  if (EH_PAINEL){ pintarBarraPainel(); return; }
+  if (!CANAL_ECRAS) return;
+  const msg = {t: "estado", mes: MES, pagina: paginaAtual()};
+  const k = JSON.stringify(msg);
+  if (k === _ultimoEnviado && !_pedidoEstado) return;
+  _ultimoEnviado = k; _pedidoEstado = false;
+  avisarEcras(msg);
+}
+let _pedidoEstado = false;
+let _paginaPrincipal = null;
+function paginaDoPainel(pagPrincipal){
+  const c = ecra2Cfg();
+  if (c.modo === "espelho") return pagPrincipal;
+  if (c.modo === "fixo") return PAGINAS[c.pagina] ? c.pagina : "painel";
+  return COMPLEMENTO[pagPrincipal] || "painel";
+}
+if (CANAL_ECRAS){
+  CANAL_ECRAS.onmessage = (e) => {
+    const m = e.data || {};
+    if (EH_PAINEL){
+      if (m.t === "estado"){
+        const c = ecra2Cfg();
+        let mudou = false;
+        if (c.seguirMes && mesValido(m.mes) && m.mes !== MES){ MES = m.mes; mudou = true; }
+        /* Só se segue a principal quando ela muda de página: se a pessoa
+           escolheu outra coisa aqui, fica até haver razão para mudar. */
+        if (m.pagina !== _paginaPrincipal){
+          _paginaPrincipal = m.pagina;
+          const alvo = paginaDoPainel(m.pagina);
+          if (alvo !== paginaAtual()){ irPagina(alvo); return; }
+        }
+        if (mudou) render();
+      } else if (m.t === "lateral"){
+        if (m.tipo) abrirLateral(m.tipo, m.extra || {});
+      } else if (m.t === "fechar"){
+        window.close();
+      }
+      if (m.t !== "fechar") avisarEcras({t: "vivo"});
+    } else {
+      if (m.t === "vivo" || m.t === "ola"){
+        const novo = !painelAberto();
+        _painelVivo = Date.now();
+        if (m.t === "ola" || novo){ _pedidoEstado = true; ecraAposRender(); if (VIEW === "config") render(); }
+      } else if (m.t === "adeus"){
+        _painelVivo = 0;
+        if (VIEW === "config") render();
+      }
+    }
+  };
+}
+if (EH_PAINEL){
+  document.documentElement.classList.add("janelaPainel");
+  avisarEcras({t: "ola"});
+  setInterval(() => avisarEcras({t: "vivo"}), 2500);
+  window.addEventListener("pagehide", () => avisarEcras({t: "adeus"}));
+} else {
+  setInterval(() => { if (_painelVivo && !painelAberto()){ _painelVivo = 0; if (VIEW === "config") render(); } }, 3000);
+}
+/** Na principal, um detalhe ou ferramenta abre no outro ecrã quando ele lá está. */
+function lateralNoOutroEcra(tipo, extra){
+  if (EH_PAINEL || !painelAberto() || !ecra2Cfg().detalhes) return false;
+  avisarEcras({t: "lateral", tipo, extra: extra || {}});
+  toast("Aberto no outro ecrã.");
+  return true;
+}
+
+async function abrirSegundoEcra(){
+  if (EH_PAINEL) return;
+  if (painelAberto() && !DESKTOP){ toast("A janela companheira já está aberta."); return; }
+  if (DESKTOP){
+    const r = await DESKTOP.abrirPainel();
+    _ecras = (r && r.ecras) || _ecras;
+    toast(r && r.ecras > 1 ? "Aberto no segundo ecrã." : "Aberto numa segunda janela. Com outro ecrã ligado, vai para lá sozinha.");
+    return;
+  }
+  let pos = "popup=yes,width=1100,height=780";
+  try {
+    if (window.getScreenDetails && screen.isExtended){
+      const d = await window.getScreenDetails();
+      const outro = d.screens.find(s => s !== d.currentScreen);
+      if (outro) pos = "popup=yes,left=" + outro.availLeft + ",top=" + outro.availTop + ",width=" + outro.availWidth + ",height=" + outro.availHeight;
+    }
+  } catch(e){ /* sem licença para ver os ecrãs: abre onde o navegador quiser */ }
+  const w = window.open(location.pathname + "?janela=painel", "orcamentoPainel", pos);
+  if (!w) toast("O navegador bloqueou a janela nova. Autorize janelas deste sítio e tente outra vez.");
+  else toast(temSegundoEcra() ? "Aberta no segundo ecrã." : "Aberta numa janela nova — arraste-a para o outro ecrã.");
+}
+function fecharSegundoEcra(){
+  if (DESKTOP && DESKTOP.fecharPainel) DESKTOP.fecharPainel();
+  avisarEcras({t: "fechar"});
+  _painelVivo = 0;
+  if (VIEW === "config") render();
+}
+function aplicarApresentacao(){
+  document.documentElement.classList.toggle("apresentacao", EH_PAINEL && !!ecra2Cfg().apresentacao);
+}
+/** A faixa de cima da janela companheira: o que mostra e como. */
+function pintarBarraPainel(){
+  let b = $("#barraPainel");
+  if (!b){
+    b = document.createElement("div");
+    b.id = "barraPainel"; b.className = "no-print";
+    b.setAttribute("role", "region"); b.setAttribute("aria-label", "Janela companheira");
+    document.body.insertBefore(b, $("header"));
+  }
+  const c = ecra2Cfg();
+  b.innerHTML =
+    '<span class="tit">' + ic("ecra") + '<span>Segundo ecrã</span></span>' +
+    '<select id="ecra2Modo" aria-label="O que mostrar neste ecrã">' +
+      Object.entries(MODOS_ECRA2).map(([k, l]) => '<option value="' + k + '"' + (c.modo === k ? " selected" : "") + '>' + esc(l) + '</option>').join("") +
+    '</select>' +
+    (c.modo === "fixo" ? '<select id="ecra2Pagina" aria-label="Página fixa">' +
+      Object.keys(PAGINAS).filter(k => k !== "config").map(k => '<option value="' + k + '"' + (c.pagina === k ? " selected" : "") + '>' + esc(PAGINAS[k].lbl) + '</option>').join("") +
+      '</select>' : "") +
+    '<button class="btn sm ghost" data-act="ecra2Apresentacao" aria-pressed="' + !!c.apresentacao + '">' + ic("ecra") + 'Apresentação</button>' +
+    (DESKTOP && DESKTOP.trocarEcras ? '<button class="btn sm ghost" data-act="ecra2Trocar">' + ic("comparar") + 'Trocar de ecrã</button>' : "") +
+    '<button class="btn sm ghost icon" data-act="ecra2Fechar" aria-label="Fechar a janela companheira">' + ic("fechar") + '</button>';
+}
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.id === "ecra2Modo"){
+    ecra2Gravar({modo: e.target.value});
+    if (_paginaPrincipal) irPagina(paginaDoPainel(_paginaPrincipal)); else render();
+  }
+  if (e.target && e.target.id === "ecra2Pagina"){
+    ecra2Gravar({pagina: e.target.value});
+    irPagina(e.target.value);
+  }
+  if (e.target && e.target.dataset && e.target.dataset.ecra2){
+    const k = e.target.dataset.ecra2;
+    ecra2Gravar({[k]: e.target.checked});
+    if (DESKTOP && DESKTOP.definirAuto && k === "auto") DESKTOP.definirAuto(e.target.checked);
+  }
+});
+
+function cartaoEcras(){
+  if (!ecrasDisponiveis()) return "";
+  const c = ecra2Cfg();
+  const aberto = painelAberto();
+  const dois = temSegundoEcra();
+  const opc = (k, rot, sub) => '<label class="chk"><input type="checkbox" data-ecra2="' + k + '"' + (c[k] ? " checked" : "") + '> ' +
+    '<span><strong>' + esc(rot) + '</strong><br><span class="muted">' + esc(sub) + '</span></span></label>';
+  return '<div class="card"><h2>Dois ecrãs</h2>' +
+    '<p class="sub">' + (dois ? "Há um segundo ecrã ligado." : "Só se vê um ecrã agora; a janela companheira também funciona ao lado desta.") +
+    ' A janela companheira segue o mês desta e mostra o que completa a página em que está.</p>' +
+    '<div class="actions">' +
+      (aberto ? '<button class="btn" data-act="ecra2Fechar">' + ic("fechar") + 'Fechar a janela companheira</button>'
+              : '<button class="btn primary" data-act="ecra2Abrir">' + ic("ecra") + (dois ? "Abrir no segundo ecrã" : "Abrir uma janela companheira") + '</button>') +
+    '</div>' +
+    '<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th>Nesta página</th><th>Na companheira</th></tr></thead><tbody>' +
+      [["movimentos", "limites"], ["ativos", "creditos"], ["analises", "painel"], ["objetivos", "simulador"]].map(([a, b]) =>
+        '<tr><td>' + esc(PAGINAS[a].lbl) + '</td><td>' + esc(PAGINAS[b].lbl) + '</td></tr>').join("") +
+    '</tbody></table></div>' +
+    '<div class="opcoesEcra">' +
+      opc("detalhes", "Fichas e ferramentas no outro ecrã", "O detalhe de um ativo ou crédito, a nota e o fecho do mês abrem lá, e a lista fica inteira aqui.") +
+      opc("seguirMes", "Seguir o mês", "Mudar de mês aqui muda lá também.") +
+      (DESKTOP ? opc("auto", "Abrir sozinha", "Ao arrancar com dois ecrãs, e quando se liga um segundo ecrã.") : "") +
+    '</div>' +
+    '<p class="muted" style="font-size:12px;margin-top:10px">Atalho: ' + '<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd>. ' +
+    'Na companheira, «Apresentação» aumenta a letra e esconde os botões — para mostrar o mês num televisor.</p></div>';
+}
+const ACOES_ECRAS = {
+  ecra2Abrir(){ fecharMenus(); abrirSegundoEcra(); },
+  ecra2Fechar(){
+    if (EH_PAINEL){ avisarEcras({t: "adeus"}); if (DESKTOP && DESKTOP.fecharPainel) DESKTOP.fecharPainel(); else window.close(); return; }
+    fecharSegundoEcra();
+  },
+  ecra2Apresentacao(){
+    const c = ecra2Gravar({apresentacao: !ecra2Cfg().apresentacao});
+    aplicarApresentacao();
+    if (DESKTOP && DESKTOP.ecraInteiro) DESKTOP.ecraInteiro(!!c.apresentacao);
+    render();
+  },
+  ecra2Trocar(){ if (DESKTOP && DESKTOP.trocarEcras) DESKTOP.trocarEcras(); },
+};
+if (DESKTOP && DESKTOP.aoMudarEcras){
+  DESKTOP.aoMudarEcras((n) => {
+    const antes = _ecras; _ecras = n;
+    if (EH_PAINEL) return;
+    if (n > antes && n > 1 && !painelAberto()){
+      /* Com «Abrir sozinha», é o processo principal que a abre (vê o ecrã a
+         ligar-se antes da página); aqui só se avisa quando não abre. */
+      const sozinha = DESKTOP.definicoes ? !!(DESKTOP.definicoes() || {}).painelAuto : ecra2Cfg().auto;
+      if (!sozinha) toastComBotao("Ligou-se um segundo ecrã.", (() => {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = "Usar os dois";
+        b.onclick = () => abrirSegundoEcra(); return b;
+      })());
+    } else if (n < antes && n < 2) toast("O segundo ecrã desligou-se; a janela companheira veio para este.");
+    if (VIEW === "config") render();
+  });
+}
+
+/* Outra janela ou separador gravou: redesenha-se com o que ela deixou. */
+window.addEventListener("storage", (e) => {
+  if (e.key === STORE_KEY && e.newValue){
+    const raw = e.newValue;
+    quandoLivre("outraJanela", () => {
+      try {
+        if (raw === JSON.stringify(S)) return;
+        S = normalizar(JSON.parse(raw));
+        limparCacheCredito();
+        aplicarTema();
+        render();
+        // Quem fala com a caixa é esta janela? Então a alteração da outra segue daqui.
+        if (SINC) SINC.mudou();
+      } catch(err){}
+    });
+  } else if (e.key === ECRA2_KEY && EH_PAINEL){
+    aplicarApresentacao(); pintarBarraPainel();
+  } else if (e.key === SINC_KEY){
+    pintarEstadoSinc();
+  }
+});
+
+/* ---------------------------------------------------------------
+   Instalar como app — o atalho do telemóvel
+
+   O cartão das definições já explicava o caminho. No telemóvel passa a
+   estar também no menu das definições rápidas, onde se procura primeiro,
+   e some quando já está instalada.
+   --------------------------------------------------------------- */
+const podeInstalar = () => !DESKTOP && !emAplicacao() && location.protocol.indexOf("http") === 0;
+function pintarMenuInstalar(){
+  const b = $("#instalarMenu");
+  if (b) b.hidden = !podeInstalar();
+  const e = $("#ecra2Menu");
+  if (e){
+    e.hidden = !ecrasDisponiveis();
+    const lb = e.querySelector(".lb");
+    if (lb) lb.textContent = painelAberto() ? "Fechar a janela companheira" : temSegundoEcra() ? "Usar o segundo ecrã" : "Janela companheira";
+  }
+}
+/* Na aplicação de secretária, uma cópia por dia numa pasta (as últimas 30):
+   o armazenamento da aplicação é um sítio só, e um disco que se estrague
+   não deve levar o orçamento de um ano. */
+let _copiaT = null;
+function copiaDesktopAdiada(){
+  if (!DESKTOP || !DESKTOP.copiaDiaria) return;
+  try { if (DESKTOP.gravado) DESKTOP.gravado(); } catch(e){}
+  if (EH_PAINEL) return;
+  clearTimeout(_copiaT);
+  _copiaT = setTimeout(() => { try { DESKTOP.copiaDiaria(JSON.stringify(S)); } catch(e){} }, 4000);
+}
+if (DESKTOP){
+  // A definição de abrir sozinha vive no processo principal (é ele que vê os ecrãs a ligar)
+  try { const d = DESKTOP.definicoes ? DESKTOP.definicoes() : null; if (d) ecra2Gravar({auto: !!d.painelAuto}); } catch(e){}
+  if (DESKTOP.aoMudarPainel) DESKTOP.aoMudarPainel((d) => {
+    if (EH_PAINEL) return;
+    if (d && d.aberta === false){ _painelVivo = 0; if (VIEW === "config") render(); }
+  });
+}
+const ACOES_INSTALAR = {
+  appPastaCopias(){ if (DESKTOP && DESKTOP.abrirPastaCopias) DESKTOP.abrirPastaCopias(); },
+  appMenuInstalar(){
+    fecharMenus();
+    if (_conviteInstalar && ACOES.appInstalar){ ACOES.appInstalar(); return; }
+    irPagina("config");
+    setTimeout(() => { const s = $("#cfgAplicacao"); if (s) s.scrollIntoView({block: "start"}); }, 0);
+  },
+  ecra2Menu(){
+    fecharMenus();
+    if (painelAberto()) fecharSegundoEcra(); else abrirSegundoEcra();
+  },
+};
+
+/* Ctrl+Shift+2 — a janela companheira, de qualquer sítio */
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "Digit2" && ecrasDisponiveis()){
+    e.preventDefault();
+    if (painelAberto()) fecharSegundoEcra(); else abrirSegundoEcra();
+  }
+});
+Object.assign(ACOES, ACOES_SINC, ACOES_ECRAS, ACOES_INSTALAR);
+
+ACOES.sincIr = () => { fecharMenus(); irPagina("config"); setTimeout(() => { const e = $("#cfgSinc"); if (e) e.scrollIntoView({block:"start"}); }, 0); };
+
+/* ---------------------------------------------------------------
    Arranque
    --------------------------------------------------------------- */
 carregar();
@@ -18139,8 +19614,16 @@ pintarIcones();
 aplicarTema();
 aplicarOrientacao();
 restaurarSessao();
+aplicarApresentacao();
 render();
 aplicarAjudas();
+sincLerLigacao();
+sincArrancar();
+/* Ao voltar ao separador (o telemóvel adormece as ligações), vai-se ver o que mudou. */
+document.addEventListener("visibilitychange", () => { if (!document.hidden && SINC) SINC.agora(false); });
+window.addEventListener("online", () => { if (SINC) SINC.agora(false); });
+window.addEventListener("hashchange", sincLerLigacao);
+if (DESKTOP && !EH_PAINEL && ecra2Cfg().auto && temSegundoEcra()) setTimeout(abrirSegundoEcra, 600);
 
 /* A sessão acompanha o que se vai fazendo, sem estorvar o que se escreve. */
 document.addEventListener("input", guardarSessaoAdiado);

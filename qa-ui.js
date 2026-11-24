@@ -3989,11 +3989,11 @@ G("guardar como aplicação");
 (function(){
   comExemplo();
   irA("config");
-  var cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  var cartao = qq("#app .card").filter(function(c){ return /Instalar como app|Aplicação de secretária/.test(c.textContent); })[0];
   ok(cartao != null, "há cartão de instalação nas Definições");
   if (!cartao) return;
 
-  ok(/ícone próprio|já está instalada|a partir do disco/i.test(cartao.innerText),
+  ok(/ícone próprio|já está instalada|a partir do disco|aplicação de secretária/i.test(cartao.innerText),
      "que diz o que a instalação dá, ou o estado em que está");
   ok(/não copia nada/i.test(cartao.innerText),
      "e tranquiliza sobre os dados, que é a primeira dúvida de quem instala");
@@ -4032,6 +4032,12 @@ G("guardar como aplicação");
      repetido.toFixed(3) + " ms");
   eq(q('link[rel="apple-touch-icon"]').href, iconeAntes, "e o ícone é o mesmo");
 
+  /* Na aplicação de secretária não há convite nem requisitos do navegador:
+     ela própria é a aplicação. */
+  if (typeof DESKTOP !== "undefined" && DESKTOP){
+    ok(!podeInstalar() && /aplicação de secretária/i.test(cartao.innerText), "na aplicação de secretária, diz que já é a aplicação");
+    return;
+  }
   /* O convite do navegador tem de ser guardado quando aparece — perde-se se
      não for — e gasta-se ao ser usado. Sem convite não há botão: fingir que
      há dava um botão que não faz nada. */
@@ -4057,13 +4063,13 @@ G("guardar como aplicação");
   var estadoAntes = JSON.parse(JSON.stringify(_requisitos));
   _requisitos = {feito:true, https:false, manifesto:true, icones:false, sw:true};
   irA("config");
-  cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  cartao = qq("#app .card").filter(function(c){ return /Instalar como app|Aplicação de secretária/.test(c.textContent); })[0];
   ok(/https/i.test(cartao.innerText), "com o endereço em falta, di-lo");
   ok(/Ícone de 192/i.test(cartao.innerText), "e o ícone também");
   ok(!/Service worker ativo/i.test(cartao.innerText), "e não acusa o que está cumprido");
   _requisitos = {feito:true, https:true, manifesto:true, icones:true, sw:true};
   irA("config");
-  cartao = qq("#app .card").filter(function(c){ return /Guardar como aplicação/.test(c.textContent); })[0];
+  cartao = qq("#app .card").filter(function(c){ return /Instalar como app|Aplicação de secretária/.test(c.textContent); })[0];
   ok(/tudo pronto/i.test(cartao.innerText), "com tudo cumprido, di-lo em vez de listar faltas");
   _requisitos = estadoAntes;
   render();
@@ -4315,7 +4321,12 @@ G("todas as ações do registo, disparadas uma a uma");
      que abrem diálogos do sistema ficam de fora — não há como as fechar. */
   var guardado = JSON.stringify(S);
   var nativas = ["imprimir", "relatorio", "relatorioAno", "exportJSON", "exportJSONCifrado",
-                 "exportCSV", "exportPatrimonioCSV", "importJSON", "csvImportar"];
+                 "exportCSV", "exportPatrimonioCSV", "importJSON", "csvImportar",
+                 /* e as que saem da página: outra janela, a rede, pastas do sistema
+                    (têm a sua própria suite, a qa-sinc.js) */
+                 "ecra2Abrir", "ecra2Menu", "ecra2Trocar", "ecra2Fechar", "ecra2Apresentacao",
+                 "sincCriar", "sincEntrar", "sincAgora", "sincCopiar", "sincDesligar", "sincGuardarAvancado",
+                 "appPastaCopias", "appMenuInstalar"];
   var vistaDe = {rd:"rendimento", cp:"rendimento", comp:"rendimento", mv:"despesas", rec:"despesas",
     lim:"despesas", corte:"despesas", plan:"despesas", lote:"despesas", regra:"despesas",
     obj:"objetivos", cr:"credito", amort:"credito", pat:"ativos", fluxo:"ativos", aporte:"ativos",
