@@ -30,6 +30,7 @@ var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
 var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
 var secaoInicial = ui.secaoDespesa;
+var secaoEstrInicial = ui.secaoEstrategia;
 
 /* Como nas outras suites: a sessão do utilizador sai de cena, para que um
    rascunho por recuperar não abra um diálogo por cima dos testes. */
@@ -754,6 +755,7 @@ ui.relatorio = false; ui.simAtivo = null; ui.donutFoco = null; ui.movSel = {};
 ui.essencial = false; ui.privado = false; ui.fechoDispensado = null;
 ui.corteAlvo = 0; ui.corteAjustes = {}; ui.planPrefill = null;
 ui.secaoDespesa = secaoInicial;
+ui.secaoEstrategia = secaoEstrInicial;
 document.body.classList.remove("privado");
 var _mh = document.getElementById("modalHost"); if (_mh) _mh.innerHTML = "";
 var _pl = document.getElementById("paleta"); if (_pl) _pl.innerHTML = "";

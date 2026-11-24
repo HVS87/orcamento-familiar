@@ -34,6 +34,7 @@ var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
 var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
 var secaoInicial = ui.secaoDespesa;
+var secaoEstrInicial = ui.secaoEstrategia;
 
 /* A sessão é do utilizador, não da suite. Sai de cena enquanto se testa —
    uma sessão com rascunho faz a aplicação abrir o diálogo de recuperação
@@ -783,6 +784,7 @@ MES = mesInicial;
 ui.donutFoco = null; ui.simAtivo = null; ui.abertos = {}; ordem = {};
 ui.fechoDispensado = null; ui.corteAlvo = 0; ui.corteAjustes = {};
 ui.secaoDespesa = secaoInicial;
+ui.secaoEstrategia = secaoEstrInicial;
 // Os filtros são do utilizador: devolvem-se como estavam, não vazios.
 filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
 filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;

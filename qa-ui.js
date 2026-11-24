@@ -83,6 +83,7 @@ var backupSessao = localStorage.getItem(SESSAO_KEY);
 var vistaInicial = VIEW, mesInicial = MES;
 var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
 var secaoInicial = ui.secaoDespesa;
+var secaoEstrInicial = ui.secaoEstrategia;
 
 /* A sessão é do utilizador, não da suite: sai de cena enquanto se testa.
    E se ficou um diálogo aberto (recuperação de rascunho, por exemplo),
@@ -100,6 +101,7 @@ function contextoLimpo(){
   filtros.texto = ""; filtros.categoria = ""; filtros.membro = ""; filtros.tipo = "";
   editando = {};
   ui.secaoDespesa = "plano";
+  ui.secaoEstrategia = "simulador";
   ui.essencial = false;
   ui.privado = false;
   ui.relatorio = false;
@@ -3516,7 +3518,7 @@ G("ida e volta pela cópia de segurança");
   S.membros[0].nome = 'Aspas "duplas" e \'simples\' & <tags> \\barras';
   S.categorias[0].nome = "Acentuação: ãõçéêà — travessão, «aspas», emoji 🛒";
   S.notas[MES] = "Linha 1\nLinha 2\tcom tabulação";
-  if (S.objetivos[0]) S.objetivos[0].nome = "Meta   com nulo";
+  if (S.objetivos[0]) S.objetivos[0].nome = "Meta \u0000 com nulo";
   guardar();
 
   var exportado = JSON.stringify(S, null, 2);
@@ -3530,7 +3532,7 @@ G("ida e volta pela cópia de segurança");
   eq(S.membros[0].nome, nomeMembro, "as aspas, os apóstrofos e as barras voltam intactos");
   eq(S.categorias[0].nome, nomeCat, "os acentos, o travessão e o emoji também");
   eq(S.notas[MES], nota, "e as quebras de linha e tabulações dentro das notas");
-  ok(S.objetivos[0] == null || S.objetivos[0].nome.indexOf(" ") >= 0,
+  ok(S.objetivos[0] == null || S.objetivos[0].nome.indexOf("\u0000") >= 0,
      "até um carácter nulo atravessa sem partir a leitura");
 
   /* A primeira volta acrescenta o que `normalizar` completa; da segunda em
@@ -4437,6 +4439,127 @@ G("desktop intacto");
   eq(qq("#fitaMeses button[data-mes]").length, 7, "com sete meses");
 })();
 
+G("planos: secções das estratégias");
+(function(){
+  comExemplo();
+  ui.secaoEstrategia = "simulador";
+  irA("estrategias");
+  var abas = qq('[data-act="secEstrategia"]');
+  eq(abas.length, 4, "quatro secções nas estratégias");
+  ok(q('[data-act="secEstrategia"][data-v="simulador"][aria-pressed="true"]') != null, "começa no simulador de sempre");
+  ok(/Estratégias de poupança e investimento/.test(texto()), "que continua lá, igual");
+
+  ["casa", "investir", "maximizar"].forEach(function(s){
+    clicar('[data-act="secEstrategia"][data-v="' + s + '"]');
+    eq(ui.secaoEstrategia, s, "a secção «" + s + "» abre");
+    ok(q('[data-act="secEstrategia"][data-v="' + s + '"]').getAttribute("aria-pressed") === "true",
+       "e fica marcada");
+  });
+
+  // Endereços próprios, para a paleta e para as ligações
+  irPara("casaRenda");
+  ok(VIEW === "estrategias" && ui.secaoEstrategia === "casa", "«casaRenda» abre a casa ou renda");
+  irPara("etfImovel");
+  ok(ui.secaoEstrategia === "investir", "«etfImovel» abre o ETF ou imobiliário");
+  irPara("rendimentoDisponivel");
+  ok(ui.secaoEstrategia === "maximizar", "«rendimentoDisponivel» abre o rendimento disponível");
+  ui.secaoEstrategia = "simulador";
+})();
+
+G("planos: casa ou renda no ecrã");
+(function(){
+  comExemplo();
+  S.planos = {casa:{}, inv:{}};
+  ui.secaoEstrategia = "casa";
+  irA("estrategias");
+  var sel = q("#pcConcelho");
+  ok(sel != null, "há escolha de concelho");
+  ok(qq("#pcConcelho optgroup").length >= 8, "agrupados por região");
+  ok(q("#pcFreguesia") != null, "em Lisboa, há escolha de freguesia");
+  eq(qq("#pcFreguesia option").length, 25, "com as 24 freguesias e a média do concelho");
+  ok(/Saída de caixa/.test(q("#pcOut").innerText), "o resultado mostra a saída de caixa de dono");
+  ok(/Custo efetivo/.test(q("#pcOut").innerText), "e o custo efetivo");
+  ok(q("#pcOut svg.chart") != null, "e o gráfico do património dos dois lados");
+  ok(/INE/.test(texto()) && /Portal das Finanças/.test(texto()),
+     "e diz que os valores são de referência, e onde se confirmam");
+
+  // Freguesia → preço; concelho → a freguesia sai e o IMI acompanha
+  var f = q("#pcFreguesia"); f.value = "Marvila"; f.dispatchEvent(new Event("change", {bubbles:true}));
+  eq(paramsCasa().loc.freguesia, "Marvila", "escolher a freguesia muda a referência");
+  eq(paramsCasa().preco, Math.round(paramsCasa().area * 3500 / 1000) * 1000, "e o preço acompanha");
+  var c = q("#pcConcelho"); c.value = "Porto"; c.dispatchEvent(new Event("change", {bubbles:true}));
+  ok(q("#pcFreguesia") == null, "noutro concelho, a freguesia desaparece");
+  eq(q("#pcImi").value, String(concelhoPorNome("Porto")[2]), "e o IMI passa a ser o do município");
+  ok(podeDesfazer(), "mudar de concelho desfaz-se");
+
+  // A área arrasta o preço automático, e o deslizador do preço acompanha
+  var a = q("#pcArea"); a.value = 120; a.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(paramsCasa().preco, Math.round(120 * paramsCasa().loc.m2 / 1000) * 1000, "a área muda o preço automático");
+  eq(q("#pcPrecoOut").textContent, fmtSlider(paramsCasa().preco, " €"), "e o deslizador do preço mostra-o");
+
+  // O preço à mão fica; repor devolve-o ao concelho
+  var p = q("#pcPreco"); p.value = escalaPos(ESCALAS.casa, 300000); p.dispatchEvent(new Event("input", {bubbles:true}));
+  ok(!paramsCasa().precoAuto && paramsCasa().preco === 300000, "mexer no preço fá-lo manual");
+  clicar('[data-act="planosRepor"][data-v="casa"]');
+  ok(paramsCasa().precoAuto, "repor devolve-o à referência do concelho");
+
+  // Caixas
+  var j = q("#pcJovem"); j.checked = true; j.dispatchEvent(new Event("change", {bubbles:true}));
+  ok(paramsCasa().jovem, "a opção de jovem fica guardada");
+  clicar('[data-act="planosHistorico"][data-v="casa"]');
+  eq(paramsCasa().valorizacao, paramsCasa().loc.cresc, "a valorização histórica do concelho aplica-se num toque");
+  S.planos = {casa:{}, inv:{}};
+  ui.secaoEstrategia = "simulador";
+})();
+
+G("planos: ETF ou imobiliário no ecrã");
+(function(){
+  comExemplo();
+  S.planos = {casa:{}, inv:{}};
+  ui.secaoEstrategia = "investir";
+  irA("estrategias");
+  ok(q("#piEtf") != null, "há escolha de ETF");
+  eq(qq("#piEtf option").length, Object.keys(ETFS_REF).length, "com todos os de referência");
+  ok(q("#piRegime") != null, "e do contrato de arrendamento");
+  var cab = qq("#piOut thead th").map(function(t){ return t.textContent; }).join(" | ");
+  ok(/ETF/.test(cab) && /sem empréstimo/.test(cab) && /com empréstimo/.test(cab),
+     "os três cenários lado a lado", cab);
+  ok(/TIR/.test(q("#piOut").innerText), "com a rendibilidade anual de cada um");
+  ok(/não existe/.test(q("#piOut").innerText), "e o imóvel que o capital não paga é dito como tal");
+
+  var e = q("#piEtf"); e.value = "cspx"; e.dispatchEvent(new Event("change", {bubbles:true}));
+  eq(paramsInvestir().etf, "cspx", "mudar de ETF");
+  eq(paramsInvestir().retEtf, ETFS_REF.cspx.prudente, "traz a hipótese prudente desse ETF");
+
+  var cap = q("#piCapital"); cap.value = escalaPos(ESCALAS.capital, 150000); cap.dispatchEvent(new Event("input", {bubbles:true}));
+  eq(paramsInvestir().capital, 150000, "o capital muda");
+  // Os milhares em pt-PT separam-se com espaço inquebrável: compara-se com o próprio formato
+  ok(q("#piOut").textContent.indexOf(eur(150000)) >= 0, "e o resultado acompanha sem repintar os comandos");
+  ok(q("#piCapital") === cap, "o deslizador é o mesmo elemento — o arrasto não se interrompe");
+  S.planos = {casa:{}, inv:{}};
+  ui.secaoEstrategia = "simulador";
+})();
+
+G("planos: rendimento disponível no ecrã");
+(function(){
+  comExemplo();
+  ui.secaoEstrategia = "maximizar";
+  irA("estrategias");
+  ok(/Rendimento disponível hoje/i.test(texto()), "mostra o rendimento disponível de hoje");
+  ok(/Potencial encontrado/i.test(texto()), "o potencial");
+  ok(qq("#app .alerta").length > 0, "e as alavancas");
+  var botoes = qq("#app .alerta button");
+  ok(botoes.length === qq("#app .alerta").length, "cada alavanca leva às suas contas");
+  var paraCasa = qq('#app .alerta [data-act="secEstrategia"]')[0];
+  if (paraCasa){
+    var destino = paraCasa.dataset.v;
+    paraCasa.click();
+    eq(ui.secaoEstrategia, destino, "e o botão abre o calculador certo");
+  }
+  ui.secaoEstrategia = "simulador";
+})();
+
+
 G("celebração de objetivo");
 (function(){
   var backupS = JSON.parse(JSON.stringify(S));
@@ -4478,6 +4601,7 @@ contextoLimpo();
 filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
 filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
 ui.secaoDespesa = secaoInicial;
+ui.secaoEstrategia = secaoEstrInicial;
 irPara(vistaInicial);
 /* A repintura agenda gravações adiadas (400 ms nos dados, 600 ms na
    sessão). Sem as cancelar, disparavam depois desta limpeza e voltavam a

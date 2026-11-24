@@ -884,6 +884,14 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 [data-deitado="telemovel"] select,
 [data-deitado="telemovel"] textarea{min-height:40px}
 [data-deitado="telemovel"] .seg button{min-height:38px;padding:7px 12px}
+/* Quatro abas de nomes compridos — «Rendimento disponível», «ETF ou
+   imobiliário» — partiam-se em três linhas cada num telemóvel em pé, com 74 px
+   de altura. Em duas filas de duas, lêem-se de uma vez. Deitado há largura,
+   e ficam numa fila só. */
+[data-dispositivo="telemovel"]:not([data-deitado]) .seg.duasFilas{display:grid;grid-template-columns:1fr 1fr;width:100%}
+[data-dispositivo="telemovel"]:not([data-deitado]) .seg.duasFilas button{border-bottom:1px solid var(--border)}
+[data-dispositivo="telemovel"]:not([data-deitado]) .seg.duasFilas button:nth-child(2n){border-right:0}
+[data-dispositivo="telemovel"]:not([data-deitado]) .seg.duasFilas button:nth-last-child(-n+2){border-bottom:0}
 [data-deitado="telemovel"] .cabPainel button{min-width:38px;min-height:38px}
 /* Deitado escasseia a altura, não a largura: o alvo encolhe só na vertical. */
 [data-deitado="telemovel"] .celSel{min-height:38px}
@@ -2266,6 +2274,20 @@ const AJUDAS_COL = {
 };
 
 const AJUDAS_CAMPO = {
+  pcConcelho:   ["Concelho", "Traz o preço e a renda por m², a valorização dos últimos anos e a taxa de IMI do município. São valores de referência — pode mudá-los todos.", ""],
+  pcFreguesia:  ["Freguesia de Lisboa", "Em Lisboa, a diferença entre freguesias é maior do que entre muitos concelhos: Santo António custa quase o dobro de Santa Clara.", ""],
+  pcImi:        ["Taxa de IMI", "Cada município fixa a sua todos os anos, entre 0,3% e 0,45%, sobre o valor patrimonial (VPT) — não sobre o preço.", "Portal das Finanças → Consultar taxas do IMI"],
+  pcVpt:        ["Valor patrimonial", "O valor da caderneta predial, sobre o qual incide o IMI. Costuma ficar bem abaixo do preço de mercado.", ""],
+  pcEntrada:    ["Entrada", "A parte do preço que paga do seu bolso. Os bancos financiam até 90% da habitação própria; abaixo de 10% de entrada só com a garantia pública para jovens.", ""],
+  pcTaxas:      ["Taxas municipais", "Resíduos e saneamento, que chegam na fatura da água. Variam muito de município para município.", ""],
+  pcRetorno:    ["Rendimento do dinheiro", "O que a entrada e os custos de compra renderiam se, em vez de comprar, os investisse. É o custo de oportunidade de ser dono.", ""],
+  pcHorizonte:  ["Comparar ao fim de", "Quanto tempo tenciona ficar. Comprar tem custos de entrada e de saída pesados, e quanto mais curto o horizonte, mais pesam.", ""],
+  piCapital:    ["Capital disponível", "O mesmo dinheiro é posto nos três caminhos. Sem empréstimo, compra o imóvel que ele paga; com empréstimo, paga a entrada e os impostos de um maior.", ""],
+  piEtf:        ["ETF", "ETF de acumulação domiciliados na Irlanda: não pagam imposto até à venda, e no fim os ganhos pagam 28%.", ""],
+  piRegime:     ["Contrato de arrendamento", "A taxa sobre as rendas desce com a duração do contrato. A renda moderada só se aplica abaixo do teto mensal da lei.", ""],
+  piLtv:        ["Financiamento", "A parte do preço emprestada pelo banco. Fora da habitação própria, o Banco de Portugal não deixa passar dos 80%.", ""],
+  piVacancia:   ["Meses sem inquilino", "Entre um inquilino e o seguinte há quase sempre um intervalo. Um mês por ano é uma hipótese razoável.", ""],
+  piColetavel:  ["Rendimento coletável", "Serve para saber em que escalão de IRS cai a mais-valia da venda, de que metade é somada ao resto do rendimento. É estimado a partir das suas fontes de rendimento.", ""],
   /* Planear despesa */
   plValor:  ["Verba estimada", "O custo total previsto da compra, com instalação ou transporte se os houver. Pode afinar depois.", ""],
   plHorizonte:["Horizonte", "Até onde procurar a melhor altura. Compras maiores merecem horizontes maiores — há mais meses a acumular saldo.", ""],
@@ -2396,6 +2418,9 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  secEstrategia: ["Secções das estratégias", "Poupar e investir é o simulador por objetivo; Casa ou renda compara ser dono com arrendar no seu concelho; ETF ou imobiliário põe o mesmo capital nos dois caminhos; Rendimento disponível junta tudo e diz onde há euros por mês a ganhar.", ""],
+  planosRepor:   ["Repor as referências", "Devolve o preço, a renda e a taxa de IMI aos valores de referência do concelho escolhido, e a valorização à hipótese prudente.", ""],
+  planosHistorico:["Valorização histórica", "Usa a valorização média anual do concelho nos últimos cinco anos. Foram anos de subida forte — é um cenário otimista, não uma previsão.", ""],
   exemplo:    ["Carregar exemplo", "Preenche um agregado fictício completo para explorar a ferramenta. Apague tudo depois, em Definições.", ""],
   gerarPlano: ["Lançar plano", "Cria os movimentos deste mês a partir do plano: rubricas fixas, encargos dos ativos e prestações já decompostas em juros, amortização e seguros.", ""],
   limDoPlano: ["Preencher com o plano", "Define o limite de cada categoria com o valor que o plano prevê gastar nela.", ""],
@@ -2609,6 +2634,7 @@ function estadoVazio(){
     estrategia: {objetivo:"reforma", instrumento:"ppr", mensal:200, inicial:0, anos:25,
       crescAnual:0, inflacao:2, idade:40, precoCasa:250000, ltv:90, jovemImt:false,
       precoAuto:20000, mesesEmerg:6},
+    planos: {casa:{}, inv:{}}, // calculadores de casa e investimento: só o que se mudou
     planeadas: [],     // compras grandes com data pensada (Planear despesa)
     notas: {},         // mes ISO -> nota do mês («dezembro: férias»)
     fechados: {},      // mes ISO -> {em: dia} — meses arrumados no fecho guiado
@@ -2644,6 +2670,7 @@ let ui = {
   amortMetodo:"avalanche", amortExtra:150,
   perfil:{agregado:null, habitacao:"arrendada", regime:"credito"},
   secaoDespesa:"plano",      // plano | movimentos | limites | planear
+  secaoEstrategia:"simulador", // simulador | casa | investir | maximizar
   planPrefill: null,         // valor trazido do «Posso pagar isto?»
   abertos: {},               // id -> secção colapsável aberta
   simAtivo: null,            // {id, anos, contrib, cresc, taxa, reinv} do simulador em uso
@@ -2787,7 +2814,7 @@ function guardarSessao(){
     localStorage.setItem(SESSAO_KEY, JSON.stringify({
       preenchidos: campos.preenchidos,
       em: Date.now(), vista: VIEW, mes: MES,
-      secaoDespesa: ui.secaoDespesa, evolucaoMeses: ui.evolucaoMeses,
+      secaoDespesa: ui.secaoDespesa, secaoEstrategia: ui.secaoEstrategia, evolucaoMeses: ui.evolucaoMeses,
       abertos: ui.abertos, filtros: filtros,
       editando: {rd: editando.rd || null, pat: editando.pat || null, cr: editando.cr || null,
                  obj: editando.obj || null, rec: editando.rec || null, mov: editando.mov || null,
@@ -2831,6 +2858,8 @@ function restaurarSessao(){
     if (alias.sec) ui.secaoDespesa = alias.sec;
   } else if (VISTAS[s.vista]) VIEW = s.vista;
   if (s.secaoDespesa && !(alias && alias.sec)) ui.secaoDespesa = s.secaoDespesa;
+  if (alias && alias.secEst) ui.secaoEstrategia = alias.secEst;
+  else if (["simulador","casa","investir","maximizar"].indexOf(s.secaoEstrategia) >= 0) ui.secaoEstrategia = s.secaoEstrategia;
   if (s.evolucaoMeses) ui.evolucaoMeses = s.evolucaoMeses;
   if (s.abertos && typeof s.abertos === "object") ui.abertos = s.abertos;
   if (s.filtros && typeof s.filtros === "object") filtros = Object.assign(filtros, s.filtros);
@@ -2916,6 +2945,20 @@ function normalizar(d){
   out.limites     = (d.limites && typeof d.limites === "object" && !Array.isArray(d.limites)) ? d.limites : {};
   out.projecao    = Object.assign({}, base.projecao, (d.projecao && typeof d.projecao === "object") ? d.projecao : {});
   out.estrategia  = Object.assign({}, base.estrategia, (d.estrategia && typeof d.estrategia === "object") ? d.estrategia : {});
+  /* Planos: guardam-se só valores simples. Um nome de concelho que deixe de
+     existir, ou um número estragado, resolve-se na leitura (valores de referência). */
+  out.planos = {casa:{}, inv:{}};
+  if (d.planos && typeof d.planos === "object" && !Array.isArray(d.planos)){
+    ["casa", "inv"].forEach(k => {
+      const o = d.planos[k];
+      if (!o || typeof o !== "object" || Array.isArray(o)) return;
+      Object.keys(o).forEach(c => {
+        const v = o[c];
+        if (v === null || typeof v === "boolean" || typeof v === "string" ||
+            (typeof v === "number" && Number.isFinite(v))) out.planos[k][c] = v;
+      });
+    });
+  }
   // Notas do mês: só chaves que sejam meses, e texto com tecto — é uma nota,
   // não um diário, e o estado inteiro passa pelo histórico a cada alteração.
   out.notas = {};
@@ -9301,7 +9344,1126 @@ function cfgEstrategia(e, mensal, instrumento){
   };
 }
 
+/* ===============================================================
+   Planos — casa ou renda, ETF ou imobiliário, rendimento disponível
+
+   Três calculadores que respondem às perguntas grandes de um
+   orçamento familiar, e que partilham as mesmas contas:
+
+     · Casa ou renda — quanto custa por mês ser dono de uma casa no
+       concelho escolhido (prestação, IMI à taxa do município, AIMI,
+       seguros, condomínio, manutenção, taxas municipais) e quanto
+       custa arrendá-la, no imediato e ao fim de N anos.
+     · ETF ou imobiliário — o mesmo capital posto num ETF ou num
+       imóvel para arrendar, sem e com empréstimo, cada um com a sua
+       fiscalidade até ao fim (mais-valias, rendas, IMT, selo).
+     · Rendimento disponível — junta o que a aplicação sabe do
+       agregado e diz onde há euros por mês a ganhar.
+
+   Os dados de mercado (preço e renda por m², valorização, taxa de
+   IMI por concelho e freguesia de Lisboa, retornos dos ETF) são
+   valores de REFERÊNCIA aproximados, para pôr as contas na ordem de
+   grandeza certa — não são tabelas oficiais. Cada um é editável, e
+   o ecrã diz onde se confirma.
+   =============================================================== */
+
+const DADOS_IMO_NOTA =
+  "Valores de referência aproximados, na ordem de grandeza das séries publicadas pelo INE "+
+  "até 2025 (preço mediano por m² nas vendas e nos novos contratos de arrendamento), "+
+  "arredondados. Não são a tabela oficial: confirme no INE antes de decidir.";
+const IMI_NOTA =
+  "A taxa de IMI é fixada todos os anos por cada município, entre 0,3% e 0,45%. A que aparece "+
+  "aqui é uma referência — confirme a do seu município no Portal das Finanças, em "+
+  "«Consultar taxas do IMI».";
+
+/* [concelho, região, IMI (%), venda €/m², valorização média anual nos últimos
+   cinco anos (%), renda €/m² por mês]. Primeiro a referência nacional, depois
+   os concelhos por região. */
+const CONCELHOS_REF = [
+  ["Portugal (mediana nacional)", "Referência",        0.35,  1950,  9.0,  8.5],
+  ["Lisboa",                "Área Metropolitana de Lisboa", 0.30, 4600,  6.5, 16.5],
+  ["Cascais",               "Área Metropolitana de Lisboa", 0.30, 4400,  8.0, 15.0],
+  ["Oeiras",                "Área Metropolitana de Lisboa", 0.30, 3800,  8.5, 14.5],
+  ["Sintra",                "Área Metropolitana de Lisboa", 0.30, 2600, 10.0, 11.0],
+  ["Amadora",               "Área Metropolitana de Lisboa", 0.30, 2900, 10.5, 12.5],
+  ["Odivelas",              "Área Metropolitana de Lisboa", 0.35, 2700, 10.5, 11.5],
+  ["Loures",                "Área Metropolitana de Lisboa", 0.33, 2600, 10.0, 11.0],
+  ["Vila Franca de Xira",   "Área Metropolitana de Lisboa", 0.35, 2100, 10.5,  9.5],
+  ["Mafra",                 "Área Metropolitana de Lisboa", 0.30, 2700, 10.0, 11.0],
+  ["Almada",                "Área Metropolitana de Lisboa", 0.35, 2700, 10.0, 11.5],
+  ["Seixal",                "Área Metropolitana de Lisboa", 0.35, 2300, 11.0, 10.0],
+  ["Barreiro",              "Área Metropolitana de Lisboa", 0.38, 1900, 12.0,  9.0],
+  ["Montijo",               "Área Metropolitana de Lisboa", 0.35, 2300, 11.0,  9.5],
+  ["Setúbal",               "Área Metropolitana de Lisboa", 0.37, 2200, 11.0,  9.5],
+  ["Sesimbra",              "Área Metropolitana de Lisboa", 0.35, 2400, 10.0,  9.5],
+  ["Palmela",               "Área Metropolitana de Lisboa", 0.35, 2000, 10.0,  8.5],
+  ["Porto",                 "Área Metropolitana do Porto",  0.324, 3500, 10.0, 14.0],
+  ["Vila Nova de Gaia",     "Área Metropolitana do Porto",  0.35, 2500, 11.0, 10.5],
+  ["Matosinhos",            "Área Metropolitana do Porto",  0.325, 2900, 10.5, 11.5],
+  ["Maia",                  "Área Metropolitana do Porto",  0.30, 2300, 10.5,  9.5],
+  ["Gondomar",              "Área Metropolitana do Porto",  0.35, 1900, 11.0,  8.5],
+  ["Valongo",               "Área Metropolitana do Porto",  0.35, 1700, 11.0,  8.0],
+  ["Póvoa de Varzim",       "Área Metropolitana do Porto",  0.33, 2200, 10.0,  9.0],
+  ["Vila do Conde",         "Área Metropolitana do Porto",  0.35, 2100, 10.0,  8.5],
+  ["Braga",                 "Norte",   0.30, 2000, 11.0, 9.0],
+  ["Guimarães",             "Norte",   0.30, 1500, 10.0, 7.0],
+  ["Viana do Castelo",      "Norte",   0.30, 1500,  9.0, 7.0],
+  ["Vila Real",             "Norte",   0.30, 1100,  8.0, 6.0],
+  ["Bragança",              "Norte",   0.30,  900,  6.0, 5.0],
+  ["Aveiro",                "Centro",  0.30, 2100, 11.0, 9.0],
+  ["Coimbra",               "Centro",  0.30, 1900,  9.5, 9.0],
+  ["Viseu",                 "Centro",  0.30, 1300,  8.5, 6.0],
+  ["Leiria",                "Centro",  0.30, 1600, 10.0, 7.0],
+  ["Guarda",                "Centro",  0.30,  700,  5.0, 4.5],
+  ["Castelo Branco",        "Centro",  0.30,  850,  6.0, 5.0],
+  ["Santarém",              "Centro",  0.35, 1200,  9.0, 6.0],
+  ["Portalegre",            "Alentejo", 0.35,  700, 5.0, 4.5],
+  ["Évora",                 "Alentejo", 0.30, 1900, 9.0, 8.0],
+  ["Beja",                  "Alentejo", 0.30, 1000, 7.0, 5.0],
+  ["Faro",                  "Algarve", 0.30, 2600, 9.5, 10.5],
+  ["Loulé",                 "Algarve", 0.30, 3800, 9.0, 12.0],
+  ["Albufeira",             "Algarve", 0.30, 3000, 9.5, 11.0],
+  ["Lagos",                 "Algarve", 0.30, 3400, 9.0, 11.5],
+  ["Portimão",              "Algarve", 0.32, 2600, 10.0, 10.0],
+  ["Tavira",                "Algarve", 0.30, 2700, 9.5, 9.5],
+  ["Funchal",               "Região Autónoma da Madeira", 0.30, 2700, 11.0, 11.0],
+  ["Ponta Delgada",         "Região Autónoma dos Açores", 0.30, 1600, 10.5, 8.0],
+];
+
+/* As 24 freguesias de Lisboa: [freguesia, venda €/m², valorização média
+   anual nos últimos cinco anos (%), renda €/m² por mês]. O centro histórico
+   é o mais caro e o que menos subiu; a zona oriental partiu de mais baixo e
+   subiu mais depressa. */
+const FREGUESIAS_LISBOA = [
+  ["Ajuda",                    4000, 7.0, 14.5],
+  ["Alcântara",                4700, 6.5, 16.5],
+  ["Alvalade",                 4900, 6.0, 16.5],
+  ["Areeiro",                  4800, 6.0, 16.5],
+  ["Arroios",                  4600, 6.5, 16.5],
+  ["Avenidas Novas",           5400, 5.5, 17.5],
+  ["Beato",                    4000, 8.5, 15.0],
+  ["Belém",                    5200, 6.0, 17.0],
+  ["Benfica",                  3900, 6.5, 14.5],
+  ["Campo de Ourique",         5300, 5.5, 17.5],
+  ["Campolide",                4500, 6.5, 16.0],
+  ["Carnide",                  3800, 7.0, 14.0],
+  ["Estrela",                  5600, 5.0, 18.0],
+  ["Lumiar",                   4300, 6.5, 15.5],
+  ["Marvila",                  3500, 9.5, 14.0],
+  ["Misericórdia",             6000, 4.5, 19.0],
+  ["Olivais",                  3700, 7.5, 14.0],
+  ["Parque das Nações",        5600, 6.0, 18.0],
+  ["Penha de França",          4200, 7.0, 15.5],
+  ["Santa Clara",              3000, 9.5, 12.5],
+  ["Santa Maria Maior",        5500, 4.5, 19.5],
+  ["Santo António",            6200, 4.5, 19.5],
+  ["São Domingos de Benfica",  4400, 6.5, 15.5],
+  ["São Vicente",              4700, 6.0, 17.0],
+];
+
+/* Os ETF de acumulação domiciliados na Irlanda que um investidor em Portugal
+   costuma ter à mão. `hist10` é o retorno anual médio aproximado dos últimos
+   dez anos, em euros, antes da comissão; `prudente` é uma hipótese para o
+   futuro, mais baixa, porque os dez anos passados foram dos melhores da
+   história; `pior` é a ordem de grandeza da pior queda num ano civil. */
+const ETFS_REF = {
+  vwce: {lbl:"Vanguard FTSE All-World", ticker:"VWCE", indice:"Ações do mundo inteiro, desenvolvidos e emergentes",
+         ter:0.19, hist10:10.5, prudente:6.5, pior:-37},
+  iwda: {lbl:"iShares Core MSCI World", ticker:"IWDA", indice:"Ações dos países desenvolvidos",
+         ter:0.20, hist10:11.0, prudente:6.5, pior:-37},
+  cspx: {lbl:"iShares Core S&P 500", ticker:"CSPX", indice:"As 500 maiores empresas americanas",
+         ter:0.07, hist10:13.5, prudente:7.0, pior:-35},
+  cndx: {lbl:"iShares Nasdaq 100", ticker:"CNDX", indice:"As 100 maiores tecnológicas do Nasdaq",
+         ter:0.33, hist10:17.5, prudente:7.5, pior:-40},
+  eimi: {lbl:"iShares Core MSCI EM IMI", ticker:"EIMI", indice:"Ações dos países emergentes",
+         ter:0.18, hist10:6.0, prudente:6.0, pior:-50},
+  exsa: {lbl:"iShares STOXX Europe 600", ticker:"EXSA", indice:"As 600 maiores empresas europeias",
+         ter:0.20, hist10:6.5, prudente:5.5, pior:-43},
+  aggh: {lbl:"iShares Core Global Aggregate Bond (EUR)", ticker:"AGGH", indice:"Obrigações do mundo inteiro, com cobertura cambial",
+         ter:0.10, hist10:0.5, prudente:2.5, pior:-13},
+};
+
+/* IMT 2026 — Continente, habitação que não é própria e permanente
+   (arrendamento, segunda habitação). Mesmo método da tabela de habitação
+   própria: valor × taxa − parcela a abater, com os dois últimos escalões a
+   taxa única. A diferença está no primeiro escalão, que aqui paga 1%. */
+const IMT_SEC_2026 = [
+  {ate:106346,   taxa:1,   abater:0,        unica:false},
+  {ate:145470,   taxa:2,   abater:1063.46,  unica:false},
+  {ate:198347,   taxa:5,   abater:5427.56,  unica:false},
+  {ate:330539,   taxa:7,   abater:9394.50,  unica:false},
+  {ate:660982,   taxa:8,   abater:12699.89, unica:false},
+  {ate:1150853,  taxa:6,   abater:0,        unica:true},
+  {ate:Infinity, taxa:7.5, abater:0,        unica:true},
+];
+function imtSecundaria(preco){
+  const v = Math.max(0, parseNum(preco));
+  if (v <= 0) return 0;
+  const e = IMT_SEC_2026.find(x => v <= x.ate) || IMT_SEC_2026[IMT_SEC_2026.length - 1];
+  return e.unica ? v * e.taxa / 100 : Math.max(0, v * e.taxa / 100 - e.abater);
+}
+
+/* Escalões do IRS de 2026 (taxas gerais, Continente). Servem para a parte da
+   mais-valia imobiliária que é englobada — metade do ganho, somada ao resto
+   do rendimento. Confirmar na lei do Orçamento do Estado do ano. */
+const IRS_ESCALOES_2026 = [
+  {ate:8342,     taxa:12.5},
+  {ate:12587,    taxa:15.7},
+  {ate:17838,    taxa:21.2},
+  {ate:23089,    taxa:24.1},
+  {ate:29397,    taxa:31.1},
+  {ate:43090,    taxa:34.9},
+  {ate:46566,    taxa:43.1},
+  {ate:86634,    taxa:44.6},
+  {ate:Infinity, taxa:48.0},
+];
+/** IRS sobre um rendimento coletável, pelos escalões (sem deduções à coleta). */
+function irsPorEscaloes(coletavel){
+  let resto = Math.max(0, parseNum(coletavel)), antes = 0, imposto = 0;
+  for (const e of IRS_ESCALOES_2026){
+    const fatia = Math.min(resto, e.ate - antes);
+    if (fatia <= 0) break;
+    imposto += fatia * e.taxa / 100;
+    resto -= fatia; antes = e.ate;
+  }
+  return imposto;
+}
+/** Taxa do escalão onde cai um rendimento coletável (%). */
+function taxaMarginalIRS(coletavel){
+  const c = Math.max(0, parseNum(coletavel));
+  return (IRS_ESCALOES_2026.find(e => c <= e.ate) || IRS_ESCALOES_2026[IRS_ESCALOES_2026.length - 1]).taxa;
+}
+
+const DEDUCAO_ESPECIFICA_2026 = 4587.09;   // 8,54 × IAS de 2026, por titular de categoria A
+const IMI_FAMILIAR = [0, 30, 70, 140];      // dedução ao IMI por n.º de dependentes (1, 2, 3 ou mais)
+const IMI_ISENCAO_VPT = 125000;             // isenção de 3 anos da habitação própria (EBF art.º 46.º)
+const IMI_ISENCAO_ANOS = 3;
+const AIMI_LIMITE = 600000, AIMI_TAXA = 0.7; // adicional ao IMI, sobre o VPT acima do limite
+const IS_CREDITO = 0.6;                     // imposto do selo sobre o montante de um empréstimo a 5 anos ou mais (%)
+const DEDUCAO_RENDA = {pct:15, limite:800}; // rendas de habitação própria no IRS, 2026 (confirmar)
+const CUSTOS_VENDA_PCT = 6.15;              // comissão de mediação de 5% mais IVA
+const SEGURO_VIDA_MES_PCT = 0.02;           // seguro de vida do crédito, % do capital em dívida por mês
+const SEGURO_MULTI_ANO_PCT = 0.08;          // multirriscos, % do valor do imóvel por ano
+const INFLACAO_PLANOS = 2;                  // atualização anual de condomínio e taxas (%)
+const TAXA_MAIS_VALIAS = 28;                // ETF e carteira: taxa autónoma das mais-valias (%)
+const LTV_MAX_INVESTIMENTO = 80;            // teto do Banco de Portugal fora da habitação própria (%)
+/* Abaixo disto não se compra uma casa: um T0 pequeno anda pelos 25–30 m². Se
+   o capital só paga menos do que isto no concelho escolhido, a conta faz-se
+   na mesma — mas diz-se que o imóvel não existe, em vez de o apresentar. */
+const AREA_MINIMA_REALISTA = 25;
+
+const PLANOS_PADRAO = {
+  casa: {concelho:"Lisboa", freguesia:"", area:90, preco:null, renda:null, imi:null,
+         entrada:10, tan:3.3, prazo:35, vptPct:55, condominio:50, manutencao:0.5,
+         taxasMun:15, aumentoRenda:2.2, horizonte:10, valorizacao:3, retornoAlt:6,
+         jovem:false, imiFamiliar:true, isencaoHpp:true, custosVenda:true},
+  inv:  {capital:60000, horizonte:15, etf:"vwce", retEtf:null,
+         concelho:"Lisboa", freguesia:"", imi:null, valorizacao:3, aumentoRenda:2.2,
+         vacancia:1, gestao:0, condominioM2:0.5, manutencao:1, vptPct:55,
+         regime:"0", tan:3.5, prazo:30, ltv:80, coletavel:null},
+};
+
+const concelhoPorNome = (n) => CONCELHOS_REF.find(c => c[0] === n) || CONCELHOS_REF[1];
+/** Referência de mercado de um concelho — e da freguesia, em Lisboa. */
+function localRef(concelho, freguesia){
+  const c = concelhoPorNome(concelho);
+  const r = {concelho:c[0], regiao:c[1], imi:c[2], m2:c[3], cresc:c[4], renda:c[5], freguesia:""};
+  if (c[0] === "Lisboa" && freguesia){
+    const f = FREGUESIAS_LISBOA.find(x => x[0] === freguesia);
+    if (f) Object.assign(r, {freguesia:f[0], m2:f[1], cresc:f[2], renda:f[3]});
+  }
+  r.nome = r.freguesia ? r.freguesia + " (Lisboa)" : r.concelho;
+  return r;
+}
+
+const limitar = (v, a, b) => Math.min(b, Math.max(a, v));
+const temValor = (v) => v != null && v !== "" && Number.isFinite(parseNum(v));
+const pct3 = (n) => (Number.isFinite(n) ? n : 0).toLocaleString("pt-PT",
+  {minimumFractionDigits:2, maximumFractionDigits:3}) + "%";
+
+/** Prestação constante de um empréstimo (método francês). */
+function pmt(capital, tanPct, meses){
+  const P = Math.max(0, parseNum(capital)), n = Math.max(1, Math.round(parseNum(meses)));
+  const i = Math.max(0, parseNum(tanPct)) / 100 / 12;
+  if (P <= 0) return 0;
+  return i === 0 ? P / n : P * i / (1 - Math.pow(1 + i, -n));
+}
+
+/** Taxa interna de rendibilidade anual de uma série de fluxos mensais. */
+function tirAnual(fluxos){
+  const vpl = (r) => fluxos.reduce((s, f, t) => s + f / Math.pow(1 + r, t), 0);
+  let lo = -0.09, hi = 0.09, flo = vpl(lo), fhi = vpl(hi);
+  if (!Number.isFinite(flo) || !Number.isFinite(fhi) || flo * fhi > 0) return null;
+  for (let k = 0; k < 80; k++){
+    const mid = (lo + hi) / 2, fm = vpl(mid);
+    if (flo * fm <= 0){ hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+  }
+  return (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100;
+}
+
+/* Rendimento coletável do agregado, estimado a partir das fontes ativas: o
+   bruto anual de trabalho e pensões, menos a Segurança Social ou a dedução
+   específica, o que for maior. Casados com tributação conjunta dividem por
+   dois (quociente conjugal). É uma estimativa — serve para saber em que
+   escalão cai a mais-valia de uma venda. */
+function coletavelAgregado(){
+  let bruto = 0, ss = 0;
+  const titulares = new Set();
+  (S.rendimentos || []).filter(r => r.ativo !== false).forEach(rd => {
+    const fx = fiscalRendimento(rd);
+    if (fx.baseIRS > 0){
+      bruto += fx.baseIRS * 12; ss += fx.ss * 12;
+      titulares.add(rd.membroId || rd.id);
+    }
+  });
+  const deducao = Math.max(titulares.size * DEDUCAO_ESPECIFICA_2026, ss);
+  const coletavel = Math.max(0, bruto - deducao);
+  const casado = /^casado/.test(S.fiscal.estadoCivil || "");
+  return {coletavel, quociente: casado ? 2 : 1};
+}
+/** IRS a mais por somar `extra` ao rendimento coletável do agregado. */
+function irsIncremental(extra, base){
+  const b = base || coletavelAgregado();
+  const q = b.quociente || 1, c = Math.max(0, b.coletavel);
+  const e = Math.max(0, parseNum(extra));
+  return q * (irsPorEscaloes((c + e) / q) - irsPorEscaloes(c / q));
+}
+
+/* ---------------------------------------------------------------
+   Casa ou renda
+   --------------------------------------------------------------- */
+function paramsCasa(){
+  const p = Object.assign({}, PLANOS_PADRAO.casa, (S.planos && S.planos.casa) || {});
+  const loc = localRef(p.concelho, p.freguesia);
+  const area = limitar(parseNum(p.area) || 90, 20, 600);
+  return Object.assign(p, {
+    loc, area,
+    precoAuto: !temValor(p.preco), rendaAuto: !temValor(p.renda), imiAuto: !temValor(p.imi),
+    preco: temValor(p.preco) ? parseNum(p.preco) : Math.round(area * loc.m2 / 1000) * 1000,
+    renda: temValor(p.renda) ? parseNum(p.renda) : Math.round(area * loc.renda / 10) * 10,
+    imi: temValor(p.imi) ? parseNum(p.imi) : loc.imi,
+    entrada: limitar(parseNum(p.entrada), 0, 100),
+    tan: Math.max(0, parseNum(p.tan)),
+    prazo: limitar(Math.round(parseNum(p.prazo) || 35), 1, 40),
+    horizonte: limitar(Math.round(parseNum(p.horizonte) || 10), 1, 40),
+  });
+}
+
+function calcCasa(pp){
+  const p = pp || paramsCasa();
+  const preco = Math.max(0, p.preco);
+  const capital = preco * (1 - p.entrada / 100);
+  const entrada = preco - capital;
+  const isentoJovem = !!p.jovem && preco <= ISENCAO_JOVEM_IMT;
+  const imt = imtCompra(preco, p.jovem);
+  const selo = isentoJovem ? 0 : preco * IS_COMPRA_CASA / 100;
+  const seloCredito = capital * IS_CREDITO / 100;
+  const custosCompra = imt + selo + seloCredito + CUSTOS_ESCRITURA;
+  const necessario = entrada + custosCompra;
+
+  const meses = p.prazo * 12, i = p.tan / 100 / 12;
+  const prestacao = capital > 0 ? pmt(capital, p.tan, meses) : 0;
+  const vpt = preco * parseNum(p.vptPct) / 100;
+  const dependentes = Math.max(0, Math.round(parseNum(S.fiscal.dependentes)));
+  const dedFamiliar = p.imiFamiliar ? IMI_FAMILIAR[Math.min(3, dependentes)] : 0;
+  const imiAnual = Math.max(0, vpt * p.imi / 100 - dedFamiliar);
+  const isencao = !!p.isencaoHpp && vpt <= IMI_ISENCAO_VPT;
+  const aimiAnual = Math.max(0, vpt - AIMI_LIMITE) * AIMI_TAXA / 100;
+  const seguroMulti = preco * SEGURO_MULTI_ANO_PCT / 100 / 12;
+  const manutencao = preco * parseNum(p.manutencao) / 100 / 12;
+
+  // O primeiro ano do crédito: quanto da prestação é juro e quanto é capital
+  let saldo = capital, juros1 = 0, amort1 = 0, seguroVida1 = 0;
+  for (let m = 0; m < 12 && m < meses && saldo > 0; m++){
+    const j = saldo * i, a = Math.min(saldo, prestacao - j);
+    seguroVida1 += saldo * SEGURO_VIDA_MES_PCT / 100;
+    juros1 += j; amort1 += a; saldo -= a;
+  }
+  const imiAno1 = isencao ? 0 : imiAnual;
+  const parcelas = [
+    ["Prestação do empréstimo", prestacao],
+    ["IMI" + (isencao ? " (isento nos 3 primeiros anos)" : ""), imiAno1 / 12],
+    ["Adicional ao IMI", aimiAnual / 12],
+    ["Seguro de vida do crédito", seguroVida1 / 12],
+    ["Seguro multirriscos", seguroMulti],
+    ["Condomínio", parseNum(p.condominio)],
+    ["Manutenção e obras", manutencao],
+    ["Taxas municipais (resíduos e saneamento)", parseNum(p.taxasMun)],
+  ].filter(x => x[1] > 0.005);
+  const saidaMes = parcelas.reduce((s, x) => s + x[1], 0);
+
+  /* O custo económico: o que se perde mesmo, mês a mês. A amortização de
+     capital não é custo — fica na casa — mas o rendimento que a entrada
+     deixaria de dar investida é, e a valorização esperada abate-se. */
+  const retAltLiq = parseNum(p.retornoAlt) * (1 - TAXA_MAIS_VALIAS / 100);
+  const oportunidade = necessario * retAltLiq / 100 / 12;
+  const valorizacao = preco * parseNum(p.valorizacao) / 100 / 12;
+  const custoEfetivo = saidaMes - amort1 / 12 + oportunidade - valorizacao;
+
+  const dedRenda = Math.min(p.renda * 12 * DEDUCAO_RENDA.pct / 100, DEDUCAO_RENDA.limite) / 12;
+  const rendaLiquida = p.renda - dedRenda;
+
+  /* Ao fim de N anos. Os dois partem com o mesmo dinheiro: quem arrenda
+     investe o que o dono gastou a comprar (entrada e custos). Daí em diante,
+     mês a mês, quem tem a saída mais baixa investe a diferença. No fim, o
+     dono tem a casa (vendida, se se contar com os custos de venda) menos a
+     dívida, e cada um a sua carteira depois do imposto sobre os ganhos. */
+  const g = parseNum(p.valorizacao) / 100, ra = Math.pow(1 + parseNum(p.retornoAlt) / 100, 1 / 12) - 1;
+  const n = p.horizonte * 12;
+  let sal = capital, renda = p.renda, condo = parseNum(p.condominio), taxas = parseNum(p.taxasMun);
+  let O = 0, Ob = 0, R = necessario, Rb = necessario;
+  const anos = [], liq = (v, b) => v - Math.max(0, v - b) * TAXA_MAIS_VALIAS / 100;
+  const patDono = (ano) => {
+    const valor = preco * Math.pow(1 + g, ano);
+    return valor * (1 - (p.custosVenda ? CUSTOS_VENDA_PCT / 100 : 0)) - sal + liq(O, Ob);
+  };
+  anos.push({ano:0, dono: patDono(0), inquilino: necessario});
+  for (let t = 0; t < n; t++){
+    const ano = Math.floor(t / 12);
+    if (t > 0 && t % 12 === 0){
+      renda *= 1 + parseNum(p.aumentoRenda) / 100;
+      condo *= 1 + INFLACAO_PLANOS / 100; taxas *= 1 + INFLACAO_PLANOS / 100;
+    }
+    const valor = preco * Math.pow(1 + g, t / 12);
+    let prest = 0;
+    if (t < meses && sal > 0){
+      const j = sal * i; prest = Math.min(prestacao, sal + j);
+      sal = Math.max(0, sal - (prest - j));
+    }
+    const imi = (isencao && ano < IMI_ISENCAO_ANOS) ? 0 : imiAnual;
+    const dono = prest + imi / 12 + aimiAnual / 12 + sal * SEGURO_VIDA_MES_PCT / 100 + seguroMulti +
+                 condo + valor * parseNum(p.manutencao) / 100 / 12 + taxas;
+    const inq = renda - Math.min(renda * 12 * DEDUCAO_RENDA.pct / 100, DEDUCAO_RENDA.limite) / 12;
+    O *= 1 + ra; R *= 1 + ra;
+    const d = dono - inq;
+    if (d > 0){ R += d; Rb += d; } else { O -= d; Ob -= d; }
+    if ((t + 1) % 12 === 0) anos.push({ano: ano + 1, dono: patDono(ano + 1), inquilino: liq(R, Rb)});
+  }
+  const fim = anos[anos.length - 1];
+  const equilibrio = (anos.find(a => a.ano > 0 && a.dono >= a.inquilino) || {}).ano || null;
+
+  return {p, preco, capital, entrada, imt, selo, seloCredito, custosCompra, necessario, isentoJovem,
+          prestacao, vpt, imiAnual, imiAno1, isencao, dedFamiliar, aimiAnual, parcelas, saidaMes,
+          juros1, amort1, oportunidade, valorizacao, custoEfetivo, dedRenda, rendaLiquida,
+          anos, fim, equilibrio, ltvAcima: p.entrada < 10};
+}
+
+/* ---------------------------------------------------------------
+   ETF ou imobiliário
+   --------------------------------------------------------------- */
+function paramsInvestir(){
+  const p = Object.assign({}, PLANOS_PADRAO.inv, (S.planos && S.planos.inv) || {});
+  const loc = localRef(p.concelho, p.freguesia);
+  const etf = ETFS_REF[p.etf] ? p.etf : "vwce";
+  return Object.assign(p, {
+    loc, etf, etfRef: ETFS_REF[etf],
+    retAuto: !temValor(p.retEtf), imiAuto: !temValor(p.imi), coletavelAuto: !temValor(p.coletavel),
+    retEtf: temValor(p.retEtf) ? parseNum(p.retEtf) : ETFS_REF[etf].prudente,
+    imi: temValor(p.imi) ? parseNum(p.imi) : loc.imi,
+    capital: Math.max(0, parseNum(p.capital)),
+    horizonte: limitar(Math.round(parseNum(p.horizonte) || 15), 1, 40),
+    /* O Banco de Portugal limita a 80% o financiamento de habitação que não é
+       própria e permanente — é o teto de um imóvel para arrendar. */
+    ltv: limitar(parseNum(p.ltv), 0, LTV_MAX_INVESTIMENTO),
+    prazo: limitar(Math.round(parseNum(p.prazo) || 30), 1, 40),
+    coletavel: temValor(p.coletavel) ? parseNum(p.coletavel) : coletavelAgregado().coletavel,
+  });
+}
+
+/** Regime de tributação das rendas a partir da escolha no ecrã. */
+function taxaRendaPlano(regime, rendaMensal){
+  const a = {contratoAnos: 0, contratoModerada: false,
+             rendimentos: [{valor: rendaMensal, frequencia: "mensal"}]};
+  if (regime === "m") a.contratoModerada = true;
+  else a.contratoAnos = parseNum(regime);
+  const taxa = taxaRenda(a);
+  return {taxa, moderadaRecusada: regime === "m" && !elegivelRendaModerada(a)};
+}
+
+/** Custo de entrar num imóvel para arrendar, dado o preço e a parte financiada. */
+function custoEntradaImovel(preco, ltv){
+  const credito = preco * ltv;
+  return preco - credito + imtSecundaria(preco) + preco * IS_COMPRA_CASA / 100 +
+         credito * IS_CREDITO / 100 + CUSTOS_ESCRITURA;
+}
+/** Preço máximo de um imóvel que um capital paga, com uma parte financiada. */
+function precoQueCabe(capital, ltv){
+  if (capital <= CUSTOS_ESCRITURA) return 0;
+  let lo = 0, hi = capital / Math.max(0.05, 1 - ltv) + 1;
+  for (let k = 0; k < 70; k++){
+    const mid = (lo + hi) / 2;
+    if (custoEntradaImovel(mid, ltv) <= capital) lo = mid; else hi = mid;
+  }
+  return Math.floor(lo / 100) * 100;
+}
+
+/** ETF com o capital inicial e reforços em meses certos; valor depois do imposto. */
+function simularEtf(capital, reforcos, meses, retPct, ter){
+  const r = Math.pow(1 + (parseNum(retPct) - parseNum(ter)) / 100, 1 / 12) - 1;
+  let v = capital, base = capital;
+  for (let t = 0; t < meses; t++){
+    v *= 1 + r;
+    const ref = reforcos ? (reforcos[t] || 0) : 0;
+    v += ref; base += ref;
+  }
+  const imposto = Math.max(0, v - base) * TAXA_MAIS_VALIAS / 100;
+  return {bruto: v, base, imposto, liquido: v - imposto};
+}
+
+/**
+ * Um imóvel comprado com o capital disponível e arrendado durante o
+ * horizonte, vendido no fim. Os excedentes mensais das rendas vão para o
+ * mesmo ETF; quando as rendas não chegam, o que falta sai do bolso e fica
+ * registado, para o ETF poder ser comparado com o mesmo dinheiro.
+ */
+function simularImovel(q, ltv){
+  const loc = q.loc;
+  const preco = precoQueCabe(q.capital, ltv);
+  if (preco <= 0) return null;
+  const area = preco / loc.m2;
+  const credito = preco * ltv;
+  const imt = imtSecundaria(preco), selo = preco * IS_COMPRA_CASA / 100, seloCredito = credito * IS_CREDITO / 100;
+  const meses = q.horizonte * 12, prazoM = q.prazo * 12, i = q.tan / 100 / 12;
+  const prestacao = credito > 0 ? pmt(credito, q.tan, prazoM) : 0;
+  const vpt = preco * parseNum(q.vptPct) / 100;
+  const imiAnual = vpt * q.imi / 100, aimiAnual = Math.max(0, vpt - AIMI_LIMITE) * AIMI_TAXA / 100;
+  const g = parseNum(q.valorizacao) / 100;
+  const re = Math.pow(1 + (q.retEtf - q.etfRef.ter) / 100, 1 / 12) - 1;
+
+  let renda = area * loc.renda, condo = area * parseNum(q.condominioM2), sal = credito;
+  let E = 0, Eb = 0, tributavelAno = 0, impostoRendas = 0, rendasBrutas = 0;
+  const reforcos = new Array(meses).fill(0);
+  const regime = taxaRendaPlano(q.regime, renda);
+  let fluxoAno1 = 0, taxaRendaAno1 = regime.taxa;
+  for (let t = 0; t < meses; t++){
+    if (t > 0 && t % 12 === 0){
+      renda *= 1 + parseNum(q.aumentoRenda) / 100;
+      condo *= 1 + INFLACAO_PLANOS / 100;
+    }
+    const valor = preco * Math.pow(1 + g, t / 12);
+    const efetiva = renda * (12 - limitar(parseNum(q.vacancia), 0, 12)) / 12;
+    const despesas = imiAnual / 12 + aimiAnual / 12 + condo + valor * SEGURO_MULTI_ANO_PCT / 100 / 12 +
+                     valor * parseNum(q.manutencao) / 100 / 12 + efetiva * parseNum(q.gestao) / 100;
+    let prest = 0, vida = 0;
+    if (t < prazoM && sal > 0){
+      const j = sal * i; prest = Math.min(prestacao, sal + j);
+      vida = sal * SEGURO_VIDA_MES_PCT / 100;
+      sal = Math.max(0, sal - (prest - j));
+    }
+    // Categoria F: dedutíveis todos os gastos menos os financeiros. O imposto
+    // apura-se no fim de cada ano, sobre o resultado do ano.
+    tributavelAno += efetiva - despesas;
+    rendasBrutas += efetiva;
+    let imposto = 0;
+    if ((t + 1) % 12 === 0){
+      const taxa = taxaRendaPlano(q.regime, renda).taxa;
+      imposto = Math.max(0, tributavelAno) * taxa / 100;
+      impostoRendas += imposto; tributavelAno = 0;
+    }
+    const fluxo = efetiva - despesas - prest - vida - imposto;
+    if (t < 12) fluxoAno1 += fluxo;
+    E *= 1 + re;
+    if (fluxo >= 0){ E += fluxo; Eb += fluxo; }
+    else {
+      /* Um mês negativo — o imposto do ano, um mês sem inquilino — paga-se
+         primeiro com o que as rendas já tinham posto de lado; só o que faltar
+         sai do bolso. Sem isto, o imposto anual contava como dinheiro novo
+         mesmo havendo excedentes guardados, e o imóvel saía penalizado. */
+      const falta = -fluxo, usa = Math.min(falta, E);
+      if (usa > 0){ Eb -= Eb * usa / E; E -= usa; }
+      reforcos[t] = falta - usa;
+    }
+  }
+  const venda = preco * Math.pow(1 + g, q.horizonte);
+  const custosVenda = venda * CUSTOS_VENDA_PCT / 100;
+  const coef = q.horizonte >= 2 ? Math.pow(1 + INFLACAO_PLANOS / 100, q.horizonte) : 1;
+  const maisValia = venda - custosVenda - preco * coef - imt - selo - CUSTOS_ESCRITURA;
+  const impostoMV = maisValia > 0 ? irsIncremental(maisValia * 0.5, {coletavel: q.coletavel, quociente: coletavelAgregado().quociente}) : 0;
+  const carteira = E - Math.max(0, E - Eb) * TAXA_MAIS_VALIAS / 100;
+  const liquido = venda - custosVenda - sal - impostoMV + carteira;
+  const doBolso = reforcos.reduce((s, x) => s + x, 0);
+
+  const fluxos = new Array(meses + 1).fill(0);
+  fluxos[0] = -q.capital;
+  reforcos.forEach((x, t) => { fluxos[t + 1] -= x; });
+  fluxos[meses] += liquido;
+
+  return {ltv, preco, area, credito, prestacao, imt, selo, seloCredito, rendaInicial: area * loc.renda,
+          irrealista: area < AREA_MINIMA_REALISTA,
+          taxaRenda: taxaRendaAno1, moderadaRecusada: regime.moderadaRecusada,
+          imiAnual, aimiAnual, fluxoMesAno1: fluxoAno1 / 12, impostoRendas, rendasBrutas,
+          venda, custosVenda, maisValia, impostoMV, divida: sal, carteira, liquido, doBolso, reforcos,
+          ganho: liquido - q.capital - doBolso, tir: tirAnual(fluxos),
+          etfIgual: simularEtf(q.capital, reforcos, meses, q.retEtf, q.etfRef.ter)};
+}
+
+function calcInvestir(pp){
+  const q = pp || paramsInvestir();
+  const meses = q.horizonte * 12;
+  const etf = simularEtf(q.capital, null, meses, q.retEtf, q.etfRef.ter);
+  const fluxosEtf = new Array(meses + 1).fill(0);
+  fluxosEtf[0] = -q.capital; fluxosEtf[meses] += etf.liquido;
+  const cenarios = [
+    {k:"etf", lbl:"ETF " + q.etfRef.ticker, liquido: etf.liquido, doBolso: 0,
+     ganho: etf.liquido - q.capital, tir: q.capital > 0 ? tirAnual(fluxosEtf) : null,
+     impostos: etf.imposto, detalhe: etf},
+  ];
+  const sem = simularImovel(q, 0), com = q.ltv > 0 ? simularImovel(q, q.ltv / 100) : null;
+  if (sem) cenarios.push({k:"sem", lbl:"Imóvel sem empréstimo", liquido: sem.liquido, doBolso: sem.doBolso,
+    ganho: sem.ganho, tir: sem.tir, impostos: sem.impostoRendas + sem.impostoMV + sem.imt + sem.selo, detalhe: sem});
+  if (com) cenarios.push({k:"com", lbl:"Imóvel com empréstimo", liquido: com.liquido, doBolso: com.doBolso,
+    ganho: com.ganho, tir: com.tir, impostos: com.impostoRendas + com.impostoMV + com.imt + com.selo + com.seloCredito,
+    detalhe: com});
+  // Um imóvel que o capital não chega para comprar não pode ganhar a comparação
+  const comTir = cenarios.filter(c => c.tir != null && !(c.detalhe && c.detalhe.irrealista));
+  const melhor = comTir.length ? comTir.reduce((a, b) => (b.tir > a.tir ? b : a)) : null;
+  return {q, etf, cenarios, melhor, sem, com};
+}
+
+/* ---------------------------------------------------------------
+   Rendimento disponível — onde há euros por mês a ganhar
+   --------------------------------------------------------------- */
+/** Renda de casa que o agregado paga hoje, pelas despesas fixas. */
+function rendaDoAgregado(){
+  const cat = S.categorias.find(c => c.nome === "Habitação");
+  return (S.recorrentes || [])
+    .filter(r => r.ativo !== false && r.tipo === "despesa" && /renda/i.test(r.nome || "") &&
+                 (!cat || r.categoriaId === cat.id))
+    .reduce((s, r) => s + parseNum(r.valor) * freqFator(r.frequencia), 0);
+}
+
+function alavancasRendimento(){
+  const out = [];
+  const p = planoMes(MES);
+  const despesa = Math.max(0, p.desp);
+
+  // 1. Habitação: arrendar ou comprar, com os números do concelho escolhido
+  const renda = rendaDoAgregado();
+  if (renda > 0){
+    const c = calcCasa(Object.assign(paramsCasa(), {renda}));
+    /* Rendimento disponível mede-se em caixa: o que sobra ao fim do mês. A
+       valorização da casa e o capital amortizado são património — contam, e
+       diz-se quanto, mas não pagam contas. Por isso a alavanca só tem valor
+       quando ser dono deixa mesmo mais dinheiro no bolso do que a renda. */
+    const caixa = c.rendaLiquida - c.saidaMes;
+    const pat = c.fim.dono - c.fim.inquilino, anos = c.p.horizonte;
+    const efeitoPat = " Ao fim de " + anos + " ano" + (anos === 1 ? "" : "s") + ", comprar deixava-o com " +
+      eur(Math.abs(pat)) + (pat >= 0 ? " a mais" : " a menos") + " de património do que arrendar e investir a diferença.";
+    out.push({k:"casa", valor: Math.max(0, caixa), info: caixa <= 0,
+      txt: caixa > 0
+        ? "Comprar em " + c.p.loc.nome + " libertaria " + eur(caixa) + "/mês face à renda"
+        : "Comprar em " + c.p.loc.nome + " custaria mais " + eur(-caixa) + "/mês do que a renda",
+      det: "Saída de caixa de dono " + eur(c.saidaMes) + "/mês, contra a renda de " + eur(c.rendaLiquida) +
+           "/mês depois da dedução no IRS. Precisa de " + eur(c.necessario) + " para entrar." + efeitoPat,
+      sec:"casa"});
+    out.push({k:"deducaoRenda", valor: 0, info: true,
+      txt: "A renda dá " + eur(c.dedRenda * 12) + " por ano de dedução no IRS",
+      det: "15% das rendas, até " + eur(DEDUCAO_RENDA.limite) + " por ano. Só conta se o senhorio "+
+           "emitir os recibos de renda eletrónicos.", sec:"casa"});
+  }
+
+  // 2. Dinheiro parado acima de uma reserva de seis meses
+  const liq = totalLiquidez();
+  const reserva = despesa * 6;
+  const excesso = Math.max(0, liq - reserva);
+  if (excesso > 500){
+    const lista = porGrupoAtivo("liquidez");
+    const tot = lista.reduce((s, a) => s + valorAtivo(a), 0);
+    const retAtual = tot > 0 ? lista.reduce((s, a) => s + valorAtivo(a) * classeDe(a.classe).ret, 0) / tot : 0;
+    const q = paramsInvestir();
+    const alvo = q.retEtf - q.etfRef.ter;
+    const ganhoMes = excesso * Math.max(0, alvo - retAtual) / 100 * (1 - TAXA_MAIS_VALIAS / 100) / 12;
+    const aforro = excesso * Math.max(0, CLASSES.aforro.ret - retAtual) / 100 * (1 - TAXA_MAIS_VALIAS / 100) / 12;
+    out.push({k:"liquidez", valor: ganhoMes,
+      txt: "Pôr a render " + eur(excesso) + " que estão parados acima da reserva",
+      det: "A reserva de seis meses de despesa (" + eur(reserva) + ") fica onde está. O resto, num " +
+           q.etfRef.ticker + ", renderia perto de " + eur(ganhoMes) + "/mês depois de impostos; em " +
+           "Certificados de Aforro, sem risco, perto de " + eur(aforro) + "/mês.",
+      sec:"investir"});
+  }
+
+  // 3. Benefício do PPR por usar
+  const ppr = beneficioPPR();
+  const falta = Math.max(0, ppr.limite - ppr.beneficio);
+  if (falta > 1){
+    const entregaMes = falta / (parseNum(S.fiscal.pprBeneficio) / 100) / 12;
+    out.push({k:"ppr", valor: falta / 12,
+      txt: "Reforçar o PPR em " + eur(entregaMes) + "/mês devolve " + eur(falta) + " de IRS por ano",
+      det: "A dedução à coleta é de " + pct(parseNum(S.fiscal.pprBeneficio)) + " das entregas, até " +
+           eur(ppr.limite) + " por ano na sua idade. Já usa " + eur(ppr.beneficio) + ".",
+      vista:"ativos"});
+  }
+
+  // 4. IMI da casa própria: o desconto familiar e a isenção dos primeiros anos
+  const dependentes = Math.max(0, Math.round(parseNum(S.fiscal.dependentes)));
+  const casaPropria = (S.ativos || []).find(a => a.classe === "imovel" && parseNum(a.vpt) > 0 &&
+                                                (S.creditos || []).some(c => c.ativoId === a.id));
+  if (casaPropria && dependentes > 0){
+    const ded = IMI_FAMILIAR[Math.min(3, dependentes)];
+    out.push({k:"imiFamiliar", valor: ded / 12,
+      txt: "IMI familiar: " + eur(ded) + " por ano a menos com " + dependentes + " dependente" +
+           (dependentes > 1 ? "s" : ""),
+      det: "A dedução é automática nos municípios que a aplicam. Confirme na nota de cobrança do IMI " +
+           "que o desconto lá está — e, se não estiver, que o seu município aderiu.",
+      sec:"casa"});
+  }
+
+  /* 5. O dinheiro parado acima da reserva, posto pelo melhor caminho. Usa o
+     excedente real do agregado — não o capital hipotético do calculador, que
+     é outro número e não diz nada sobre esta família. */
+  if (excesso > 500){
+    const inv = calcInvestir(Object.assign(paramsInvestir(), {capital: excesso}));
+    const m = inv.melhor;
+    if (m){
+      const porMes = excesso * Math.max(0, m.tir) / 100 / 12;
+      out.push({k:"investir", valor: 0, info: true,
+        txt: "Para esses " + eur(excesso) + ", o caminho mais rentável é «" + m.lbl + "»",
+        det: "Rendibilidade anual de " + pct(m.tir) + " depois de impostos, a " + inv.q.horizonte +
+             " anos — o equivalente a " + eur(porMes) + "/mês. Compare com o imóvel em «ETF ou imobiliário».",
+        sec:"investir"});
+    }
+  }
+
+  return {alavancas: out.sort((a, b) => b.valor - a.valor),
+          total: out.filter(a => !a.info).reduce((s, a) => s + a.valor, 0),
+          saldo: p.saldo, rendimento: p.rend, despesa};
+}
+
+/* ---------------------------------------------------------------
+   Vistas
+   --------------------------------------------------------------- */
 function viewEstrategias(){
+  const sec = ui.secaoEstrategia || "simulador";
+  const abas = [
+    ["simulador", "Poupar e investir"],
+    ["casa", "Casa ou renda"],
+    ["investir", "ETF ou imobiliário"],
+    ["maximizar", "Rendimento disponível"],
+  ];
+  const nav = '<div class="seg duasFilas no-print" style="margin-bottom:16px">'+
+    abas.map(([k, l]) => '<button data-act="secEstrategia" data-v="'+k+'" aria-pressed="'+(sec === k)+'">'+
+      esc(l)+'</button>').join("")+'</div>';
+  const corpo = sec === "casa"      ? viewCasaRenda()
+              : sec === "investir"  ? viewEtfImovel()
+              : sec === "maximizar" ? viewRendimentoDisponivel()
+              : viewSimuladorEstrategias();
+  return nav + corpo;
+}
+
+/** Escolha de concelho, e de freguesia quando o concelho é Lisboa. */
+function escolhaLocal(prefixo, p){
+  const grupos = {};
+  CONCELHOS_REF.forEach(c => { (grupos[c[1]] = grupos[c[1]] || []).push(c); });
+  const conc = '<div style="flex:1 1 220px"><label class="field" for="'+prefixo+'Concelho">Concelho</label>'+
+    '<select id="'+prefixo+'Concelho">'+Object.entries(grupos).map(([g, lista]) =>
+      '<optgroup label="'+esc(g)+'">'+lista.map(c =>
+        '<option'+(c[0] === p.loc.concelho ? " selected" : "")+'>'+esc(c[0])+'</option>').join("")+'</optgroup>'
+    ).join("")+'</select></div>';
+  const freg = p.loc.concelho === "Lisboa"
+    ? '<div style="flex:1 1 220px"><label class="field" for="'+prefixo+'Freguesia">Freguesia</label>'+
+      '<select id="'+prefixo+'Freguesia"><option value="">Lisboa, média do concelho</option>'+
+      FREGUESIAS_LISBOA.map(f => '<option'+(f[0] === p.loc.freguesia ? " selected" : "")+'>'+esc(f[0])+'</option>').join("")+
+      '</select></div>'
+    : "";
+  return '<div class="row" style="margin-bottom:4px">'+conc+freg+'</div>';
+}
+
+/** Ficha curta da referência de mercado do local escolhido. */
+function fichaLocal(loc){
+  return '<div class="grid g4" style="margin:10px 0 4px">'+
+    kpi("Preço de venda", eur0(loc.m2)+"/m²", "Mediana de referência")+
+    kpi("Renda", loc.renda.toLocaleString("pt-PT",{maximumFractionDigits:1})+" €/m²", "Por mês, novos contratos")+
+    kpi("Valorização", pct(loc.cresc)+"/ano", "Média dos últimos cinco anos")+
+    kpi("Taxa de IMI", pct3(loc.imi), loc.regiao === "Referência" ? "Ponto médio do intervalo legal" : "Referência do município")+
+  '</div>';
+}
+
+/** Seletor da taxa de IMI, em passos de 0,005 pontos, com a do município incluída. */
+function seletorImi(id, valor){
+  const opcoes = [];
+  for (let k = 0; k <= 30; k++) opcoes.push(Math.round((0.30 + k * 0.005) * 1000) / 1000);
+  if (opcoes.indexOf(valor) < 0){ opcoes.push(valor); opcoes.sort((a, b) => a - b); }
+  return '<div style="flex:1 1 160px"><label class="field" for="'+id+'">Taxa de IMI</label>'+
+    '<select id="'+id+'">'+opcoes.map(v => '<option value="'+v+'"'+(Math.abs(v - valor) < 1e-9 ? " selected" : "")+'>'+
+      esc(pct3(v))+'</option>').join("")+'</select></div>';
+}
+
+function viewCasaRenda(){
+  const p = paramsCasa();
+  const caixa = (id, rotulo, ligado) =>
+    '<label style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;margin:4px 16px 2px 0">'+
+    '<input type="checkbox" id="'+id+'" style="flex:0 0 auto"'+(ligado ? " checked" : "")+'> '+esc(rotulo)+'</label>';
+  const controlos =
+    escolhaLocal("pc", p)+
+    fichaLocal(p.loc)+
+    '<div class="grid g2" style="gap:2px 24px;margin-top:8px">'+
+      slider("pcArea", "Área da casa", p.area, 20, 400, 5, " m²")+
+      slider("pcPreco", "Preço da casa" + (p.precoAuto ? " (área × preço do concelho)" : ""), p.preco, 50000, 3000000, 5000, " €", "casa")+
+      slider("pcRenda", "Renda de uma casa igual" + (p.rendaAuto ? " (área × renda do concelho)" : ""), p.renda, 100, 6000, 10, " €", "renda")+
+      slider("pcEntrada", "Entrada", p.entrada, 0, 50, 1, "%")+
+      slider("pcTan", "Taxa de juro (TAN)", p.tan, 0, 8, 0.1, "%")+
+      slider("pcPrazo", "Prazo do empréstimo", p.prazo, 5, 40, 1, " anos")+
+      slider("pcCondominio", "Condomínio", parseNum(p.condominio), 0, 500, 5, " €")+
+      slider("pcTaxas", "Taxas municipais (resíduos e saneamento)", parseNum(p.taxasMun), 0, 80, 1, " €")+
+      slider("pcManutencao", "Manutenção e obras", parseNum(p.manutencao), 0, 2.5, 0.25, "%/ano")+
+      slider("pcVpt", "Valor patrimonial (VPT), em % do preço", parseNum(p.vptPct), 20, 100, 5, "%")+
+      slider("pcValorizacao", "Valorização da casa", parseNum(p.valorizacao), -3, 12, 0.5, "%/ano")+
+      slider("pcAumento", "Aumento anual da renda", parseNum(p.aumentoRenda), 0, 8, 0.1, "%")+
+      slider("pcRetorno", "Rendimento do dinheiro se não comprar", parseNum(p.retornoAlt), 0, 12, 0.5, "%/ano")+
+      slider("pcHorizonte", "Comparar ao fim de", p.horizonte, 1, 40, 1, " anos")+
+    '</div>'+
+    '<div class="row" style="margin-top:6px">'+seletorImi("pcImi", p.imi)+'</div>'+
+    '<div style="margin-top:6px">'+
+      caixa("pcJovem", "Comprador jovem até 35 anos (isenção de IMT e selo)", p.jovem)+
+      caixa("pcImiFam", "O município aplica o IMI familiar", p.imiFamiliar)+
+      caixa("pcIsencao", "Pedir a isenção de IMI da habitação própria", p.isencaoHpp)+
+      caixa("pcVenda", "Contar com os custos de venda no fim", p.custosVenda)+
+    '</div>'+
+    '<div class="actions no-print">'+
+      '<button class="btn sm ghost" data-act="planosHistorico" data-v="casa">Usar a valorização histórica do concelho ('+esc(pct(p.loc.cresc))+'/ano)</button>'+
+      '<button class="btn sm ghost" data-act="planosRepor" data-v="casa">Repor os valores do concelho</button>'+
+    '</div>';
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Casa ou renda</h2>'+
+      '<div class="sub">Quanto custa por mês ser dono de uma casa no concelho escolhido — com o IMI do município — '+
+      'e quanto custa arrendar uma igual.</div></div></div>'+controlos+
+      '<div id="pcOut">'+emPasse(casaOut)+'</div>'+
+      '<div class="note" style="margin-top:12px">'+esc(DADOS_IMO_NOTA)+' '+esc(IMI_NOTA)+'</div>'+
+    '</div>';
+}
+
+/** Gráfico de duas linhas: património de cada lado ao longo dos anos. */
+function graficoComparar(anos, a, b){
+  const W = 720, H = 240, padL = 66, padR = 14, padT = 14, padB = 28;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const total = anos[anos.length - 1].ano || 1;
+  const vals = anos.reduce((s, x) => s.concat([x[a.k], x[b.k]]), []);
+  const max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  const x = (ano) => padL + ano / total * iw;
+  const y = (v) => padT + ih - (v - min) / (max - min) * ih;
+  let grelha = "";
+  for (let k = 0; k <= 4; k++){
+    const v = min + (max - min) * k / 4, yy = y(v);
+    grelha += '<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W - padR)+'" y2="'+yy.toFixed(1)+'" stroke="currentColor" opacity=".12"/>'+
+      '<text x="'+(padL - 7)+'" y="'+(yy + 4).toFixed(1)+'" text-anchor="end" font-size="10" fill="currentColor" opacity=".55">'+esc(eur0(v))+'</text>';
+  }
+  const passo = Math.max(1, Math.ceil(total / 8));
+  let eixo = "";
+  for (let k = 0; k <= total; k += passo)
+    eixo += '<text x="'+x(k).toFixed(1)+'" y="'+(H - 8)+'" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">'+(k === 0 ? "hoje" : k + "a")+'</text>';
+  const linha = (s) => '<polyline fill="none" stroke="'+s.cor+'" stroke-width="2.5" stroke-linejoin="round" points="'+
+    anos.map(p => x(p.ano).toFixed(1) + "," + y(p[s.k]).toFixed(1)).join(" ")+'"/>';
+  const larg = iw / Math.max(1, anos.length - 1);
+  const zonas = anos.slice(1).map(p => '<rect class="hit" x="'+(x(p.ano) - larg / 2).toFixed(1)+'" y="'+padT+'" width="'+larg.toFixed(1)+'" height="'+ih+'"'+
+    tipData("Daqui a " + p.ano + " ano" + (p.ano === 1 ? "" : "s"), [[a.lbl, eur(p[a.k])], [b.lbl, eur(p[b.k])]])+'/>').join("");
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(a.lbl+" e "+b.lbl+" ao longo dos anos")+'">'+
+      grelha + linha(a) + linha(b) + eixo + zonas + '</svg>'+
+    '<div class="legend"><div><span class="dot" style="background:'+a.cor+'"></span>'+esc(a.lbl)+'</div>'+
+    '<div><span class="dot" style="background:'+b.cor+'"></span>'+esc(b.lbl)+'</div></div>';
+}
+
+function casaOut(){
+  const c = calcCasa();
+  const p = c.p;
+  const dif = c.saidaMes - p.renda;
+  const tabela = '<div class="tblwrap"><table><thead><tr><th>Ser dono, por mês</th><th class="r">Valor</th></tr></thead><tbody>'+
+    c.parcelas.map(([l, v]) => '<tr><td>'+esc(l)+'</td><td class="r num">'+esc(eur(v))+'</td></tr>').join("")+
+    '<tr><td><strong>Saída de caixa</strong></td><td class="r num"><strong>'+esc(eur(c.saidaMes))+'</strong></td></tr>'+
+    '<tr><td class="muted">dos quais amortização de capital, que fica na casa</td><td class="r num muted">'+esc(eur(c.amort1 / 12))+'</td></tr>'+
+    '<tr><td class="muted">rendimento que a entrada e os custos deixam de dar</td><td class="r num muted">+'+esc(eur(c.oportunidade))+'</td></tr>'+
+    '<tr><td class="muted">valorização esperada da casa</td><td class="r num muted">−'+esc(eur(c.valorizacao))+'</td></tr>'+
+    '<tr><td><strong>Custo efetivo de ser dono</strong></td><td class="r num"><strong>'+esc(eur(c.custoEfetivo))+'</strong></td></tr>'+
+    '</tbody></table></div>';
+
+  const fim = c.fim;
+  const ganhaDono = fim.dono >= fim.inquilino;
+  const veredicto = '<div class="note" style="border-left-color:var(--'+(ganhaDono ? "pos" : "warn")+');margin-top:12px">'+
+    '<strong>Ao fim de '+p.horizonte+' ano'+(p.horizonte === 1 ? "" : "s")+':</strong> '+
+    (ganhaDono
+      ? 'comprar deixa-o com <strong>'+esc(eur(fim.dono - fim.inquilino))+'</strong> a mais do que arrendar e investir a diferença.'
+      : 'arrendar e investir a diferença deixa-o com <strong>'+esc(eur(fim.inquilino - fim.dono))+'</strong> a mais do que comprar.')+
+    (c.equilibrio ? ' Comprar passa a compensar a partir do <strong>ano '+c.equilibrio+'</strong>.'
+                  : ' Dentro deste horizonte, comprar não chega a compensar.')+
+    '</div>';
+
+  const avisoLtv = c.ltvAcima
+    ? '<div class="note" style="border-left-color:var(--warn);margin-top:10px">Com menos de 10% de entrada, os bancos só '+
+      'financiam com a garantia pública para jovens até 35 anos.</div>' : "";
+
+  return '<div class="grid g4" style="margin-top:14px">'+
+      kpi("Saída de caixa de dono", eur(c.saidaMes)+"/mês", "Prestação, IMI, seguros, condomínio, manutenção")+
+      kpi("Renda de uma casa igual", eur(p.renda)+"/mês", "Depois da dedução no IRS: "+eur(c.rendaLiquida))+
+      kpi("Diferença no bolso", (dif >= 0 ? "+" : "−")+eur(Math.abs(dif))+"/mês",
+          dif >= 0 ? "Ser dono custa mais por mês" : "Ser dono custa menos por mês", dif >= 0 ? "warnb" : "good")+
+      kpi("Dinheiro para entrar", eur(c.necessario), "Entrada "+eur(c.entrada)+" + impostos e escritura "+eur(c.custosCompra))+
+    '</div>'+
+    '<div class="grid g2" style="margin-top:14px;align-items:start">'+tabela+
+      '<div>'+
+        '<div class="tblwrap"><table><tbody>'+
+          '<tr><td>IMT</td><td class="r num">'+esc(eur(c.imt))+(c.isentoJovem ? ' <span class="muted">(isento)</span>' : "")+'</td></tr>'+
+          '<tr><td>Imposto do selo na compra</td><td class="r num">'+esc(eur(c.selo))+'</td></tr>'+
+          '<tr><td>Imposto do selo sobre o empréstimo</td><td class="r num">'+esc(eur(c.seloCredito))+'</td></tr>'+
+          '<tr><td>Escritura e registos</td><td class="r num">'+esc(eur(CUSTOS_ESCRITURA))+'</td></tr>'+
+          '<tr><td>Valor patrimonial (VPT)</td><td class="r num">'+esc(eur(c.vpt))+'</td></tr>'+
+          '<tr><td>IMI por ano, à taxa de '+esc(pct3(p.imi))+'</td><td class="r num">'+esc(eur(c.imiAnual))+'</td></tr>'+
+          (c.dedFamiliar ? '<tr><td class="muted">já com o IMI familiar</td><td class="r num muted">−'+esc(eur(c.dedFamiliar))+'</td></tr>' : "")+
+          (c.isencao ? '<tr><td class="muted">isento nos primeiros '+IMI_ISENCAO_ANOS+' anos (VPT até '+esc(eur0(IMI_ISENCAO_VPT))+')</td><td class="r num muted">0,00 €</td></tr>' : "")+
+          '<tr><td>Dedução da renda no IRS, por ano</td><td class="r num">'+esc(eur(c.dedRenda * 12))+'</td></tr>'+
+        '</tbody></table></div>'+
+      '</div>'+
+    '</div>'+
+    veredicto + avisoLtv +
+    '<div style="margin-top:14px">'+graficoComparar(c.anos,
+      {k:"dono", lbl:"Património de quem compra", cor:"var(--accent)"},
+      {k:"inquilino", lbl:"Património de quem arrenda e investe", cor:"var(--pos)"})+'</div>'+
+    '<div class="note" style="margin-top:12px">Quem arrenda começa com o mesmo dinheiro que o dono gasta a comprar, '+
+      'investido a '+esc(pct(parseNum(p.retornoAlt)))+' ao ano. Todos os meses, quem tem a saída mais baixa investe a diferença. '+
+      'No fim, os ganhos da carteira pagam '+TAXA_MAIS_VALIAS+'% de mais-valias; a venda da habitação própria fica isenta '+
+      'se o dinheiro for reinvestido noutra habitação própria, e por isso não se lhe aplica imposto aqui.</div>';
+}
+
+function viewEtfImovel(){
+  const q = paramsInvestir();
+  const etfOpcoes = '<div style="flex:1 1 260px"><label class="field" for="piEtf">ETF</label>'+
+    '<select id="piEtf">'+Object.entries(ETFS_REF).map(([k, e]) =>
+      '<option value="'+k+'"'+(k === q.etf ? " selected" : "")+'>'+esc(e.ticker+" — "+e.lbl)+'</option>').join("")+
+    '</select></div>';
+  const regimes = [["0","Contrato até 5 anos"],["5","Contrato de 5 a 10 anos"],["10","Contrato de 10 a 20 anos"],
+                   ["20","Contrato de 20 anos ou mais"],["m","Renda moderada"]];
+  const regime = '<div style="flex:1 1 220px"><label class="field" for="piRegime">Contrato de arrendamento</label>'+
+    '<select id="piRegime">'+regimes.map(([k, l]) => '<option value="'+k+'"'+(String(q.regime) === k ? " selected" : "")+'>'+esc(l)+'</option>').join("")+
+    '</select></div>';
+
+  const tabelaEtfs = '<div class="tblwrap"><table><thead><tr><th>ETF</th><th>O que tem</th><th class="r">Comissão</th>'+
+    '<th class="r">Últimos 10 anos</th><th class="r">Hipótese prudente</th><th class="r">Pior ano</th></tr></thead><tbody>'+
+    Object.entries(ETFS_REF).map(([k, e]) => '<tr'+(k === q.etf ? ' class="selecionada"' : "")+'><td><strong>'+esc(e.ticker)+'</strong> '+esc(e.lbl)+'</td>'+
+      '<td>'+esc(e.indice)+'</td><td class="r num">'+esc(pct3(e.ter))+'</td><td class="r num">'+esc(pct(e.hist10))+'/ano</td>'+
+      '<td class="r num">'+esc(pct(e.prudente))+'/ano</td><td class="r num neg">'+esc(pct(e.pior))+'</td></tr>').join("")+
+    '</tbody></table></div>';
+
+  const controlos =
+    '<div class="grid g2" style="gap:2px 24px">'+
+      slider("piCapital", "Capital disponível", q.capital, 0, 3000000, 500, " €", "capital")+
+      slider("piHorizonte", "Horizonte", q.horizonte, 1, 40, 1, " anos")+
+    '</div>'+
+    '<h3 style="margin:14px 0 6px">ETF</h3>'+
+    '<div class="row">'+etfOpcoes+'</div>'+
+    '<div class="grid g2" style="gap:2px 24px">'+
+      slider("piRetorno", "Retorno anual do índice" + (q.retAuto ? " (hipótese prudente)" : ""), q.retEtf, -2, 15, 0.5, "%")+
+    '</div>'+
+    '<h3 style="margin:14px 0 6px">Imóvel para arrendar</h3>'+
+    escolhaLocal("pi", q)+
+    fichaLocal(q.loc)+
+    '<div class="row">'+regime+seletorImi("piImi", q.imi)+'</div>'+
+    '<div class="grid g2" style="gap:2px 24px;margin-top:6px">'+
+      slider("piValorizacao", "Valorização do imóvel", parseNum(q.valorizacao), -3, 12, 0.5, "%/ano")+
+      slider("piAumento", "Aumento anual da renda", parseNum(q.aumentoRenda), 0, 8, 0.1, "%")+
+      slider("piVacancia", "Meses sem inquilino por ano", parseNum(q.vacancia), 0, 6, 0.5, " meses")+
+      slider("piGestao", "Gestão do arrendamento", parseNum(q.gestao), 0, 15, 0.5, "% da renda")+
+      slider("piCondominio", "Condomínio", parseNum(q.condominioM2), 0, 3, 0.1, " €/m²")+
+      slider("piManutencao", "Manutenção e obras", parseNum(q.manutencao), 0, 3, 0.25, "%/ano")+
+      slider("piVpt", "Valor patrimonial (VPT), em % do preço", parseNum(q.vptPct), 20, 100, 5, "%")+
+      slider("piLtv", "Financiamento no cenário com empréstimo", q.ltv, 0, LTV_MAX_INVESTIMENTO, 5, "%")+
+      slider("piTan", "Taxa de juro (TAN)", parseNum(q.tan), 0, 8, 0.1, "%")+
+      slider("piPrazo", "Prazo do empréstimo", q.prazo, 5, 40, 1, " anos")+
+      slider("piColetavel", "Rendimento coletável do agregado" + (q.coletavelAuto ? " (estimado)" : ""), q.coletavel, 0, 500000, 500, " €", "rendimento")+
+    '</div>'+
+    '<div class="actions no-print">'+
+      '<button class="btn sm ghost" data-act="planosHistorico" data-v="investir">Usar a valorização histórica ('+esc(pct(q.loc.cresc))+'/ano)</button>'+
+      '<button class="btn sm ghost" data-act="planosRepor" data-v="investir">Repor as referências</button>'+
+    '</div>';
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>ETF ou imobiliário</h2>'+
+      '<div class="sub">O mesmo capital num ETF ou num imóvel para arrendar — sem e com empréstimo — cada um com os seus impostos até ao fim.</div></div></div>'+
+      controlos+
+      '<div id="piOut">'+emPasse(investirOut)+'</div>'+
+      '<h3 style="margin:18px 0 8px">Os principais ETF</h3>'+tabelaEtfs+
+      '<div class="note" style="margin-top:10px">Os retornos dos últimos dez anos são aproximados, em euros e antes da comissão; '+
+        'a hipótese prudente é mais baixa de propósito, porque esses dez anos foram dos melhores de sempre para as ações. '+
+        'Retornos passados não garantem retornos futuros.</div>'+
+      '<div class="note" style="margin-top:10px">'+esc(DADOS_IMO_NOTA)+' '+esc(IMI_NOTA)+'</div>'+
+    '</div>';
+}
+
+function investirOut(){
+  const r = calcInvestir();
+  const q = r.q;
+  if (q.capital <= 0) return '<div class="note" style="margin-top:12px">Indique o capital disponível para comparar.</div>';
+  const linhas = [
+    ["Dinheiro posto do seu bolso", (c) => eur(q.capital + c.doBolso)],
+    ["Valor no fim, depois de impostos", (c) => eur(c.liquido)],
+    ["Ganho", (c) => eur(c.ganho)],
+    ["Rendibilidade anual (TIR)", (c) => c.tir == null ? "—" : pct(c.tir)],
+    ["Impostos pagos pelo caminho e no fim", (c) => eur(c.impostos)],
+  ];
+  const tabela = '<div class="tblwrap"><table><thead><tr><th></th>'+
+    r.cenarios.map(c => '<th class="r">'+esc(c.lbl)+'</th>').join("")+'</tr></thead><tbody>'+
+    linhas.map(([l, f]) => '<tr><td>'+esc(l)+'</td>'+r.cenarios.map(c =>
+      '<td class="r num'+(r.melhor && c.k === r.melhor.k && l.indexOf("TIR") >= 0 ? " pos" : "")+'">'+esc(f(c))+'</td>').join("")+'</tr>').join("")+
+    '</tbody></table></div>';
+
+  const fichaImovel = (d, titulo) => d ? '<div class="card" style="box-shadow:none">'+
+    '<h3 style="margin:0 0 8px">'+esc(titulo)+'</h3>'+
+    '<div class="tblwrap"><table><tbody>'+
+      '<tr><td>Preço que o capital paga</td><td class="r num">'+esc(eur0(d.preco))+'</td></tr>'+
+      '<tr><td>Área, ao preço do local</td><td class="r num">'+esc(Math.round(d.area))+' m²</td></tr>'+
+      (d.credito > 0 ? '<tr><td>Empréstimo</td><td class="r num">'+esc(eur0(d.credito))+'</td></tr>'+
+                       '<tr><td>Prestação</td><td class="r num">'+esc(eur(d.prestacao))+'/mês</td></tr>' : "")+
+      '<tr><td>Renda inicial</td><td class="r num">'+esc(eur(d.rendaInicial))+'/mês</td></tr>'+
+      '<tr><td>Imposto sobre as rendas</td><td class="r num">'+esc(pct(d.taxaRenda))+'</td></tr>'+
+      '<tr><td>IMT + selo na compra</td><td class="r num">'+esc(eur(d.imt + d.selo + d.seloCredito))+'</td></tr>'+
+      '<tr><td>IMI por ano</td><td class="r num">'+esc(eur(d.imiAnual + d.aimiAnual))+'</td></tr>'+
+      '<tr><td>Saldo mensal no primeiro ano</td><td class="r num '+(d.fluxoMesAno1 >= 0 ? "pos" : "neg")+'">'+esc(eur(d.fluxoMesAno1))+'</td></tr>'+
+      '<tr><td>Venda no fim</td><td class="r num">'+esc(eur0(d.venda))+'</td></tr>'+
+      '<tr><td>IRS da mais-valia (metade englobada, escalão de '+
+        esc(pct(taxaMarginalIRS((r.q.coletavel + Math.max(0, d.maisValia) / 2) / coletavelAgregado().quociente)))+
+        ')</td><td class="r num">'+esc(eur(d.impostoMV))+'</td></tr>'+
+    '</tbody></table></div>'+
+    (d.irrealista ? '<div class="note" style="border-left-color:var(--warn);margin-top:8px"><strong>Este imóvel não existe:</strong> '+
+      'o capital só paga '+esc(Math.round(d.area))+' m² em '+esc(r.q.loc.nome)+'. As contas ficam aqui para comparação, '+
+      'mas o caminho só é real com mais capital, com empréstimo, ou noutro concelho.</div>' : "")+
+    (d.moderadaRecusada ? '<div class="note" style="border-left-color:var(--warn);margin-top:8px">A renda passa o teto da renda moderada ('+
+      esc(eur(parseNum(S.fiscal.limiteRendaModerada)))+'/mês): aplica-se a taxa geral.</div>' : "")+
+    (d.doBolso > 0 ? '<div class="note" style="margin-top:8px">As rendas não cobrem os encargos: saem do bolso '+esc(eur(d.doBolso))+
+      ' ao longo do horizonte. Postos no mesmo ETF, dariam '+esc(eur(d.etfIgual.liquido))+' no fim.</div>' : "")+
+    '</div>' : "";
+
+  const m = r.melhor;
+  const veredicto = m ? '<div class="note" style="border-left-color:var(--pos);margin-top:12px"><strong>'+
+    esc(m.lbl)+'</strong> é o caminho mais rentável nestes pressupostos: '+esc(pct(m.tir))+' ao ano depois de impostos, '+
+    'o equivalente a cerca de '+esc(eur(q.capital * Math.max(0, m.tir) / 100 / 12))+' por mês sobre o capital.</div>' : "";
+
+  return '<div style="margin-top:14px">'+tabela+'</div>'+veredicto+
+    '<div class="grid g2" style="margin-top:14px;align-items:start">'+
+      fichaImovel(r.sem, "Sem empréstimo")+fichaImovel(r.com, "Com empréstimo de "+pct(q.ltv))+
+    '</div>'+
+    '<div class="note" style="margin-top:12px">O ETF é de acumulação: não paga imposto até à venda, e no fim os ganhos pagam '+
+      TAXA_MAIS_VALIAS+'%. No imóvel, as rendas pagam a taxa do contrato sobre o resultado do ano, com todos os gastos '+
+      'dedutíveis menos os juros; a venda paga IRS sobre metade da mais-valia, somada ao resto do rendimento, depois de '+
+      'atualizado o preço de compra pela inflação. O que as rendas sobram vai para o mesmo ETF.</div>';
+}
+
+function viewRendimentoDisponivel(){
+  const r = alavancasRendimento();
+  const lista = r.alavancas.length
+    ? r.alavancas.map(a => '<div class="alerta" style="display:flex;gap:12px;align-items:flex-start">'+
+        '<div style="flex:1 1 auto;min-width:0"><strong>'+esc(a.txt)+'</strong>'+
+          '<div class="muted" style="font-size:13px;margin-top:3px">'+esc(a.det)+'</div></div>'+
+        '<div style="text-align:right;white-space:nowrap">'+
+          (a.info ? '<span class="muted">informação</span>' : '<strong class="pos num">+'+esc(eur(a.valor))+'/mês</strong>')+
+          '<div><button class="btn sm ghost" style="margin-top:6px" '+
+            (a.sec ? 'data-act="secEstrategia" data-v="'+esc(a.sec)+'"' : 'data-act="ir" data-view="'+esc(a.vista || "painel")+'"')+
+            '>Ver as contas</button></div>'+
+        '</div></div>').join("")
+    : '<div class="note">Ainda não há dados que cheguem para sugerir alavancas. Registe os rendimentos, as despesas fixas e as contas.</div>';
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Rendimento disponível</h2>'+
+      '<div class="sub">O que a aplicação sabe do seu agregado, cruzado com os calculadores da casa e do investimento: '+
+      'onde há euros por mês a ganhar.</div></div></div>'+
+      '<div class="grid g3">'+
+        kpi("Rendimento disponível hoje", eur(r.saldo)+"/mês", "Rendimentos menos despesas do plano", r.saldo >= 0 ? "good" : "warnb")+
+        kpi("Potencial encontrado", "+"+eur(r.total)+"/mês", "Soma das alavancas com valor")+
+        kpi("Depois das alavancas", eur(r.saldo + r.total)+"/mês", "Se as aplicar todas")+
+      '</div>'+
+      '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px">'+lista+'</div>'+
+      '<div class="note" style="margin-top:12px">As alavancas são estimativas sobre os pressupostos dos calculadores — '+
+        'concelho, taxas e retornos de referência. Mude-os em «Casa ou renda» e em «ETF ou imobiliário» e esta lista acompanha.</div>'+
+    '</div>';
+}
+
+/* ---------------------------------------------------------------
+   Comandos
+   --------------------------------------------------------------- */
+const planoCasa = () => { if (!S.planos) S.planos = {}; if (!S.planos.casa) S.planos.casa = {}; return S.planos.casa; };
+const planoInv  = () => { if (!S.planos) S.planos = {}; if (!S.planos.inv)  S.planos.inv  = {}; return S.planos.inv;  };
+
+/** Põe um deslizador numa posição sem o tocar — para os valores que acompanham outros. */
+function sincronizarSlider(id, valor){
+  const el = $("#" + id);
+  if (!el) return;
+  const tramos = el.dataset.escala ? ESCALAS[el.dataset.escala] : null;
+  el.value = tramos ? escalaPos(tramos, valor) : valor;
+  const leitura = fmtSlider(valor, el.dataset.sufixo);
+  if (tramos) el.setAttribute("aria-valuetext", leitura);
+  const out = $("#" + id + "Out");
+  if (out) out.textContent = leitura;
+}
+
+const slCasa = (campo, extra) => ({
+  get: () => parseNum(paramsCasa()[campo]),
+  set: (v) => { planoCasa()[campo] = v; if (extra) extra(v); },
+  alvo: "#pcOut", out: casaOut, persiste: true,
+});
+const slInv = (campo) => ({
+  get: () => parseNum(paramsInvestir()[campo]),
+  set: (v) => { planoInv()[campo] = v; },
+  alvo: "#piOut", out: investirOut, persiste: true,
+});
+
+const SLIDERS_PLANOS = {
+  pcArea: slCasa("area", () => {
+    // Com o preço e a renda em automático, acompanham a área
+    const p = paramsCasa();
+    if (p.precoAuto) sincronizarSlider("pcPreco", p.preco);
+    if (p.rendaAuto) sincronizarSlider("pcRenda", p.renda);
+  }),
+  pcPreco: slCasa("preco"), pcRenda: slCasa("renda"), pcEntrada: slCasa("entrada"),
+  pcTan: slCasa("tan"), pcPrazo: slCasa("prazo"), pcCondominio: slCasa("condominio"),
+  pcTaxas: slCasa("taxasMun"), pcManutencao: slCasa("manutencao"), pcVpt: slCasa("vptPct"),
+  pcValorizacao: slCasa("valorizacao"), pcAumento: slCasa("aumentoRenda"),
+  pcRetorno: slCasa("retornoAlt"), pcHorizonte: slCasa("horizonte"),
+  piCapital: slInv("capital"), piHorizonte: slInv("horizonte"), piRetorno: slInv("retEtf"),
+  piValorizacao: slInv("valorizacao"), piAumento: slInv("aumentoRenda"), piVacancia: slInv("vacancia"),
+  piGestao: slInv("gestao"), piCondominio: slInv("condominioM2"), piManutencao: slInv("manutencao"),
+  piVpt: slInv("vptPct"), piLtv: slInv("ltv"), piTan: slInv("tan"), piPrazo: slInv("prazo"),
+  piColetavel: slInv("coletavel"),
+};
+
+const ACOES_PLANOS = {
+  secEstrategia(el){ ui.secaoEstrategia = el.dataset.v || "simulador"; editando = {}; render(); },
+  planosRepor(el){
+    alterar(() => {
+      if (el.dataset.v === "investir"){ const q = planoInv(); q.imi = null; q.retEtf = null; q.coletavel = null; q.valorizacao = PLANOS_PADRAO.inv.valorizacao; }
+      else { const c = planoCasa(); c.preco = null; c.renda = null; c.imi = null; c.valorizacao = PLANOS_PADRAO.casa.valorizacao; }
+    }, "repor as referências do concelho");
+  },
+  planosHistorico(el){
+    alterar(() => {
+      if (el.dataset.v === "investir"){ const q = paramsInvestir(); planoInv().valorizacao = q.loc.cresc; }
+      else { const p = paramsCasa(); planoCasa().valorizacao = p.loc.cresc; }
+    }, "usar a valorização histórica");
+  },
+};
+
+/* Seletores e caixas: mudam a forma do ecrã (a freguesia só existe em Lisboa;
+   o concelho repõe o preço e a renda de referência), por isso repintam. */
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (!t || !t.id || !/^p[ci][A-Z]/.test(t.id)) return;
+  const casa = t.id.charAt(1) === "c";
+  const alvo = casa ? planoCasa() : planoInv();
+  const campo = t.id.slice(2);
+  if (campo === "Concelho"){
+    alterar(() => {
+      alvo.concelho = t.value; alvo.freguesia = ""; alvo.imi = null;
+      if (casa){ alvo.preco = null; alvo.renda = null; }
+    }, "mudar de concelho");
+  } else if (campo === "Freguesia"){
+    alterar(() => { alvo.freguesia = t.value; if (casa){ alvo.preco = null; alvo.renda = null; } }, "mudar de freguesia");
+  } else if (campo === "Imi"){
+    alterar(() => { alvo.imi = parseNum(t.value); }, "taxa de IMI");
+  } else if (campo === "Etf"){
+    alterar(() => { alvo.etf = t.value; alvo.retEtf = null; }, "escolher o ETF");
+  } else if (campo === "Regime"){
+    alterar(() => { alvo.regime = t.value; }, "regime do arrendamento");
+  } else if (t.type === "checkbox"){
+    const mapa = {Jovem:"jovem", ImiFam:"imiFamiliar", Isencao:"isencaoHpp", Venda:"custosVenda"};
+    if (mapa[campo]) alterar(() => { alvo[mapa[campo]] = t.checked; }, "opção da casa");
+  }
+});
+
+
+function viewSimuladorEstrategias(){
   const e = S.estrategia;
   const o = OBJETIVOS_ESTRATEGIA[e.objetivo] || OBJETIVOS_ESTRATEGIA.reforma;
   const inst = o.instrumentos.indexOf(e.instrumento) >= 0 ? e.instrumento : o.instrumentos[0];
@@ -9511,6 +10673,10 @@ const ESCALAS = {
   casa:    [[50000, 300000, 5000], [300000, 1000000, 25000], [1000000, 3000000, 50000]],
   // Automóvel
   auto:    [[3000, 100000, 1000], [100000, 500000, 5000]],
+  // Rendas mensais
+  renda:   [[100, 2000, 10], [2000, 6000, 50]],
+  // Rendimento coletável anual do agregado
+  rendimento: [[0, 100000, 500], [100000, 500000, 5000]],
 };
 
 /** Quantas posições tem a escala. */
@@ -11530,6 +12696,9 @@ const ALIAS_VISTA = {
   plano:        {vista:"despesas", sec:"plano"},
   orcamento:    {vista:"despesas", sec:"limites"},
   planear:      {vista:"despesas", sec:"planear"},
+  casaRenda:    {vista:"estrategias", secEst:"casa"},
+  etfImovel:    {vista:"estrategias", secEst:"investir"},
+  rendimentoDisponivel: {vista:"estrategias", secEst:"maximizar"},
   investimentos:{vista:"ativos"},
   patrimonio:   {vista:"ativos"},
 };
@@ -11951,6 +13120,7 @@ function irPara(v){
   const alias = ALIAS_VISTA[v];
   if (alias){
     if (alias.sec) ui.secaoDespesa = alias.sec;
+    if (alias.secEst) ui.secaoEstrategia = alias.secEst;
     v = alias.vista;
   }
   VIEW = VISTAS[v] ? v : "painel";
@@ -14347,6 +15517,9 @@ function comandosPaleta(){
     {icone:"➕", lbl:"Novo crédito", tipo:"ação", run: () => { irPara("creditos"); focar("crNome"); }},
     {icone:"➕", lbl:"Novo objetivo", tipo:"ação", run: () => { irPara("objetivos"); focar("obNome"); }},
     {icone:"🛒", lbl:"Planear uma compra grande", tipo:"ação", run: () => { irPara("planear"); focar("plNome"); }},
+    {icone:"🏠", lbl:"Casa ou renda — quanto custa ser dono no meu concelho", tipo:"ação", run: () => irPara("casaRenda")},
+    {icone:"📊", lbl:"ETF ou imobiliário — onde rende mais o meu capital", tipo:"ação", run: () => irPara("etfImovel")},
+    {icone:"💶", lbl:"Rendimento disponível — onde há euros por mês a ganhar", tipo:"ação", run: () => irPara("rendimentoDisponivel")},
     {icone:"✂️", lbl:"Plano de corte — onde poupar", tipo:"ação",
      run: () => { ui.secaoDespesa = "limites"; irPara("despesas"); focar("corteAlvo"); }},
     {icone:"✎", lbl:"Escrever a nota do mês", tipo:"ação", run: () => {
@@ -15782,6 +16955,10 @@ document.addEventListener("click", (e) => {
     e.stopPropagation(); e.preventDefault(); _longEm = 0;
   }
 }, true);
+
+/* Os calculadores dos planos trazem os seus deslizadores e ações. */
+Object.assign(SLIDERS, SLIDERS_PLANOS);
+Object.assign(ACOES, ACOES_PLANOS);
 
 /* ---------------------------------------------------------------
    Arranque

@@ -3549,6 +3549,217 @@ G("meta de cada objetivo");
 })();
 
 /* ============================================================
+   Planos — casa ou renda, ETF ou imobiliário
+   ============================================================ */
+G("planos: dados de referência");
+(function(){
+  reporEstado();
+  var nomes = CONCELHOS_REF.map(function(c){ return c[0]; });
+  eq(new Set(nomes).size, nomes.length, "nenhum concelho repetido");
+  ok(nomes.length >= 45, "concelhos que cheguem para cobrir as maiores cidades", nomes.length);
+  ["Lisboa","Porto","Braga","Coimbra","Faro","Funchal","Ponta Delgada","Évora","Aveiro","Setúbal"]
+    .forEach(function(n){ ok(nomes.indexOf(n) >= 0, "inclui " + n); });
+
+  var foraImi = 0, foraM2 = 0, foraRenda = 0, foraCresc = 0;
+  CONCELHOS_REF.forEach(function(c){
+    // O IMI urbano só pode estar entre 0,3% e 0,45% — é a lei, não uma estimativa
+    if (c[2] < 0.3 - 1e-9 || c[2] > 0.45 + 1e-9) foraImi++;
+    if (!(c[3] >= 300 && c[3] <= 10000)) foraM2++;
+    if (!(c[5] >= 2 && c[5] <= 30)) foraRenda++;
+    if (!(c[4] > -10 && c[4] < 25)) foraCresc++;
+  });
+  eq(foraImi, 0, "todas as taxas de IMI dentro do intervalo legal de 0,3% a 0,45%");
+  eq(foraM2, 0, "preços por m² com ordem de grandeza plausível");
+  eq(foraRenda, 0, "rendas por m² com ordem de grandeza plausível");
+  eq(foraCresc, 0, "valorizações anuais plausíveis");
+
+  eq(FREGUESIAS_LISBOA.length, 24, "as 24 freguesias de Lisboa, todas");
+  eq(new Set(FREGUESIAS_LISBOA.map(function(f){ return f[0]; })).size, 24, "sem repetidas");
+  var lx = concelhoPorNome("Lisboa");
+  var acima = FREGUESIAS_LISBOA.filter(function(f){ return f[1] > lx[3]; }).length;
+  ok(acima > 0 && acima < 24, "a média de Lisboa fica entre as freguesias mais baratas e as mais caras");
+
+  var etfs = Object.keys(ETFS_REF);
+  ok(etfs.length >= 6, "os principais ETF", etfs.length);
+  ok(etfs.every(function(k){ var e = ETFS_REF[k]; return e.ter > 0 && e.ter < 1; }), "comissões entre 0% e 1%");
+  ok(etfs.every(function(k){ var e = ETFS_REF[k]; return e.prudente <= Math.max(e.hist10, 6); }),
+     "a hipótese prudente não promete mais do que os últimos dez anos deram (salvo onde foram fracos)");
+  ok(etfs.every(function(k){ return ETFS_REF[k].pior < 0; }), "e cada um mostra o seu pior ano");
+
+  // Referência por local: freguesia só existe em Lisboa
+  eq(localRef("Lisboa", "Marvila").m2, 3500, "a freguesia muda a referência");
+  eq(localRef("Porto", "Marvila").freguesia, "", "e uma freguesia de Lisboa não se cola ao Porto");
+  eq(localRef("Concelho que não existe").concelho, "Lisboa", "um concelho desconhecido cai numa referência válida");
+})();
+
+G("planos: IMT de habitação não própria e escalões do IRS");
+(function(){
+  reporEstado();
+  /* A tabela de habitação que não é própria segue o mesmo método da de
+     habitação própria: as parcelas a abater fazem cada escalão começar onde
+     o anterior acabou. Se um valor estiver mal copiado, há um salto. */
+  var saltos = 0;
+  for (var k = 0; k < 4; k++){
+    var lim = IMT_SEC_2026[k].ate;
+    if (Math.abs(imtSecundaria(lim) - imtSecundaria(lim + 0.01)) > 1) saltos++;
+  }
+  eq(saltos, 0, "a tabela de IMT é contínua entre escalões");
+  eq(imtSecundaria(100000), 1000, "o primeiro escalão paga 1% — não há isenção fora da habitação própria", 0.01);
+  ok(imtSecundaria(250000) > imtCompra(250000, false), "uma casa para arrendar paga mais IMT do que a habitação própria");
+  eq(imtSecundaria(800000), 48000, "nos últimos escalões, taxa única sobre o valor todo", 0.01);
+  eq(imtSecundaria(-5), 0, "um preço negativo não dá IMT");
+
+  eq(irsPorEscaloes(0), 0, "sem rendimento não há IRS");
+  eq(irsPorEscaloes(IRS_ESCALOES_2026[0].ate), IRS_ESCALOES_2026[0].ate * 0.125, "o primeiro escalão a 12,5%", 0.01);
+  var desce = 0, ant = -1;
+  for (var c = 0; c <= 200000; c += 2500){ var v = irsPorEscaloes(c); if (v < ant - 1e-9) desce++; ant = v; }
+  eq(desce, 0, "o IRS nunca desce quando o rendimento sobe");
+  eq(taxaMarginalIRS(1e9), 48, "o último escalão é 48%");
+  ok(irsIncremental(10000, {coletavel:10000, quociente:1}) < irsIncremental(10000, {coletavel:80000, quociente:1}),
+     "a mesma mais-valia paga mais a quem já ganha mais");
+  eq(irsIncremental(10000, {coletavel:20000, quociente:2}),
+     2 * (irsPorEscaloes(15000) - irsPorEscaloes(10000)), "o quociente conjugal divide e multiplica por dois", 0.01);
+
+  eq(pmt(100000, 0, 100), 1000, "sem juros, a prestação é o capital dividido pelos meses", 0.001);
+  eq(pmt(372600, 3.3, 420), 1497.06, "a prestação pelo método francês", 0.01);
+  eq(pmt(0, 3, 360), 0, "sem capital, sem prestação");
+})();
+
+G("planos: casa ou renda");
+(function(){
+  reporEstado();
+  S.fiscal.dependentes = 0;
+  var base = Object.assign(paramsCasa(), {concelho:"Lisboa", freguesia:"", loc: localRef("Lisboa"),
+    area:90, preco:414000, renda:1490, imi:0.30, entrada:10, tan:3.3, prazo:35, vptPct:55,
+    condominio:50, manutencao:0.5, taxasMun:15, valorizacao:3, retornoAlt:6, aumentoRenda:2.2,
+    horizonte:10, jovem:false, imiFamiliar:true, isencaoHpp:true, custosVenda:true});
+  var c = calcCasa(base);
+  eq(c.capital, 372600, "90% de financiamento");
+  eq(c.prestacao, 1497.06, "a prestação do crédito", 0.01);
+  eq(c.imt, imtCompra(414000, false), "o IMT da habitação própria");
+  eq(c.necessario, c.entrada + c.imt + c.selo + c.seloCredito + CUSTOS_ESCRITURA,
+     "o dinheiro para entrar soma entrada, impostos e escritura", 0.01);
+  eq(c.seloCredito, 372600 * 0.006, "o selo de 0,6% sobre o empréstimo entra nas contas", 0.01);
+  eq(c.imiAnual, 414000 * 0.55 * 0.003, "o IMI incide sobre o VPT, não sobre o preço", 0.01);
+  eq(c.saidaMes, c.parcelas.reduce(function(s, p){ return s + p[1]; }, 0), "a saída de caixa é a soma das parcelas", 0.01);
+  ok(c.saidaMes > c.prestacao, "e é mais do que a prestação");
+  eq(c.custoEfetivo, c.saidaMes - c.amort1 / 12 + c.oportunidade - c.valorizacao,
+     "o custo efetivo tira o capital amortizado e a valorização, e soma o custo de oportunidade", 0.01);
+  eq(c.dedRenda * 12, DEDUCAO_RENDA.limite, "a dedução da renda fica no limite anual", 0.01);
+  eq(c.anos.length, 11, "um ponto por ano, mais o de hoje");
+  eq(c.anos[0].inquilino, c.necessario, "quem arrenda começa com o dinheiro que o dono gastou a comprar", 0.01);
+
+  // IMI familiar e isenção dos primeiros anos
+  S.fiscal.dependentes = 2;
+  eq(calcCasa(base).dedFamiliar, 70, "dois dependentes tiram 70 € ao IMI");
+  S.fiscal.dependentes = 5;
+  eq(calcCasa(base).dedFamiliar, 140, "três ou mais tiram 140 €");
+  eq(calcCasa(Object.assign({}, base, {imiFamiliar:false})).dedFamiliar, 0, "e nada, se o município não o aplica");
+  S.fiscal.dependentes = 0;
+  var barata = calcCasa(Object.assign({}, base, {preco:180000}));
+  ok(barata.isencao && barata.imiAno1 === 0, "VPT até 125 000 € isenta o IMI nos primeiros anos");
+  ok(!c.isencao, "e um VPT maior não");
+  ok(calcCasa(Object.assign({}, base, {preco:1500000, vptPct:60})).aimiAnual > 0, "o adicional ao IMI aparece acima de 600 000 € de VPT");
+
+  // Jovem: IMT e selo da compra isentos até ao limite
+  var jovem = calcCasa(Object.assign({}, base, {preco:300000, jovem:true}));
+  ok(jovem.imt === 0 && jovem.selo === 0, "o jovem até 35 anos não paga IMT nem selo da compra");
+  ok(jovem.seloCredito > 0, "mas o selo do empréstimo continua");
+
+  // O equilíbrio é coerente com a série
+  var eqAno = c.equilibrio;
+  if (eqAno) ok(c.anos[eqAno].dono >= c.anos[eqAno].inquilino && c.anos[eqAno - 1].dono < c.anos[eqAno - 1].inquilino,
+                "o ano de equilíbrio é o primeiro em que comprar compensa");
+  // Sem valorização e com renda baixa, arrendar ganha
+  var semValor = calcCasa(Object.assign({}, base, {valorizacao:0, renda:700}));
+  ok(semValor.fim.inquilino > semValor.fim.dono, "casa que não valoriza contra renda baixa: arrendar ganha");
+  // Valores hostis não partem a conta
+  var hostil = calcCasa(Object.assign({}, base, {preco:0, renda:0, tan:0, horizonte:1}));
+  ok(isFinite(hostil.saidaMes) && isFinite(hostil.fim.dono), "preço e renda a zero não partem a conta");
+})();
+
+G("planos: ETF ou imobiliário");
+(function(){
+  reporEstado();
+  S.planos = {casa:{}, inv:{}};
+  var q = Object.assign(paramsInvestir(), {capital:60000, horizonte:15, etf:"vwce", etfRef:ETFS_REF.vwce,
+    retEtf:6.5, loc: localRef("Lisboa"), imi:0.30, valorizacao:3, aumentoRenda:2.2, vacancia:1,
+    gestao:0, condominioM2:0.5, manutencao:1, vptPct:55, regime:"0", tan:3.5, prazo:30, ltv:80, coletavel:40000});
+  var r = calcInvestir(q);
+
+  // O ETF confere com a conta à mão
+  var v = 60000 * Math.pow(1 + (6.5 - 0.19) / 100, 15);
+  eq(r.etf.liquido, v - (v - 60000) * 0.28, "o ETF de acumulação só paga 28% sobre o ganho, no fim", 0.5);
+  var etf = r.cenarios.filter(function(c){ return c.k === "etf"; })[0];
+  ok(etf.tir > 4 && etf.tir < 6.31, "a TIR do ETF fica entre o retorno líquido de imposto e o bruto", etf.tir);
+
+  // O mesmo capital paga a entrada de cada imóvel
+  ok(r.sem && Math.abs(custoEntradaImovel(r.sem.preco, 0) - 60000) < 200, "sem empréstimo, o capital paga o imóvel e os impostos");
+  ok(r.com && Math.abs(custoEntradaImovel(r.com.preco, 0.8) - 60000) < 200, "com empréstimo, paga a entrada e os impostos");
+  ok(r.com.preco > r.sem.preco * 3, "com 80% de financiamento compra-se um imóvel muito maior");
+  eq(r.com.credito, r.com.preco * 0.8, "e o crédito é 80% do preço", 0.5);
+
+  // Um imóvel que o capital não chega para comprar não pode ganhar
+  ok(r.sem.irrealista, "60 000 € em Lisboa só pagam um imóvel que não existe, e isso é dito");
+  ok(!r.melhor || r.melhor.k !== "sem", "por isso não ganha a comparação");
+
+  // Teto do Banco de Portugal
+  S.planos.inv = {ltv:95};
+  eq(paramsInvestir().ltv, LTV_MAX_INVESTIMENTO, "o financiamento fica nos 80% fora da habitação própria");
+  S.planos.inv = {};
+
+  // Fiscalidade das rendas
+  eq(taxaRendaPlano("0", 900).taxa, parseNum(S.fiscal.rendas), "contrato curto: taxa geral");
+  eq(taxaRendaPlano("10", 900).taxa, 10, "contrato de 10 anos: 10%");
+  eq(taxaRendaPlano("m", 900).taxa, parseNum(S.fiscal.rendaModerada), "renda moderada até ao teto");
+  ok(taxaRendaPlano("m", 5000).moderadaRecusada, "acima do teto, a renda moderada é recusada, e isso é dito");
+
+  // Barato e com renda alta: o imóvel ganha; caro e com renda baixa: o ETF
+  var guarda = calcInvestir(Object.assign({}, q, {capital:150000, loc: localRef("Guarda"), imi:0.30}));
+  ok(guarda.melhor && guarda.melhor.k !== "etf", "onde a renda rende muito face ao preço, o imóvel ganha");
+  ok(r.melhor && r.melhor.k === "etf", "em Lisboa, a estes preços, ganha o ETF");
+
+  // A TIR de um fluxo simples confere
+  eq(tirAnual([-1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1100]), 10, "a TIR de 10% num ano", 0.01);
+  eq(tirAnual([1, 2, 3]), null, "sem investimento não há TIR");
+  ok(isFinite(calcInvestir(Object.assign({}, q, {capital:0})).etf.liquido), "capital a zero não parte a conta");
+})();
+
+G("planos: rendimento disponível");
+(function(){
+  reporEstado();
+  carregarExemplo();
+  S.creditos = S.creditos.filter(function(c){ return !/habita/i.test(c.nome); });
+  var cat = S.categorias.filter(function(c){ return c.nome === "Habitação"; })[0];
+  S.recorrentes.push({id:"rnQA", tipo:"despesa", nome:"Renda de casa", categoriaId: cat.id, membroId:"",
+    valor:1300, frequencia:"mensal", inicio: MES + "-01", fim:"", ativo:true});
+  limparCacheCredito();
+  eq(rendaDoAgregado(), 1300, "a renda do agregado lê-se das despesas fixas");
+
+  var r = alavancasRendimento();
+  var casa = r.alavancas.filter(function(a){ return a.k === "casa"; })[0];
+  ok(casa != null, "quem arrenda vê a comparação com comprar");
+  /* Rendimento disponível é dinheiro em caixa. A valorização da casa é
+     património: conta, e diz-se, mas não entra na soma do que sobra ao mês. */
+  var c = calcCasa(Object.assign(paramsCasa(), {renda:1300}));
+  eq(casa.valor, Math.max(0, c.rendaLiquida - c.saidaMes), "a alavanca da casa mede caixa, não património", 0.01);
+  ok(/património/.test(casa.det), "e diz à parte o efeito no património");
+  eq(r.total, r.alavancas.filter(function(a){ return !a.info; }).reduce(function(s, a){ return s + a.valor; }, 0),
+     "o potencial soma só as alavancas com valor, não as informativas", 0.001);
+  ok(r.alavancas.every(function(a, i, l){ return i === 0 || l[i - 1].valor >= a.valor; }), "ordenadas pelo que valem");
+
+  // Dinheiro parado acima da reserva
+  var conta = S.ativos.filter(function(a){ return CLASSES[a.classe] && CLASSES[a.classe].grupo === "liquidez"; })[0];
+  conta.atual = 200000;
+  limparCacheCredito();
+  var r2 = alavancasRendimento();
+  var liq = r2.alavancas.filter(function(a){ return a.k === "liquidez"; })[0];
+  ok(liq && liq.valor > 0, "o dinheiro parado acima de seis meses de despesa aparece como alavanca");
+  var inv = r2.alavancas.filter(function(a){ return a.k === "investir"; })[0];
+  ok(inv && /para esses/i.test(inv.txt), "e o caminho para ele usa o excedente real, não o capital do calculador");
+})();
+
+/* ============================================================
    Relatório
    ============================================================ */
 S = normalizar(estadoUtilizador);
