@@ -13,7 +13,7 @@
     "start": "electron .",
     "teste": "node testes/qr.js && node testes/e2e.js",
     "build:win": "npm run preparar && electron-builder --win portable nsis --x64 --publish never",
-    "build:mac": "npm run preparar && electron-builder --mac dmg zip --x64 --arm64 --publish never",
+    "build:mac": "npm run preparar && electron-builder --mac dmg zip --x64 --publish never && electron-builder --mac dmg zip --arm64 --publish never",
     "build:linux": "npm run preparar && electron-builder --linux AppImage deb --x64 --publish never"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
       "artifactName": "Orcamento-Familiar-${version}-mac-${arch}.${ext}"
     },
     "dmg": {
-      "title": "Orçamento Familiar ${version}"
+      "title": "Orcamento Familiar ${version}"
     },
     "linux": {
       "icon": "build/icon.png",
