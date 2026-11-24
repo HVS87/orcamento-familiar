@@ -4202,6 +4202,17 @@ G("acabamentos: ícones nos botões de linha, notas curtas, pílulas");
   ok(acoes.every(function(b){ return /\S/.test(b.getAttribute("aria-label") || ""); }), "e cada uma diz o que faz");
   ok(qq("button").every(function(b){ return !/^[⧉✎✕↻]$/.test(b.textContent.trim()); }), "nenhum botão é só um glifo");
 
+  // Teclado: atalho para o conteúdo, e anel de foco em todos os botões
+  var saltar = q("a.saltar");
+  ok(saltar && saltar === document.body.firstElementChild, "a primeira paragem do Tab é «Saltar para o conteúdo»");
+  eq(saltar && saltar.getAttribute("href"), "#app", "e leva ao conteúdo");
+  eq(q("#app").getAttribute("tabindex"), "-1", "que pode receber o foco");
+  ok(saltar && saltar.getBoundingClientRect().bottom <= 0, "e fica fora de vista até ser preciso");
+  var temRegraFoco = Array.prototype.some.call(document.styleSheets, function(sh){
+    try { return Array.prototype.some.call(sh.cssRules, function(r){ return /button:focus-visible/.test(r.selectorText || "") && /outline/.test(r.cssText); }); }
+    catch(e){ return false; } });
+  ok(temRegraFoco, "há anel de foco para todos os botões");
+
   // Pílulas
   var r = parseFloat(getComputedStyle(q(".btn")).borderTopLeftRadius);
   ok(r >= 16, "os botões são pílulas", r);

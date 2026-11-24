@@ -213,9 +213,12 @@ h3.sec:first-child{margin-top:0}
 .card-head h3.sec{margin:0}
 
 .grid{display:grid;gap:16px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
-.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+/* O mínimo de cada coluna nunca passa da largura disponível: a 320 px de
+   ecrã, com as margens, sobram 296 — e um mínimo de 320 empurrava a página
+   para o lado. */
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr))}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
 .row > *{flex:1 1 150px;min-width:0}
 .row > .shrink{flex:0 0 auto}
@@ -328,7 +331,7 @@ label.field.temAjuda:hover{text-decoration-color:var(--accent)}
    Tab, o Enter e o espaço de graça, e anunciam-se como o que são. */
 .legend button[data-foco]{cursor:pointer;border-radius:6px;padding:1px 5px;margin:-1px -5px;
   transition:background .12s;background:none;border:0;font:inherit;color:inherit;
-  display:flex;align-items:center;gap:6px;text-align:left}
+  display:flex;align-items:center;gap:6px;text-align:left;min-height:24px}
 .legend button[data-foco]:hover{background:var(--surface-2)}
 .legend button[data-foco][aria-pressed="true"]{background:var(--accent-soft)}
 .legend button[data-foco]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -441,7 +444,10 @@ input.invalido,select.invalido{border-color:var(--neg) !important;outline:1px so
 
 /* Botão de anulação no toast */
 #toast button{background:none;border:0;color:var(--accent-2,#9db9ff);color:var(--bg);
-  text-decoration:underline;font-weight:700;font-size:13.5px;cursor:pointer;margin-left:10px;padding:0}
+  text-decoration:underline;font-weight:700;font-size:13.5px;cursor:pointer;margin-left:6px;padding:0 8px;
+  min-height:32px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;
+  vertical-align:middle}
+#toast button:focus-visible{outline:2px solid var(--bg);outline-offset:1px}
 #toast.show{pointer-events:auto}
 
 
@@ -496,7 +502,8 @@ svg.mini{width:70px;height:20px;display:block}
 .comCab > .card{margin:0}
 .cabPainel{position:absolute;top:9px;right:11px;z-index:2;display:flex;align-items:center;gap:7px}
 .cabPainel button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;
-  line-height:1;padding:3px 5px;border-radius:6px}
+  line-height:1;padding:3px 5px;border-radius:6px;min-width:26px;min-height:26px;
+  display:inline-flex;align-items:center;justify-content:center}
 .cabPainel button:hover{background:var(--surface-2);color:var(--text)}
 .cabPainel button:focus-visible{outline:2px solid var(--accent)}
 .card.cartaoFechado{display:flex;align-items:center;gap:9px;padding:11px 14px;position:relative}
@@ -789,7 +796,7 @@ html[data-densidade="compacta"] .card-head{margin-bottom:8px}
 [data-dispositivo="tablet"] textarea{min-height:44px}
 [data-dispositivo="telemovel"] .seg button,
 [data-dispositivo="tablet"] .seg button{min-height:42px;padding:9px 14px}
-/* 44 px é o alvo que a Apple e a Google recomendam, e estes botões estão no
+/* 44 px é o alvo que a norma de acessibilidade (WCAG 2.5.5) recomenda, e estes botões estão no
    canto do cartão — o sítio onde o polegar chega pior. De pé há altura para
    os dar; deitado não há, e aí a regra de baixo encolhe-os. O sinal ▾ não
    cresce: o que cresce é a área transparente à volta dele. */
@@ -1037,6 +1044,7 @@ main{max-width:1200px;margin:0 auto;padding:6px 24px 80px}
   box-shadow:0 2px 6px rgba(0,0,0,.16),0 14px 34px rgba(0,0,0,.24);padding:8px}
 .popover[hidden]{display:none}
 #menuMes{width:340px}
+[data-layout="compacto"] #menuMes{width:auto}
 .popCab{padding:6px 8px 4px}
 #menuMes #fitaMeses{padding:8px 6px 10px;justify-content:space-between}
 .linhaMenu{display:flex;align-items:center;gap:14px;width:100%;min-height:44px;padding:0 12px;border:0;
@@ -1097,6 +1105,23 @@ main{max-width:1200px;margin:0 auto;padding:6px 24px 80px}
 [data-layout="compacto"] .popover{left:8px !important;right:8px;top:auto !important;
   bottom:calc(8px + env(safe-area-inset-bottom));width:auto;max-width:none;border-radius:22px;max-height:80vh}
 [data-layout="compacto"] #painelLateral{top:0;left:0;right:0;bottom:0;width:auto;border-radius:0;z-index:85}
+/* A notificação sobe acima da barra de destinos, em vez de a tapar */
+[data-layout="compacto"] #toast{bottom:calc(82px + env(safe-area-inset-bottom))}
+/* Ecrãs muito estreitos (320 px, o mais pequeno que ainda se vende): o
+   logótipo sai do cabeçalho — o nome já está no separador do navegador e no
+   ícone da aplicação — e os botões e as pastilhas encolhem o que podem sem
+   descer dos 40 px de alvo. Sem isto, cabeçalho e barra pediam 334 px. */
+@media (max-width:360px){
+  [data-layout="compacto"] .brand{display:none}
+  [data-layout="compacto"] .topbar{padding:0 4px 0 6px}
+  [data-layout="compacto"] .mesGrupo{margin-right:auto}
+  [data-layout="compacto"] .btn.icon,
+  [data-layout="compacto"] .pesquisa{width:40px;height:40px;min-width:40px}
+  [data-layout="compacto"] .destino .pastilha{width:44px}
+  [data-layout="compacto"] .destino{font-size:10.5px}
+  /* Um botão de frase inteira parte a linha em vez de sair do ecrã */
+  .btn{white-space:normal;max-width:100%;text-align:left}
+}
 [data-layout="compacto"] .tituloPagina{font-size:22px}
 [data-layout="compacto"] .cabPagina{margin:4px 0 14px}
 [data-layout="compacto"] .fichas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px 2px}
@@ -1230,9 +1255,24 @@ label.chk input{width:18px;height:18px}
 
 .dicaTxt{display:inline-flex;align-items:flex-start;gap:8px}
 .dicaTxt svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:var(--warn)}
+
+/* Foco de teclado sempre visível, com a mesma linguagem em todo o lado. Fica
+   com especificidade de elemento, para as regras próprias de cada componente
+   mandarem; sobre o acento, o anel passa à cor do texto, que se vê. */
+button:focus-visible, a:focus-visible, summary:focus-visible, [tabindex]:focus-visible,
+input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary:focus-visible, .seg button[aria-pressed="true"]:focus-visible{outline-color:var(--text)}
+.seg button:focus-visible{outline-offset:-3px}
+
+/* Atalho para quem navega por teclado: invisível até receber o foco */
+.saltar{position:fixed;left:12px;top:-60px;z-index:200;padding:10px 16px;border-radius:999px;
+  background:var(--accent);color:var(--on-accent);font-weight:650;text-decoration:none;transition:top .12s}
+.saltar:focus{top:12px;outline:2px solid var(--text);outline-offset:2px}
+main:focus{outline:none}
 </style>
 </head>
 <body>
+<a class="saltar no-print" href="#app">Saltar para o conteúdo</a>
 
 <header>
   <div class="topbar">
@@ -1292,7 +1332,7 @@ label.chk input{width:18px;height:18px}
 </div>
 <aside id="painelLateral" class="no-print" aria-label="Painel lateral" hidden></aside>
 
-<main id="app"></main>
+<main id="app" tabindex="-1"></main>
 
 <button id="botaoRapido" class="no-print" aria-label="Criar — registar um movimento ou acrescentar outra coisa" title="Criar (n depois m)" data-ic="mais"></button>
 
@@ -15669,8 +15709,8 @@ function abrirMenu(menu, botao, pintar){
      e o CSS trata disso sem posição nenhuma. */
   const r = b.getBoundingClientRect();
   const larg = m.offsetWidth || 300;
-  m.style.left = Math.max(8, Math.min(window.innerWidth - larg - 8, r.right - larg)) + "px";
-  if (menu === "menuMes") m.style.left = Math.max(8, Math.min(window.innerWidth - larg - 8, r.left + r.width / 2 - larg / 2)) + "px";
+  m.style.left = Math.max(8, Math.min(document.documentElement.clientWidth - larg - 8, r.right - larg)) + "px";
+  if (menu === "menuMes") m.style.left = Math.max(8, Math.min(document.documentElement.clientWidth - larg - 8, r.left + r.width / 2 - larg / 2)) + "px";
   m.style.top = Math.round(r.bottom + 6) + "px";
   const foco = m.querySelector("button, input");
   if (foco && !aoToque()) foco.focus({preventScroll:true});
