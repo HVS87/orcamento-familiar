@@ -1096,6 +1096,70 @@ main{max-width:1200px;margin:0 auto;padding:6px 24px 80px}
 [data-deitado="telemovel"] .tituloPagina{font-size:18px}
 [data-deitado="telemovel"] #tutorial .tutcard{bottom:58px}
 
+
+/* ---------- Listas primeiro, detalhe a pedido ---------- */
+.soLeitor{position:absolute !important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:-1px}
+details.novoForm{margin:0 0 14px}
+details.novoForm > summary{list-style:none;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  min-height:40px;padding:8px 18px 8px 14px;border-radius:999px;font-weight:600;font-size:14px;
+  color:var(--accent-forte);background:color-mix(in srgb,var(--accent) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+details.novoForm > summary::-webkit-details-marker{display:none}
+details.novoForm > summary:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+details.novoForm > summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.novoForm > summary svg{width:18px;height:18px}
+details.novoForm[open] > summary{margin-bottom:10px}
+details.novoForm[open] > summary svg{transform:rotate(45deg)}
+details.novoForm > .form{margin-top:0}
+
+details.secFx{border-top:1px solid var(--border)}
+details.secFx > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px}
+details.secFx > summary::-webkit-details-marker{display:none}
+details.secFx > summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);
+  transform:rotate(-45deg);transition:transform .15s;flex:0 0 auto;margin:0 4px}
+details.secFx[open] > summary::before{transform:rotate(45deg)}
+details.secFx > summary h3.sec{margin:0;border:0;padding:0}
+details.secFx > summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.secFxCorpo{padding:4px 0 14px}
+
+/* Ações de cada linha: no rato aparecem ao passar ou com o foco; no dedo ficam sempre */
+@media (hover:hover) and (pointer:fine){
+  .acoesLinha .btn{opacity:0;transition:opacity .12s}
+  tr:hover .acoesLinha .btn, tr:focus-within .acoesLinha .btn, tr.selecionada .acoesLinha .btn{opacity:1}
+}
+
+/* Fichas de filtro dos movimentos */
+.fichasFiltro{margin:4px 0 12px}
+.nFicha{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;font-size:11.5px;font-weight:700;
+  background:var(--warn);color:#1a1200;margin-left:2px}
+
+/* Calendário grande, com dias que se escolhem */
+.hmap-wrap.grande .hmap{grid-template-columns:repeat(7,minmax(36px,1fr));gap:6px}
+.hmap-wrap.grande .hcel{min-height:44px;font-size:14px;position:relative}
+button.hcel{border:1px solid var(--border);font:inherit;color:var(--text);cursor:pointer;border-radius:8px}
+button.hcel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.hcel.escolhido{outline:2px solid var(--text);outline-offset:1px;font-weight:700}
+.hcel .hr{position:absolute;top:2px;right:5px;font-size:11px;font-weight:800;color:var(--pos)}
+
+/* Agenda */
+ol.agenda{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.agDia{display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:4px 16px;padding:10px 4px;border-bottom:1px solid var(--border)}
+.agDia.passado .agData{color:var(--muted)}
+.agData{font-weight:650;font-size:13.5px;padding-top:2px}
+.agDia > .agItem{grid-column:2}
+.agItem{display:flex;align-items:center;gap:10px;min-height:30px}
+.agItem .agNome{flex:1 1 auto;min-width:0}
+.agItem.previsto{color:var(--muted)}
+.agItem.previsto .dot{background:transparent !important;border:2px dashed var(--muted)}
+.agHoje{display:flex;align-items:center;gap:10px;color:var(--neg-forte, var(--neg));font-weight:700;font-size:12.5px;margin:4px 0}
+.agHoje::after{content:"";flex:1 1 auto;height:2px;background:currentColor;border-radius:2px}
+@media (max-width:560px){ .agDia{grid-template-columns:1fr} .agDia > .agItem{grid-column:1} }
+
+/* Índice das definições */
+.indiceCfg{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:4px;scrollbar-width:thin;
+  position:sticky;top:var(--altCab, 64px);z-index:3;background:var(--bg)}
+.secCfg{scroll-margin-top:calc(var(--altCab, 64px) + 64px)}
+.secCfg h2:focus{outline:none}
 </style>
 </head>
 <body>
@@ -1148,6 +1212,13 @@ main{max-width:1200px;margin:0 auto;padding:6px 24px 80px}
   <div class="sepMenu"></div>
   <button class="linhaMenu" role="menuitem" data-act="dadosAbrir" data-ic="exportar"><span class="lb">Cópias e exportações</span></button>
   <button class="linhaMenu" role="menuitem" data-act="pagina" data-v="config" data-ic="definicoes"><span class="lb">Todas as definições</span></button>
+</div>
+<div id="menuMov" class="popover no-print" role="menu" aria-label="Mais ações dos movimentos" hidden>
+  <button class="linhaMenu" role="menuitem" data-act="csvAbrir" data-ic="importar"><span class="lb">Importar extrato</span></button>
+  <button class="linhaMenu" role="menuitem" data-act="copiarMesAnterior" data-ic="copiar"><span class="lb">Copiar o mês anterior</span></button>
+  <button class="linhaMenu" role="menuitem" data-act="gerarPlano" data-ic="lista"><span class="lb">Lançar o plano deste mês</span></button>
+  <div class="sepMenu"></div>
+  <button class="linhaMenu" role="menuitem" data-act="regrasAbrir" data-ic="regra"><span class="lb">Regras de categorização</span></button>
 </div>
 <aside id="painelLateral" class="no-print" aria-label="Painel lateral" hidden></aside>
 
@@ -2370,7 +2441,6 @@ const AJUDAS_CAMPO = {
   fxpprSaidaFora:   ["Resgate fora das condições", "Taxa aplicável a um resgate antecipado sem enquadramento legal, acrescida da devolução das deduções obtidas e de penalização.", "21,5%"],
   /* Filtros */
   fTexto: ["Pesquisa", "Filtra por descrição ou por nome da categoria.", ""],
-  fTipo:  ["Tipo", "Mostra só rendimentos, só despesas, ou tudo.", ""],
 
   /* Navegação e datas */
   mesSel:   ["Mês em análise", "Todos os cálculos se referem a este mês: movimentos, prestação do crédito, capital em dívida e balanço. Use as setas para percorrer o histórico.", ""],
@@ -2417,6 +2487,18 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  movVista:   ["Ver os movimentos", "Lista para procurar e corrigir; calendário para ver os dias que pesam e escolher um; agenda para o que já passou e o que ainda vem este mês.", ""],
+  movDia:     ["Escolher um dia", "Mostra só os movimentos desse dia. Carregar outra vez, ou em «Ver o mês todo», volta ao mês inteiro.", ""],
+  movFiltro:  ["Mostrar", "Filtra a lista por tipo. «Por categorizar» junta os movimentos ainda sem categoria, para os arrumar de uma vez.", ""],
+  movMenu:    ["Mais ações", "Importar um extrato, copiar o mês anterior, lançar o plano deste mês, e as regras que categorizam sozinhas.", ""],
+  regrasAbrir:["Regras de categorização", "Leva às regras que o importador aprendeu: um padrão na descrição e a categoria que lhe corresponde.", ""],
+  cfgIr:      ["Ir para a secção", "Salta para esta secção das definições sem descer a página toda.", ""],
+  detalheAbrir:["Abrir ao lado", "Mostra o detalhe completo num painel à direita, sem perder a lista. No telemóvel ocupa o ecrã, com seta para voltar.", ""],
+  recSel:     ["Selecionar rubrica", "Marque várias para lhes mudar a categoria, pô-las em pausa ou eliminá-las de uma vez.", ""],
+  loteRecAplicar:["Mudar a categoria", "Atribui a categoria escolhida a todas as rubricas selecionadas.", ""],
+  loteRecAtivar:["Pausar ou retomar", "Uma rubrica em pausa deixa de contar no plano, mas fica guardada para quando voltar.", ""],
+  loteRecApagar:["Eliminar em lote", "Elimina as rubricas selecionadas de uma vez, com seis segundos para anular.", ""],
+  loteRecLimpar:["Limpar seleção", "Desmarca todas as rubricas, sem as alterar.", ""],
   pagina:     ["Páginas", "Cada destino tem as suas páginas, em fichas por baixo do título. A ficha marcada é a página em que está.", ""],
   analisesPersonalizar:["Escolher os cartões", "Mostra a lista de cartões das análises: ligue, desligue e reordene o que quer ver nesta página.", ""],
   criarAbrir: ["Criar", "Abre a lista do que se pode acrescentar — um movimento, um rendimento, uma despesa fixa, um ativo, um crédito, um objetivo ou uma compra grande.", ""],
@@ -7713,6 +7795,8 @@ function movimentosFiltrados(){
   if (filtros.categoria) lista = lista.filter(m => m.categoriaId === filtros.categoria);
   if (filtros.membro)    lista = lista.filter(m => m.membroId === filtros.membro);
   if (filtros.tipo)      lista = lista.filter(m => m.tipo === filtros.tipo);
+  if (filtros.semCat)    lista = lista.filter(m => !m.categoriaId);
+  if (ui.movVista === "calendario" && ui.movDia) lista = lista.filter(m => m.data === ui.movDia);
   return lista;
 }
 
@@ -7738,6 +7822,7 @@ function termoComum(descricoes){
 }
 
 function viewMovimentos(){
+  const vistaMov = VISTAS_MOV[ui.movVista] ? ui.movVista : "lista";
   const ed = editando.mov ? S.movimentos.find(m => m.id === editando.mov) : null;
   // Por omissão: hoje se o mês em análise for o corrente, senão o dia 1 desse mês.
   const dataPadrao = (isoMes(hoje()) === MES) ? isoDia(hoje()) : (MES + "-01");
@@ -7771,11 +7856,6 @@ function viewMovimentos(){
       '<div style="flex:2 1 200px"><input id="fTexto" placeholder="Pesquisar descrição…" value="'+esc(filtros.texto)+'"></div>'+
       '<div style="flex:1 1 160px">'+selectCategorias("fCat", filtros.categoria, "", "Todas as categorias")+'</div>'+
       '<div style="flex:1 1 140px">'+selectMembros("fMembro", filtros.membro, "Todos os membros")+'</div>'+
-      '<div style="flex:0 0 130px"><select id="fTipo">'+
-        '<option value="">Tudo</option>'+
-        '<option value="rendimento"'+(filtros.tipo==="rendimento"?" selected":"")+'>Rendimentos</option>'+
-        '<option value="despesa"'+(filtros.tipo==="despesa"?" selected":"")+'>Despesas</option>'+
-      '</select></div>'+
     '</div>';
 
   let lista = movimentosFiltrados();
@@ -7824,7 +7904,7 @@ function viewMovimentos(){
       '<td data-lbl="Membro">'+membroPastilha(m.membroId)+'</td>'+
       '<td class="r num '+(isR ? "pos" : "neg")+'" data-lbl="Valor" data-edit="valor" data-id="'+esc(m.id)+'" '+
         'title="Clique duplo para editar">'+(isR ? "+" : "−")+esc(eur(v))+'</td>'+
-      '<td class="r no-print" style="white-space:nowrap">'+
+      '<td class="r no-print acoesLinha" style="white-space:nowrap">'+
         '<button class="btn sm ghost" data-act="movDuplicar" data-id="'+esc(m.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="movEditar" data-id="'+esc(m.id)+'" title="Editar">✎</button> '+
         '<button class="btn sm ghost" data-act="movApagar" data-id="'+esc(m.id)+'" title="Eliminar">✕</button></td>'+
     '</tr>';
@@ -7868,11 +7948,13 @@ function viewMovimentos(){
   return '<div class="card"><div class="card-head"><div class="t"><h2>Movimentos — '+esc(mesLabel(MES))+'</h2>'+
     '<div class="sub">Registo do que entrou e saiu efetivamente.</div></div>'+
     // Três botões não cabem numa linha em ecrã estreito: deixa-se quebrar.
-    '<span class="no-print acoesCabecalho">'+
-    '<button class="btn sm" data-act="csvAbrir" title="Importar movimentos de um extrato bancário em CSV">Importar extrato</button>'+
-    '<button class="btn sm" data-act="copiarMesAnterior" title="Repete os movimentos do mês anterior, sem duplicar os que já cá estão">Copiar mês anterior</button>'+
-    '<button class="btn sm" data-act="gerarPlano" title="Cria movimentos a partir das rubricas mensais do plano">Lançar plano deste mês</button>'+
-    '</span></div>'+form+cartaoRecorrencias()+calendarioCalor()+filtroBar+tabela+'</div>';
+    '<span class="no-print acoesCabecalho">'+segVistaMov()+
+    '<button class="btn sm icon ghost" id="movMaisBtn" data-act="movMenu" aria-haspopup="menu" aria-expanded="false" '+
+      'aria-label="Mais ações: importar, copiar o mês anterior, lançar o plano, regras">'+ic("pontos")+'</button>'+
+    '</span></div>'+form+cartaoRecorrencias()+fichasFiltroMov()+
+    (vistaMov === "agenda" ? agendaMes()
+     : vistaMov === "calendario" ? calendarioCalor(true)+diaEscolhido()+(ui.movDia ? tabela : "")
+     : filtroBar+tabela)+'</div>';
 }
 
 /** Sugestões de rubricas a partir de despesas que se repetem. */
@@ -7897,9 +7979,10 @@ function cartaoRecorrencias(){
  * Calendário do mês com a despesa de cada dia em intensidade de cor —
  * os padrões («os sábados custam-me 80 €») saltam à vista.
  */
-function calendarioCalor(){
+function calendarioCalor(escolher){
   const doMes = S.movimentos.filter(m => (m.data || "").indexOf(MES) === 0);
-  if (!doMes.length) return "";
+  if (!doMes.length) return escolher ? vazioIlustrado("Sem movimentos em "+mesLabel(MES),
+    "Quando houver movimentos, cada dia ganha a cor da despesa que teve.", DESENHOS.movimentos) : "";
   const porDia = {};
   doMes.forEach(m => {
     const d = parseInt((m.data || "").slice(8), 10);
@@ -7919,14 +8002,25 @@ function calendarioCalor(){
     const x = porDia[d];
     const alfa = x ? 0.12 + 0.78 * (x.desp / maxDesp) : 0;
     const dd = String(d).padStart(2, "0");
+    const iso = MES + "-" + dd;
+    if (escolher && x){
+      celulas += '<button class="hcel hit'+(ui.movDia === iso ? " escolhido" : "")+'" data-act="movDia" data-d="'+iso+'" '+
+        'aria-pressed="'+(ui.movDia === iso)+'" aria-label="'+esc(diaExtenso(iso))+': despesa '+esc(eur(x.desp))+
+        (x.rend ? ', rendimento '+esc(eur(x.rend)) : "")+'" style="'+
+        (x.desp > 0 ? 'background:color-mix(in srgb,var(--neg) '+(alfa*100).toFixed(0)+'%,var(--surface-2));' : "")+
+        (x.desp === 0 && x.rend > 0 ? 'background:color-mix(in srgb,var(--pos) 25%,var(--surface-2));' : "")+'"'+
+        tipData(dd+"/"+String(mm).padStart(2,"0"), [["Despesa", eur(x.desp)], ["Rendimento", eur(x.rend)]])+
+        '>'+d+(x.rend > 0 ? '<span class="hr" aria-hidden="true">+</span>' : "")+'</button>';
+      continue;
+    }
     celulas += '<div class="hcel'+(x ? " hit" : "")+'" style="'+
       (x && x.desp > 0 ? 'background:color-mix(in srgb,var(--neg) '+(alfa*100).toFixed(0)+'%,var(--surface-2));' : "")+
       (x && x.desp === 0 && x.rend > 0 ? 'background:color-mix(in srgb,var(--pos) 25%,var(--surface-2));' : "")+'"'+
       (x ? tipData(dd+"/"+String(mm).padStart(2,"0"), [["Despesa", eur(x.desp)], ["Rendimento", eur(x.rend)]]) : "")+
       '>'+d+'</div>';
   }
-  return '<div class="hmap-wrap"><div class="barlbl"><span><strong style="color:var(--text)">Calendário do mês</strong>'+
-    ' · quanto mais escuro, maior a despesa do dia</span></div>'+
+  return '<div class="hmap-wrap'+(escolher ? " grande" : "")+'"><div class="barlbl"><span><strong style="color:var(--text)">Calendário do mês</strong>'+
+    ' · quanto mais escuro, maior a despesa do dia'+(escolher ? '; um + marca os dias com rendimento. Escolha um dia para ver os movimentos.' : "")+'</span></div>'+
     '<div class="hmap">'+celulas+'</div></div>';
 }
 
@@ -8393,14 +8487,16 @@ function viewPlano(){
         : recMensal(b) - recMensal(a));
     if (!itens.length) return '<div class="empty">Sem '+esc(titulo.toLowerCase())+' no plano.</div>';
     const total = itens.filter(r => recAtiva(r, MES)).reduce((s,r) => s + recMensal(r), 0);
-    return '<div class="tblwrap"><table><thead><tr>'+
+    return loteRubricas(itens)+'<div class="tblwrap"><table><thead><tr>'+
       '<th class="no-print colSel"></th>'+
       '<th>Designação</th><th>Categoria</th><th>Membro</th><th>Periodicidade</th>'+
       '<th class="r">Valor</th><th class="r">Equiv./mês</th><th class="no-print"></th></tr></thead><tbody>'+
       itens.map(r => {
         const ativa = recAtiva(r, MES);
         return '<tr draggable="true" data-drag="rec" data-id="'+esc(r.id)+'" style="'+(ativa ? "" : "opacity:.45")+'">'+
-          '<td class="no-print" style="white-space:nowrap"><span class="pega" title="Arrastar para reordenar">⠿</span>'+
+          '<td class="no-print" style="white-space:nowrap"><label class="celSel"><input type="checkbox" data-act="recSel" data-id="'+esc(r.id)+'"'+
+            ((ui.recSel || {})[r.id] ? " checked" : "")+' aria-label="Selecionar '+esc(r.nome || "rubrica")+'"></label>'+
+            '<span class="pega" title="Arrastar para reordenar">⠿</span>'+
             botoesOrdenar("rec", r.id)+'</td>'+
           '<td>'+esc(r.nome || "—")+(ativa ? "" : ' <span class="tag">inativa</span>')+'</td>'+
           '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(r.categoriaId))+'"></span>'+esc(catRotulo(r.categoriaId))+'</span></td>'+
@@ -8409,7 +8505,7 @@ function viewPlano(){
             (r.dia ? ' <span class="tag">dia '+esc(r.dia)+'</span>' : "")+'</td>'+
           '<td class="r num">'+esc(eur(parseNum(r.valor)))+'</td>'+
           '<td class="r num"><strong>'+esc(eur(recMensal(r)))+'</strong></td>'+
-          '<td class="r no-print" style="white-space:nowrap">'+
+          '<td class="r no-print acoesLinha" style="white-space:nowrap">'+
             '<button class="btn sm ghost" data-act="recToggle" data-id="'+esc(r.id)+'" title="Ativar/desativar">'+(r.ativo === false ? "○" : "●")+'</button> '+
             '<button class="btn sm ghost" data-act="recDuplicar" data-id="'+esc(r.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="recEditar" data-id="'+esc(r.id)+'" title="Editar">✎</button> '+
             '<button class="btn sm ghost" data-act="recApagar" data-id="'+esc(r.id)+'" title="Eliminar">✕</button></td>'+
@@ -11010,7 +11106,7 @@ function viewAtivos(){
 
   /* Uma ficha por ativo, com encargos, rendimentos e créditos */
   const fichas = ordenado(S.ativos, "pat", colsPat, {col:"valor", dir:-1})
-    .map(fichaAtivo).join('<div style="height:16px"></div>');
+    .map(a => fichaAtivo(a)).join('<div style="height:16px"></div>');
 
   /* Composição do património, por grupo de ativo */
   const porGrupoV = {};
@@ -11145,7 +11241,8 @@ function projecaoGlobal(){
  * Ficha de um ativo: indicadores, créditos associados e as tabelas
  * editáveis de encargos e rendimentos, cada linha ligada a uma categoria.
  */
-function fichaAtivo(a){
+function fichaAtivo(a, opts){
+  const aoLado = !!(opts && opts.lateral);
   const t = classeDe(a.classe);
   const val = valorAtivo(a);
   const divida = dividaDoAtivo(a);
@@ -11295,12 +11392,18 @@ function fichaAtivo(a){
      três projeções a 240 meses. */
   const chave = "at-" + a.id;
   const comSimulador = S.ativos.filter(x => temSimulador(x.classe)).length;
-  const abertoAgora = ui.abertos[chave] != null ? ui.abertos[chave] : comSimulador <= 10;
+  /* Lista primeiro: com mais de dois ativos as fichas começam fechadas, e o
+     detalhe abre-se no lugar ou ao lado. O que está aberto ao lado não se
+     desenha também na lista — os identificadores repetir-se-iam. */
+  const nesteLado = ui.lateral && ui.lateral.tipo === "ativo" && ui.lateral.id === a.id;
+  const abertoAgora = aoLado ? true
+    : nesteLado ? false
+    : ui.abertos[chave] != null ? ui.abertos[chave] : (S.ativos.length <= 2 && comSimulador <= 10);
 
   return '<div class="card">'+
     '<div class="card-head">'+
-      '<button class="btn ghost sm no-print" data-act="alternar" data-id="'+esc(chave)+'" '+
-        'aria-expanded="'+abertoAgora+'" title="Mostrar ou esconder o detalhe">'+(abertoAgora ? "▾" : "▸")+'</button>'+
+      (aoLado ? "" : '<button class="btn ghost sm no-print" data-act="alternar" data-id="'+esc(chave)+'" '+
+        'aria-expanded="'+abertoAgora+'" aria-label="'+(abertoAgora ? "Fechar" : "Abrir")+' o detalhe de '+esc(a.nome || "ativo")+'">'+(abertoAgora ? "▾" : "▸")+'</button>')+
       '<div class="t"><h2>'+esc(a.nome || "Ativo")+'</h2>'+
       '<div class="sub"><span class="tag"><span class="dot" style="background:'+esc(t.cor)+'"></span>'+esc(t.lbl)+'</span> '+
       (a.dataAquisicao ? ' · desde '+esc(mesLabel(mesDoDia(a.dataAquisicao))) : "")+
@@ -11308,6 +11411,8 @@ function fichaAtivo(a){
       (Math.abs(retornoLiquido(a) - retornoAtivo(a)) > 0.05 ? ' ('+esc(pct(retornoLiquido(a)))+' líquido de imposto)' : "")+
       '</div></div>'+
       '<div class="no-print" style="white-space:nowrap">'+
+        (aoLado ? "" : '<button class="btn sm ghost" data-act="detalheAbrir" data-tipo="ativo" data-id="'+esc(a.id)+'" '+
+          'aria-label="Abrir '+esc(a.nome || "ativo")+' ao lado" title="Abrir ao lado">'+ic("setaDir")+'</button> ')+
         '<button class="btn sm ghost" data-act="patAdotar" data-id="'+esc(a.id)+'" title="Atualizar valor">↻</button> '+
         '<button class="btn sm ghost" data-act="patDuplicar" data-id="'+esc(a.id)+'" title="Duplicar">⧉</button> '+'<button class="btn sm ghost" data-act="patEditar" data-id="'+esc(a.id)+'">✎</button> '+
         '<button class="btn sm ghost" data-act="patApagar" data-id="'+esc(a.id)+'">✕</button></div></div>'+
@@ -11326,7 +11431,8 @@ function fichaAtivo(a){
       ? rendibilidadeCard + blocoImposto +
         (temSimulador(a.classe) ? simuladorAtivo(a) : "")+
         blocoCredito + blocoAportes + fluxos("encargo") + fluxos("rendimento")
-      : '<div class="note no-print" style="margin-top:14px">Clique em ▸ para ver rendibilidade, '+
+      : nesteLado ? '<div class="note no-print" style="margin-top:14px">Aberto no painel ao lado.</div>'
+      : '<div class="note no-print" style="margin-top:14px">Abra ▸ aqui ou ao lado para ver rendibilidade, '+
         (temSimulador(a.classe) ? "simulador de crescimento, " : "")+'créditos, encargos e rendimentos.</div>')+
   '</div>';
 }
@@ -11739,7 +11845,16 @@ function creditosOut(){
         esforco > 40 ? "bad" : esforco > 33 ? "warnb" : "good")+
   '</div>';
 
-  const cartoes = S.creditos.map(c => {
+  const cartoes = S.creditos.map(c => fichaCredito(c)).join('<div style="height:16px"></div>');
+
+  return resumo + cartaoAmortizar() + cartoes;
+}
+
+/** A ficha de um crédito — na lista ou no painel ao lado. */
+function fichaCredito(c, opts){
+  const aoLado = !!(opts && opts.lateral);
+  const choque = parseNum(S.projecao.choqueTaxa) || 0;
+  {
     const n = prazoCredito(c);
     const pg = pagasAte(c, MES);
     const div = saldoDevedorMes(c, MES, choque);
@@ -11780,6 +11895,8 @@ function creditosOut(){
         (varia ? ' · revê a cada '+revisaoCredito(c)+' meses' : "")+
         (ativo ? ' · financia <strong>'+esc(ativo.nome)+'</strong>' : "")+'</div></div>'+
         '<div class="no-print" style="white-space:nowrap">'+
+          (aoLado ? "" : '<button class="btn sm ghost" data-act="detalheAbrir" data-tipo="credito" data-id="'+esc(c.id)+'" '+
+            'aria-label="Abrir '+esc(c.nome || "crédito")+' ao lado" title="Abrir ao lado">'+ic("setaDir")+'</button> ')+
           '<button class="btn sm ghost" data-act="crDuplicar" data-id="'+esc(c.id)+'" title="Duplicar">⧉</button> '+
           '<button class="btn sm ghost" data-act="crEditar" data-id="'+esc(c.id)+'">✎</button> '+
           '<button class="btn sm ghost" data-act="crApagar" data-id="'+esc(c.id)+'">✕</button></div></div>'+
@@ -11796,7 +11913,7 @@ function creditosOut(){
       '<div class="barlbl"><span>Amortizado</span><span>'+esc(pct(prog))+'</span></div>'+
       '<div class="bar"><span style="width:'+prog.toFixed(1)+'%;background:var(--accent)"></span></div>'+
       reparticao+
-      '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent)">Mapa de amortização por ano</summary>'+
+      '<details style="margin-top:14px"'+(aoLado ? " open" : "")+'><summary style="cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent)">Mapa de amortização por ano</summary>'+
         '<div class="tblwrap" style="margin-top:9px;max-height:320px;overflow-y:auto"><table>'+
         '<thead><tr><th>Ano</th>'+(varia ? '<th class="r">Taxa</th>' : "")+
         '<th class="r">Pago</th><th class="r">Juros</th><th class="r">Capital</th><th class="r">Em dívida</th></tr></thead><tbody>'+
@@ -11808,9 +11925,7 @@ function creditosOut(){
           '<td class="r num">'+esc(eur(a.saldo))+'</td></tr>').join("")+
         '</tbody></table></div></details>'+
     '</div>';
-  }).join('<div style="height:16px"></div>');
-
-  return resumo + cartaoAmortizar() + cartoes;
+  }
 }
 
 /**
@@ -12174,15 +12289,28 @@ function viewConfig(){
   /* O aviso do arranque fica também aqui, para poder ser relido: um aviso que
      aparece uma vez e nunca mais não serve de muito a quem o queira consultar
      seis meses depois. */
-  const sobre = '<div class="card"><h2>Sobre esta ferramenta</h2>'+ avisoLongoHTML() +'</div>';
+  const sobre = '<div class="card"><h2>Sobre esta ferramenta</h2>'+
+    '<div class="sub" style="margin-bottom:10px">Versão '+esc(VERSAO_APP)+' · os dados ficam só neste dispositivo, no armazenamento do navegador.</div>'+
+    avisoLongoHTML() +'</div>';
 
-  return aparencia + '<div style="height:16px"></div>' +
-         cartaoAplicacao() + '<div style="height:16px"></div>' +
-         sobre + '<div style="height:16px"></div>' +
-         cartaoSaudeDados() + '<div style="height:16px"></div>' +
-         membros + '<div style="height:16px"></div>' + cartaoFiscalidade() +
-         '<div style="height:16px"></div>' + categorias + '<div style="height:16px"></div>' +
-         cartaoRegras() + '<div style="height:16px"></div>' + dados;
+  /* Por ordem de uso: primeiro o agregado e os impostos, que mudam as
+     contas; a aparência e a manutenção no fim. Um índice no topo leva a
+     cada secção sem descer a página inteira. */
+  const seccoes = [
+    ["cfgAgregado",  "Agregado",      membros],
+    ["cfgFiscal",    "Fiscalidade",   cartaoFiscalidade()],
+    ["cfgCategorias","Categorias",    categorias],
+    ["cfgRegras",    "Regras",        cartaoRegras()],
+    ["cfgAparencia", "Aparência",     aparencia],
+    ["cfgDados",     "Dados e cópias",dados + '<div style="height:16px"></div>' + cartaoSaudeDados()],
+    ["cfgAplicacao", "Aplicação",     cartaoAplicacao()],
+    ["cfgSobre",     "Sobre",         sobre],
+  ].filter(x => x[2]);
+  return '<nav class="indiceCfg no-print" aria-label="Secções das definições">'+
+      seccoes.map(x => '<button class="ficha" data-act="cfgIr" data-id="'+x[0]+'">'+esc(x[1])+'</button>').join("")+
+    '</nav>'+
+    seccoes.map(x => '<section id="'+x[0]+'" class="secCfg" aria-label="'+esc(x[1])+'">'+x[2]+'</section>')
+      .join('<div style="height:16px"></div>');
 }
 
 /* ---------------------------------------------------------------
@@ -12434,7 +12562,7 @@ function cartaoFiscalidade(){
   const bf = beneficioPPR();
   const tot = fiscalTotal();
 
-  return '<div class="card"><div class="card-head"><div class="t"><h2>Fiscalidade</h2>'+
+  return recolherSeccoesFiscais('<div class="card"><div class="card-head"><div class="t"><h2>Fiscalidade</h2>'+
     '<div class="sub">Taxas usadas em todos os cálculos. São estimativas de trabalho — confirme as suas.</div></div>'+
     '<div class="seg no-print">'+
       '<button data-act="fxContar" data-v="1" aria-pressed="'+(f.contarIRS !== false)+'">Com impostos</button>'+
@@ -12666,6 +12794,7 @@ function cartaoFiscalidade(){
     'O resgate fora das condições legais é tributado a '+esc(pct(parseNum(f.pprSaidaFora)))+
     ', com devolução das deduções obtidas acrescidas de penalização.</div>'+
 
+    '<!--fimSeccoes-->'+
     '<div class="grid g3" style="margin-top:18px">'+
       kpi("Carga fiscal do rendimento", pct(tot.taxaEfetiva), eur(tot.carga)+"/mês em IRS e SS",
           tot.taxaEfetiva > 35 ? "warnb" : "")+
@@ -12683,7 +12812,7 @@ function cartaoFiscalidade(){
     'nem o quociente familiar — usa a taxa efetiva que indicar, que é exata se a ler do recibo mas não simula uma mudança de escalão. '+
     'Não considera deduções específicas, benefícios como o IRS Jovem, nem o regime do residente não habitual. '+
     'Para essas, fale com um contabilista certificado.</div>'+
-    '</div>';
+    '</div>');
 }
 
 /* ---------------------------------------------------------------
@@ -13050,6 +13179,7 @@ function render(){
   if (dest){ ui.ultimaPagina = ui.ultimaPagina || {}; ui.ultimaPagina[dest] = pag; }
   // O relatório é uma folha: sem título de página nem fichas
   $("#app").innerHTML = emPasse(() => (ui.relatorio ? "" : cabecalhoPagina()) + fn());
+  recolherFormularios();
   marcarAjudas();
   animarValores();
   _camposIniciais = camposValores();   // a régua para medir o que for escrito
@@ -13199,10 +13329,33 @@ function toastComBotao(msg, botao){
  * Erro de validação junto ao próprio campo, em vez de um toast genérico:
  * marca o campo, escreve a mensagem por baixo e limpa ao primeiro toque.
  */
+/** Abre o <details> que esconde um elemento, lembrando-o para a próxima repintura. */
+function revelar(el){
+  let d = el && el.closest ? el.closest("details") : null;
+  while (d){
+    if (!d.open){
+      d.dataset.foco = "nao";
+      d.open = true;
+      if (d.dataset.abre) ui.abertos[d.dataset.abre] = true;
+    }
+    d = d.parentElement ? d.parentElement.closest("details") : null;
+  }
+}
+/** Leva o foco a um campo — mesmo que o formulário dele esteja recolhido. */
+function focarCampo(id){
+  const e = $("#"+id);
+  if (!e) return false;
+  revelar(e);
+  e.focus();
+  e.scrollIntoView({block:"center"});
+  return true;
+}
 function invalido(id, msg){
   const el = $("#"+id);
   if (!el){ toast(msg); return; }
+  revelar(el);
   el.classList.add("invalido");
+  el.setAttribute("aria-invalid", "true");
   let err = el.parentElement.querySelector(".fielderr");
   if (!err){
     err = document.createElement("div");
@@ -13211,7 +13364,9 @@ function invalido(id, msg){
   }
   err.textContent = msg;
   el.focus();
-  el.addEventListener("input", () => { el.classList.remove("invalido"); err.remove(); }, {once:true});
+  if (!err.id) err.id = id + "Erro";
+  el.setAttribute("aria-describedby", err.id);
+  el.addEventListener("input", () => { el.classList.remove("invalido"); el.removeAttribute("aria-invalid"); err.remove(); }, {once:true});
 }
 
 /* ---------------------------------------------------------------
@@ -15125,7 +15280,9 @@ const ACOES = {
               frequencia: e.freq, categoriaId: catPorNome(e.cat),
             }))
           : [];
-        S.ativos.push(Object.assign({id:uid("pt"), encargos, rendimentos:[], aportes:[]}, dados));
+        const novo = Object.assign({id:uid("pt"), encargos, rendimentos:[], aportes:[]}, dados);
+        S.ativos.push(novo);
+        ui.abertos["at-" + novo.id] = true;   // o que se acabou de criar abre-se
       }
     }, editando.pat ? "alteração do ativo" : "novo ativo");
     toast(sugerir && !editando.pat ? "Ativo criado com os encargos típicos — preencha os valores." : "Ativo guardado.");
@@ -15538,8 +15695,10 @@ function abrirLateral(tipo, extra){
 }
 function fecharLateral(){
   if (!ui.lateral) return;
+  /* Um detalhe aberto ao lado tirou a ficha da lista; ao fechar, ela volta */
+  const eraDetalhe = typeof DETALHES !== "undefined" && DETALHES[ui.lateral.tipo];
   ui.lateral = null;
-  pintarLateral();
+  if (eraDetalhe) render(); else pintarLateral();
 }
 function pintarLateral(){
   const p = $("#painelLateral");
@@ -15616,10 +15775,7 @@ function criarNo(i){
   ui.abertos = ui.abertos || {};
   ui.abertos["novo-" + c.form] = true;
   irPagina(c.pag);
-  setTimeout(() => {
-    const e = $("#" + c.campo);
-    if (e){ e.focus(); e.scrollIntoView({block:"center"}); }
-  }, 0);
+  setTimeout(() => focarCampo(c.campo), 0);
 }
 
 /** Mês em análise, como aparece no botão do mês. */
@@ -15859,7 +16015,7 @@ function comandosPaleta(){
     ["ativos","🏦","Ativos"],["creditos","🏠","Créditos"],["objetivos","🎯","Objetivos"],
     ["estrategias","📈","Estratégias"],["config","⚙️","Definições"]]
     .map(([v,i,l]) => ({icone:i, lbl:"Ir para "+l, tipo:"vista", run: () => irPara(v)}));
-  const focar = (id) => { const e = $("#"+id); if (e){ e.focus(); e.scrollIntoView({block:"center"}); } };
+  const focar = (id) => focarCampo(id);
   const acoes = [
     {icone:"➕", lbl:"Novo movimento", tipo:"ação", run: () => { irPara("movimentos"); focar("mvValor"); }},
     {icone:"➕", lbl:"Nova rubrica do plano", tipo:"ação", run: () => { irPara("plano"); focar("rcNome"); }},
@@ -16208,8 +16364,7 @@ document.addEventListener("keydown", (e) => {
       if (seq === "n" && SEQ_NOVO[t]){
         e.preventDefault();
         irPara(SEQ_NOVO[t][0]);
-        const campo = $("#"+SEQ_NOVO[t][1]);
-        if (campo){ campo.focus(); campo.scrollIntoView({block:"center"}); }
+        focarCampo(SEQ_NOVO[t][1]);
         return;
       }
     } else if (e.key === "g" || e.key === "n"){
@@ -17048,7 +17203,6 @@ document.addEventListener("change", (e) => {
   }
   if (t.id === "fCat"){ filtros.categoria = t.value; render(); }
   else if (t.id === "fMembro"){ filtros.membro = t.value; render(); }
-  else if (t.id === "fTipo"){ filtros.tipo = t.value; render(); }
   else if (t.id === "mvTipo" || t.id === "rcTipo" || t.id === "ctTipo"){
     // Ao mudar o tipo, recarregar as categorias compatíveis.
     const mapa = {mvTipo:"mvCat", rcTipo:"rcCat"};
@@ -17301,6 +17455,266 @@ document.addEventListener("click", (e) => {
 Object.assign(SLIDERS, SLIDERS_PLANOS);
 Object.assign(ACOES, ACOES_PLANOS);
 Object.assign(ACOES, ACOES_ESTRUTURA);
+const reduzMovimento = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+/* ---------------------------------------------------------------
+   Listas primeiro, detalhe a pedido
+
+   As páginas abriam com o formulário de criação por cima da lista, e as
+   fichas todas abertas. Agora a lista vem primeiro: os formulários de
+   criação recolhem-se atrás de uma linha «Adicionar…» (que se lembra se
+   ficou aberta), as fichas grandes abrem-se no lugar ou ao lado, e as
+   ações de cada linha aparecem quando o ponteiro passa ou o foco chega.
+   --------------------------------------------------------------- */
+const VERSAO_APP = "2.0.0";
+
+/** Que lista cada formulário alimenta — vazia, o formulário é o ponto de partida. */
+const FORM_TEM_LISTA = {
+  mov:  () => S.movimentos.some(m => mesDoDia(m.data) === MES),
+  rd:   () => S.rendimentos.length > 0,
+  rec:  () => S.recorrentes.some(r => r.tipo !== "rendimento"),
+  pat:  () => S.ativos.length > 0,
+  cr:   () => S.creditos.length > 0,
+  obj:  () => S.objetivos.length > 0,
+  plan: () => (S.planeadas || []).length > 0,
+};
+const FORM_ROTULO = {
+  mov: "Adicionar movimento", rd: "Adicionar fonte de rendimento", rec: "Adicionar despesa fixa",
+  pat: "Adicionar ativo", cr: "Adicionar crédito", obj: "Adicionar objetivo", plan: "Planear uma compra",
+};
+
+/**
+ * Recolhe os formulários de criação depois de cada desenho. Trabalha sobre
+ * o DOM, e não sobre o texto de cada vista, para valer para todas da mesma
+ * maneira. Um formulário em edição, ou o de uma lista vazia, fica à vista.
+ */
+function recolherFormularios(){
+  CRIAVEIS.forEach(c => {
+    const campo = document.getElementById(c.campo);
+    if (!campo) return;
+    const form = campo.closest(".form");
+    if (!form || form.parentNode.closest("details.novoForm")) return;
+    const h = form.querySelector("h3");
+    if (!h || !/^Nov[oa]\b/.test(h.textContent.trim())) return;      // a editar: fica aberto
+    const teste = FORM_TEM_LISTA[c.form];
+    if (teste && !teste()) return;                                     // lista vazia: é por aqui que se começa
+    const chave = "novo-" + c.form;
+    const d = document.createElement("details");
+    d.className = "novoForm no-print";
+    d.dataset.abre = chave;
+    if (ui.abertos[chave]) d.open = true;
+    d.innerHTML = '<summary>' + ic("mais") + '<span>' + esc(FORM_ROTULO[c.form] || c.lbl) + '</span></summary>';
+    form.parentNode.insertBefore(d, form);
+    d.appendChild(form);
+    h.classList.add("soLeitor");                                       // o resumo já diz o que é
+  });
+}
+/* O estado de abertura de qualquer <details data-abre> sobrevive às repinturas */
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches("details[data-abre]")) return;
+  ui.abertos[d.dataset.abre] = d.open;
+  if (d.open && d.classList.contains("novoForm") && d.dataset.foco !== "nao"){
+    const campo = d.querySelector("input:not([type=hidden]), select, textarea");
+    if (campo && document.activeElement && d.contains(document.activeElement) === false &&
+        d.querySelector("summary") === document.activeElement) campo.focus();
+  }
+}, true);
+
+/** A fiscalidade, um imposto de cada vez: cada secção recolhe-se no seu título. */
+function recolherSeccoesFiscais(html){
+  const marca = "<!--fimSeccoes-->";
+  const i = html.indexOf(marca);
+  const corpo = i >= 0 ? html.slice(0, i) : html;
+  const cauda = i >= 0 ? html.slice(i + marca.length) : "";
+  const partes = corpo.split('<h3 class="sec">');
+  return partes[0] + partes.slice(1).map(p => {
+    const fim = p.indexOf("</h3>");
+    const titulo = p.slice(0, fim), resto = p.slice(fim + 5);
+    const chave = "fx-" + titulo.replace(/[^A-Za-zÀ-ÿ0-9]+/g, "-").toLowerCase();
+    return '<details class="secFx" data-abre="' + chave + '"' + (ui.abertos[chave] ? " open" : "") + '>' +
+      '<summary><h3 class="sec">' + titulo + '</h3></summary><div class="secFxCorpo">' + resto + '</div></details>';
+  }).join("") + cauda;
+}
+
+/* ---------- Movimentos: fichas de filtro e três maneiras de ver ---------- */
+const VISTAS_MOV = {lista: "Lista", calendario: "Calendário", agenda: "Agenda"};
+function segVistaMov(){
+  const atual = VISTAS_MOV[ui.movVista] ? ui.movVista : "lista";
+  return '<div class="seg" role="group" aria-label="Ver os movimentos em">'+
+    Object.keys(VISTAS_MOV).map(k => '<button data-act="movVista" data-v="'+k+'" aria-pressed="'+(k === atual)+'">'+
+      esc(VISTAS_MOV[k])+'</button>').join("")+'</div>';
+}
+function fichasFiltroMov(){
+  if (ui.movVista === "agenda") return "";
+  const doMes = S.movimentos.filter(m => mesDoDia(m.data) === MES);
+  if (!doMes.length) return "";
+  const semCat = doMes.filter(m => !m.categoriaId).length;
+  const ficha = (rot, ativo, attrs, n) =>
+    '<button class="ficha" '+attrs+' aria-pressed="'+ativo+'">'+esc(rot)+
+      (n != null ? ' <span class="nFicha">'+n+'</span>' : "")+'</button>';
+  return '<div class="fichas fichasFiltro no-print" role="group" aria-label="Mostrar">'+
+    ficha("Tudo", !filtros.tipo && !filtros.semCat, 'data-act="movFiltro" data-v=""')+
+    ficha("Despesas", filtros.tipo === "despesa", 'data-act="movFiltro" data-v="despesa"')+
+    ficha("Rendimentos", filtros.tipo === "rendimento", 'data-act="movFiltro" data-v="rendimento"')+
+    (semCat || filtros.semCat ? ficha("Por categorizar", !!filtros.semCat, 'data-act="movFiltro" data-v="semCat"', semCat) : "")+
+  '</div>';
+}
+function diaEscolhido(){
+  if (!ui.movDia || mesDoDia(ui.movDia) !== MES)
+    return '<div class="note" style="margin-top:12px">Escolha um dia no calendário para ver o que se passou nele.</div>';
+  return '<div class="barlbl" style="margin-top:14px"><span><strong style="color:var(--text)">'+esc(diaExtenso(ui.movDia))+
+    '</strong></span><button class="btn sm ghost" data-act="movDia" data-d="">Ver o mês todo</button></div>';
+}
+
+/**
+ * Agenda do mês: o que já entrou e saiu, e o que ainda está para vir — as
+ * rubricas com dia marcado e as compras planeadas. Dia a dia, por ordem,
+ * com o hoje assinalado. Responde a «o que vem aí?».
+ */
+function agendaMes(){
+  const ev = eventosDoMes(MES);
+  const hojeIso = isoDia(hoje());
+  const porDia = {};
+  const dia = (iso) => (porDia[iso] = porDia[iso] || {iso, reais: [], previstos: []});
+  S.movimentos.filter(m => mesDoDia(m.data) === MES).forEach(m => dia(m.data).reais.push(m));
+  ev.dias.forEach(d => {
+    const iso = MES + "-" + String(d.dia).padStart(2, "0");
+    d.itens.forEach(it => {
+      /* Um previsto que já tem movimento igual nesse mês deixa de ser previsão */
+      const jaHa = S.movimentos.some(m => mesDoDia(m.data) === MES &&
+        semAcento(m.descricao || "") === semAcento(String(it.nome).replace(/^🛒\s*/, "")));
+      if (!jaHa) dia(iso).previstos.push(it);
+    });
+  });
+  const dias = Object.keys(porDia).sort();
+  if (!dias.length) return vazioIlustrado("Nada na agenda de "+mesLabel(MES),
+    "Marque o dia do mês nas despesas fixas, ou registe movimentos, e a agenda enche-se sozinha.", DESENHOS.movimentos);
+  let marcouHoje = false;
+  const linhas = dias.map(iso => {
+    const d = porDia[iso];
+    const passado = iso < hojeIso;
+    let marca = "";
+    if (!marcouHoje && iso >= hojeIso && MES === isoMes(hoje())){
+      marcouHoje = true;
+      marca = '<li class="agHoje" aria-label="Hoje"><span>Hoje</span></li>';
+    }
+    const itens = d.reais.map(m => {
+      const r = m.tipo === "rendimento", v = Math.abs(parseNum(m.valor));
+      return '<div class="agItem"><span class="dot" style="background:'+esc(catCor(m.categoriaId))+'"></span>'+
+        '<span class="agNome">'+esc(m.descricao || catNome(m.categoriaId))+'</span>'+
+        '<span class="num '+(r ? "pos" : "neg")+'">'+(r ? "+" : "−")+esc(eur(v))+'</span></div>';
+    }).concat(d.previstos.map(it => {
+      const r = it.tipo === "rendimento";
+      return '<div class="agItem previsto"><span class="dot" style="background:'+esc(it.cor || "var(--muted)")+'"></span>'+
+        '<span class="agNome">'+esc(it.nome)+' <span class="tag">'+(passado ? "por registar" : "previsto")+'</span></span>'+
+        '<span class="num">'+(r ? "+" : "−")+esc(eur(it.valor))+'</span></div>';
+    })).join("");
+    return marca + '<li class="agDia'+(passado ? " passado" : "")+'"><div class="agData">'+esc(diaExtenso(iso))+'</div>'+itens+'</li>';
+  }).join("");
+  return '<ol class="agenda">'+linhas+(MES === isoMes(hoje()) && !marcouHoje ? '<li class="agHoje"><span>Hoje</span></li>' : "")+'</ol>'+
+    '<div class="note" style="margin-top:12px">Os previstos vêm das despesas fixas com dia marcado e das compras '+
+    'planeadas para este mês. Quando há um movimento com a mesma descrição, a previsão sai da agenda.</div>';
+}
+
+/* ---------- Despesas fixas: várias de uma vez ---------- */
+function loteRubricas(itens){
+  const sel = ui.recSel || {};
+  const n = itens.filter(r => sel[r.id]).length;
+  if (!n) return "";
+  return '<div class="lote no-print"><span class="n">'+n+' selecionada'+(n === 1 ? "" : "s")+'</span>'+
+    selectCategorias("loteRecCat", "", "despesa", "Mudar a categoria para…")+
+    '<button class="btn sm primary" data-act="loteRecAplicar">Aplicar</button>'+
+    '<button class="btn sm ghost" data-act="loteRecAtivar" data-v="0">Pausar</button>'+
+    '<button class="btn sm ghost" data-act="loteRecAtivar" data-v="1">Retomar</button>'+
+    '<button class="btn sm ghost" data-act="loteRecApagar">Eliminar</button>'+
+    '<button class="btn sm ghost" data-act="loteRecLimpar">Limpar seleção</button></div>';
+}
+
+/* ---------- Detalhe ao lado ---------- */
+const DETALHES = {
+  ativo: {
+    lbl: (l) => { const a = S.ativos.find(x => x.id === l.id); return a ? a.nome || "Ativo" : "Ativo"; },
+    produz: (l) => { const a = S.ativos.find(x => x.id === l.id); return a ? fichaAtivo(a, {lateral:true}) : ""; },
+  },
+  credito: {
+    lbl: (l) => { const c = S.creditos.find(x => x.id === l.id); return c ? c.nome || "Crédito" : "Crédito"; },
+    produz: (l) => { const c = S.creditos.find(x => x.id === l.id); return c ? fichaCredito(c, {lateral:true}) : ""; },
+  },
+};
+
+const ACOES_LISTAS = {
+  movVista(el){
+    ui.movVista = VISTAS_MOV[el.dataset.v] ? el.dataset.v : "lista";
+    if (ui.movVista !== "calendario") ui.movDia = null;
+    render();
+  },
+  movDia(el){
+    const d = el.dataset.d || null;
+    ui.movDia = (d && ui.movDia !== d) ? d : null;
+    render();
+  },
+  movFiltro(el){
+    const v = el.dataset.v;
+    filtros.semCat = v === "semCat";
+    filtros.tipo = (v === "despesa" || v === "rendimento") ? v : "";
+    ui.movSel = {};
+    render();
+  },
+  movMenu(){ abrirMenu("menuMov", "movMaisBtn"); },
+  regrasAbrir(){
+    fecharMenus();
+    irPagina("config");
+    setTimeout(() => { const e = $("#cfgRegras"); if (e) e.scrollIntoView({block:"start"}); }, 0);
+  },
+  cfgIr(el){
+    const e = document.getElementById(el.dataset.id);
+    if (!e) return;
+    e.scrollIntoView({block:"start", behavior: reduzMovimento() ? "auto" : "smooth"});
+    const foco = e.querySelector("h2");
+    if (foco){ foco.setAttribute("tabindex", "-1"); foco.focus({preventScroll:true}); }
+  },
+  detalheAbrir(el){
+    abrirLateral(el.dataset.tipo, {id: el.dataset.id});
+    render();
+  },
+  recSel(el){
+    if (!ui.recSel) ui.recSel = {};
+    if (el.checked) ui.recSel[el.dataset.id] = true; else delete ui.recSel[el.dataset.id];
+    render();
+  },
+  loteRecLimpar(){ ui.recSel = {}; render(); },
+  loteRecAplicar(){
+    const catId = $("#loteRecCat").value;
+    if (!catId){ invalido("loteRecCat", "Escolha a categoria a atribuir."); return; }
+    const ids = Object.keys(ui.recSel || {});
+    const alvos = S.recorrentes.filter(r => ids.indexOf(r.id) >= 0);
+    if (!alvos.length) return;
+    alterar(() => { alvos.forEach(r => { r.categoriaId = catId; }); }, "categoria das rubricas em lote");
+    ui.recSel = {};
+    toast(alvos.length+" rubrica(s) em «"+catNome(catId)+"».");
+    render();
+  },
+  loteRecAtivar(el){
+    const ids = Object.keys(ui.recSel || {});
+    const ativo = el.dataset.v === "1";
+    const alvos = S.recorrentes.filter(r => ids.indexOf(r.id) >= 0);
+    if (!alvos.length) return;
+    alterar(() => { alvos.forEach(r => { r.ativo = ativo; }); }, ativo ? "retomar rubricas" : "pausar rubricas");
+    ui.recSel = {};
+    toast(alvos.length+" rubrica(s) "+(ativo ? "retomada(s)." : "em pausa."));
+    render();
+  },
+  loteRecApagar(){
+    const ids = Object.keys(ui.recSel || {});
+    if (!ids.length) return;
+    apagarComAnulacao(ids.length+" rubrica(s) eliminada(s).", () => {
+      S.recorrentes = S.recorrentes.filter(r => ids.indexOf(r.id) < 0);
+      ui.recSel = {};
+    });
+  },
+};
+Object.assign(ACOES, ACOES_LISTAS);
 
 /* ---------------------------------------------------------------
    Arranque

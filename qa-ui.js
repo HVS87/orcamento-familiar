@@ -84,12 +84,27 @@ function irA(vista){
   if (p === "config"){
     clicar("#definicoesBtn");
     clicar('#menuDefinicoes [data-act="pagina"][data-v="config"]');
+    abrirSeccoesFiscais();
     return;
   }
   clicar('#destinos [data-destino="' + destinoDaPagina(p) + '"]');
   if (paginaAtual() !== p) clicar('#app .fichas [data-act="pagina"][data-v="' + p + '"]');
 }
 function irPag(p){ irA(p); }
+/* As secções da fiscalidade começam recolhidas. Os testes que leem o texto
+   delas abrem-nas todas, como quem as vai consultar; o recolhimento em si
+   tem o seu próprio grupo. */
+function abrirSeccoesFiscais(){
+  var d = qq("details.secFx");
+  if (!d.length || d.every(function(x){ return x.open; })) return;
+  d.forEach(function(x){ ui.abertos[x.dataset.abre] = true; });
+  render();
+}
+/* As fichas dos ativos começam fechadas quando há mais de dois. */
+function abrirFichasAtivos(){
+  S.ativos.forEach(function(a){ ui.abertos["at-" + a.id] = true; });
+  render();
+}
 function hover(el){
   if (!el) return null;
   el.dispatchEvent(new PointerEvent("pointermove", {bubbles:true, clientX:300, clientY:300}));
@@ -117,7 +132,8 @@ if (q("#paleta")) q("#paleta").innerHTML = "";
    falha que depende do que o utilizador estava a filtrar não se
    reproduz e não se depura. */
 function contextoLimpo(){
-  filtros.texto = ""; filtros.categoria = ""; filtros.membro = ""; filtros.tipo = "";
+  filtros.texto = ""; filtros.categoria = ""; filtros.membro = ""; filtros.tipo = ""; filtros.semCat = false;
+  ui.movVista = "lista"; ui.movDia = null; ui.recSel = {};
   editando = {};
   ui.secaoDespesa = "plano";
   ui.secaoEstrategia = "simulador";
@@ -530,9 +546,15 @@ G("movimentos");
   ok(texto().indexOf("Sem movimentos") >= 0, "filtro sem resultados avisa");
   preencher("fTexto", "");
 
-  escolher("fTipo", "Rendimentos");
-  eq(filtros.tipo, "rendimento", "filtro de tipo aplica-se");
-  escolher("fTipo", "Tudo");
+  ok(q("#fTipo") == null, "o tipo já não tem seletor próprio: filtra-se pelas fichas");
+  clicar('[data-act="movFiltro"][data-v="rendimento"]');
+  eq(filtros.tipo, "rendimento", "a ficha Rendimentos filtra");
+  ok(q('[data-act="movFiltro"][data-v="rendimento"][aria-pressed="true"]') != null, "e fica marcada");
+  ok(qq("tr[data-mov]").every(function(tr){
+    return S.movimentos.filter(function(m){ return m.id === tr.dataset.mov; })[0].tipo === "rendimento"; }),
+    "só ficam rendimentos");
+  clicar('[data-act="movFiltro"][data-v=""]');
+  eq(filtros.tipo, "", "«Tudo» limpa o filtro");
 
   clicar('[data-act="movApagar"][data-id="' + novo.id + '"]');
   confirmarDialogo();
@@ -646,10 +668,26 @@ G("ativos");
   }
   ui.abertos = {}; render();
   eq(qq("#simAtivoOut").length, 0, "com muitos ativos nenhuma ficha abre sozinha");
+  /* Lista primeiro: com mais de dois ativos começam todas fechadas; com um
+     ou dois, abrem-se logo. */
+  S.ativos = guardados.filter(function(x){ return temSimulador(x.classe); }).slice(0, 2);
+  ui.abertos = {}; render();
+  ok(qq("#simAtivoOut").length > 0, "com dois ativos as fichas abrem-se sozinhas");
   S.ativos = guardados; ui.abertos = {}; render();
-  ok(qq("#simAtivoOut").length > 0, "e com poucos voltam a abrir");
+  ok(S.ativos.length <= 2 || qq("#simAtivoOut").length === 0, "com mais de dois, a lista vem primeiro e fechada");
+
+  // Abrir ao lado: o detalhe vai para o painel e sai da lista
+  clicar('[data-act="detalheAbrir"][data-tipo="ativo"][data-id="' + a.id + '"]');
+  ok(!q("#painelLateral").hidden, "abrir ao lado mostra o painel lateral");
+  ok(q("#painelLateral").innerText.indexOf(a.nome) >= 0, "com o ativo certo");
+  eq(qq('#simAtivoOut[data-ativo="' + a.id + '"]').length, 1, "o simulador existe uma só vez, no painel");
+  ok(q('#painelLateral [data-act="detalheAbrir"]') == null, "o painel não oferece abrir-se a si mesmo");
+  ok(/Aberto no painel ao lado/.test(texto()), "e a lista diz onde está");
+  clicar('[data-act="lateralFechar"]');
+  ok(q("#painelLateral").hidden, "fechar devolve a lista");
 
   // Simulador
+  abrirFichasAtivos();
   ok(q("#simAtivoOut") != null, "o ativo financeiro tem simulador");
   var alvo = qq('#simAtivoOut').filter(function(h){ return h.dataset.ativo === a.id; })[0];
   ok(alvo != null, "o simulador do ativo criado existe");
@@ -896,6 +934,7 @@ G("membros e categorias");
 G("deslizadores");
 (function(){
   irA("ativos");
+  abrirFichasAtivos();
   var testados = 0;
   Object.keys(SLIDERS).forEach(function(id){
     var el = document.querySelector('[data-slider="' + id + '"]');
@@ -988,6 +1027,7 @@ G("deslizadores");
 G("simulador de um ativo");
 (function(){
   irA("ativos");
+  abrirFichasAtivos();
   var host = q("#simAtivoOut");
   ok(host != null, "há simulador em ecrã");
   if (!host) return;
@@ -1924,11 +1964,32 @@ G("visualizações do painel");
   ok(/Oficina QA/.test(texto()), "e identifica a maior despesa");
   S.movimentos = S.movimentos.filter(function(m){ return m.id !== "qa-dg"; });
   render();
-  // Calendário de calor nos movimentos
+  // Calendário de calor nos movimentos: é uma das três vistas
   irA("despesas");
   irPag("movimentos");
+  ok(q(".hmap") == null, "a lista não traz o calendário");
+  clicar('[data-act="movVista"][data-v="calendario"]');
+  eq(ui.movVista, "calendario", "o calendário escolhe-se no seletor de vista");
   ok(q(".hmap") != null, "há calendário-mapa de calor");
   ok(qq(".hmap .hcel.hit").length > 0, "com dias assinalados");
+  ok(qq('.hmap button[data-act="movDia"]').length === qq(".hmap .hcel.hit").length,
+     "cada dia com movimentos é um botão");
+  ok(qq('.hmap button[data-act="movDia"]').every(function(b){ return /€/.test(b.getAttribute("aria-label")); }),
+     "que diz em voz alta o dia e a despesa");
+  var umDia = q('.hmap button[data-act="movDia"]');
+  clicar(umDia);
+  var escolhido = ui.movDia;
+  ok(mesValido(String(escolhido).slice(0, 7)), "escolher um dia fixa-o", escolhido);
+  ok(qq("tr[data-mov]").length > 0, "e mostra os movimentos dele");
+  ok(qq("tr[data-mov]").every(function(tr){
+    var m = S.movimentos.filter(function(x){ return x.id === tr.dataset.mov; })[0];
+    return m && m.data === escolhido; }), "e só os desse dia");
+  clicar('[data-act="movDia"][data-d=""]');
+  eq(ui.movDia, null, "«Ver o mês todo» larga o dia");
+  clicar('[data-act="movVista"][data-v="agenda"]');
+  ok(q("ol.agenda") != null || /Nada na agenda/.test(texto()), "a agenda desenha-se");
+  clicar('[data-act="movVista"][data-v="lista"]');
+  eq(ui.movVista, "lista", "e volta-se à lista");
 })();
 
 G("privacidade e atalhos");
@@ -4623,6 +4684,207 @@ G("celebração de objetivo");
   S = normalizar(backupS);
   limparCacheCredito();
   render();
+})();
+
+/* ============================================================
+   Listas primeiro, detalhe a pedido
+   ============================================================ */
+G("formulários de criação recolhidos");
+(function(){
+  comExemplo();
+  irA("rendimentos");
+  var d = q("details.novoForm");
+  ok(d != null, "com fontes registadas, o formulário recolhe-se");
+  ok(d && !d.open, "e começa fechado");
+  ok(d && /Adicionar fonte de rendimento/.test(d.querySelector("summary").textContent), "atrás de «Adicionar fonte de rendimento»");
+  ok(d && d.querySelector("#rdNome") != null, "com os campos lá dentro, prontos");
+  // Um erro de validação abre o formulário — não se valida o que não se vê
+  preencher("rdNome", "");
+  clicar('[data-act="rdSalvar"]');
+  ok(q("details.novoForm").open, "um erro abre o formulário fechado");
+  eq(q("#rdNome").getAttribute("aria-invalid"), "true", "marca o campo como inválido");
+  var desc = q("#rdNome").getAttribute("aria-describedby");
+  ok(desc && document.getElementById(desc) && /\S/.test(document.getElementById(desc).textContent),
+     "e liga-o à mensagem, para o leitor de ecrã a dizer");
+  eq(ui.abertos["novo-rd"], true, "e lembra-se de que ficou aberto");
+  render();
+  ok(q("details.novoForm").open, "a repintura não o volta a fechar");
+
+  // Em edição, o formulário fica à vista, fora do resumo
+  ui.abertos = {}; render();
+  clicar('[data-act="rdEditar"]');
+  var h = qq(".form h3").filter(function(x){ return /^Editar/.test(x.textContent); })[0];
+  ok(h != null && h.closest("details.novoForm") == null, "a editar, o formulário não se esconde");
+  clicar('[data-act="cancelarEd"]');
+
+  // Lista vazia: o formulário é o ponto de partida, aberto
+  var guarda = S.objetivos;
+  S.objetivos = []; irA("objetivos");
+  ok(q("#obNome") && q("#obNome").closest("details.novoForm") == null, "sem objetivos, o formulário vem aberto");
+  S.objetivos = guarda; render();
+  ok(q("#obNome").closest("details.novoForm") != null, "com objetivos, recolhe-se");
+
+  // «Criar» leva ao formulário certo e abre-o
+  ui.abertos = {};
+  clicar('#destinos [data-act="criarAbrir"]');
+  var objItem = qq('#modalHost [data-act="criarItem"]').filter(function(b){ return /Objetivo/.test(b.textContent); })[0];
+  ok(objItem != null, "o «Criar» oferece os outros tipos");
+  if (objItem) objItem.click();
+  eq(VIEW, "objetivos", "e leva à página certa");
+  ok(q("#obNome").closest("details.novoForm") == null || q("#obNome").closest("details.novoForm").open,
+     "com o formulário aberto");
+
+  // Todas as páginas com formulário de criação têm o seu resumo
+  CRIAVEIS.forEach(function(c){
+    ui.abertos = {};
+    irA(c.pag);
+    var campo = document.getElementById(c.campo);
+    ok(campo != null, "o formulário de «" + c.lbl + "» existe na página " + c.pag);
+    if (campo && FORM_TEM_LISTA[c.form]()) ok(campo.closest("details.novoForm") != null, "e recolhe-se: " + c.lbl);
+  });
+})();
+
+G("movimentos: fichas, vistas e menu");
+(function(){
+  comExemplo();
+  irA("despesas"); irPag("movimentos");
+  ok(qq('[data-act="movVista"]').length === 3, "três maneiras de ver: lista, calendário e agenda");
+  ok(q('[data-act="movVista"][data-v="lista"][aria-pressed="true"]') != null, "começa na lista");
+  // Por categorizar
+  S.movimentos.push({id:"qa-sc", data:MES+"-02", tipo:"despesa", descricao:"Sem categoria QA",
+    categoriaId:"", membroId:"", valor:12});
+  limparCacheCredito(); render();
+  var fichaSc = q('[data-act="movFiltro"][data-v="semCat"]');
+  ok(fichaSc != null, "há ficha «Por categorizar» quando há o que categorizar");
+  ok(fichaSc && /\d/.test(fichaSc.textContent), "com a contagem");
+  clicar(fichaSc);
+  ok(qq("tr[data-mov]").length >= 1 && qq("tr[data-mov]").every(function(tr){
+    return !S.movimentos.filter(function(m){ return m.id === tr.dataset.mov; })[0].categoriaId; }),
+    "e mostra só esses");
+  clicar('[data-act="movFiltro"][data-v=""]');
+  eq(filtros.semCat, false, "«Tudo» limpa-o");
+  S.movimentos = S.movimentos.filter(function(m){ return m.id !== "qa-sc"; });
+  limparCacheCredito(); render();
+
+  // Menu ⋮
+  var btn = q("#movMaisBtn"), m = q("#menuMov");
+  ok(btn && m, "há o botão ⋮ e o seu menu");
+  ok(btn && /\S/.test(btn.getAttribute("aria-label")), "o ⋮ diz o que tem");
+  ["csvAbrir","copiarMesAnterior","gerarPlano","regrasAbrir"].forEach(function(a){
+    ok(m.querySelector('[data-act="' + a + '"]') != null, "o menu traz " + a);
+  });
+  btn.click();
+  ok(!m.hidden && getComputedStyle(m).display !== "none", "abre-se");
+  clicar('#menuMov [data-act="regrasAbrir"]');
+  ok(m.hidden, "escolher fecha-o");
+  eq(VIEW, "config", "as regras levam às definições");
+  ok(q("#cfgRegras") != null, "à secção das regras");
+
+  // Agenda: previstos e reais, com o hoje marcado no mês corrente
+  irA("despesas"); irPag("movimentos");
+  MES = isoMes(hoje()); render();
+  clicar('[data-act="movVista"][data-v="agenda"]');
+  ok(q("ol.agenda") != null, "a agenda desenha-se");
+  ok(q("ol.agenda .agHoje") != null, "com o hoje marcado");
+  var ev = eventosDoMes(MES);
+  if (ev.dias.length) ok(qq(".agItem.previsto").length > 0 || qq(".agItem").length > 0, "com os pagamentos previstos");
+  ok(!/NaN|undefined/.test(texto()), "sem lixo");
+  clicar('[data-act="movVista"][data-v="lista"]');
+})();
+
+G("despesas fixas em lote");
+(function(){
+  comExemplo();
+  irA("despesas"); irPag("plano");
+  var caixas = qq('[data-act="recSel"]');
+  ok(caixas.length >= 3, "cada rubrica tem caixa de seleção", caixas.length);
+  ok(caixas.every(function(c){ return /\S/.test(c.getAttribute("aria-label")); }), "com nome para o leitor de ecrã");
+  ok(q(".lote") == null, "sem nada marcado, não há barra de lote");
+  var ids = caixas.slice(0, 2).map(function(c){ return c.dataset.id; });
+  ids.forEach(function(id){
+    var c = q('[data-act="recSel"][data-id="' + id + '"]'); c.checked = true; c.click(); c.checked = true;
+    ui.recSel[id] = true;
+  });
+  render();
+  ok(q(".lote") != null, "marcadas duas, aparece a barra");
+  ok(/2 selecionadas/.test(q(".lote").textContent), "a dizer quantas");
+  // Mudar a categoria
+  var cat = catPorNome("Lazer e cultura") || catPorNome("Saúde");
+  q("#loteRecCat").value = cat;
+  clicar('[data-act="loteRecAplicar"]');
+  ok(ids.every(function(id){ return S.recorrentes.filter(function(r){ return r.id === id; })[0].categoriaId === cat; }),
+     "a categoria muda nas duas");
+  eq(Object.keys(ui.recSel).length, 0, "e a seleção limpa-se");
+  desfazer();
+  ok(ids.some(function(id){ return S.recorrentes.filter(function(r){ return r.id === id; })[0].categoriaId !== cat; }),
+     "e anula-se de uma vez");
+  // Pausar e retomar
+  ui.recSel = {}; ui.recSel[ids[0]] = true; render();
+  clicar('[data-act="loteRecAtivar"][data-v="0"]');
+  eq(S.recorrentes.filter(function(r){ return r.id === ids[0]; })[0].ativo, false, "pausar desliga a rubrica");
+  ui.recSel = {}; ui.recSel[ids[0]] = true; render();
+  clicar('[data-act="loteRecAtivar"][data-v="1"]');
+  eq(S.recorrentes.filter(function(r){ return r.id === ids[0]; })[0].ativo, true, "retomar volta a ligá-la");
+  // Eliminar
+  var n0 = S.recorrentes.length;
+  ui.recSel = {}; ui.recSel[ids[0]] = true; ui.recSel[ids[1]] = true; render();
+  clicar('[data-act="loteRecApagar"]');
+  eq(S.recorrentes.length, n0 - 2, "eliminar tira as duas");
+  desfazer();
+  eq(S.recorrentes.length, n0, "e anula-se");
+  // Sem categoria escolhida, não aplica
+  ui.recSel = {}; ui.recSel[ids[0]] = true; render();
+  var antesCat = S.recorrentes.filter(function(r){ return r.id === ids[0]; })[0].categoriaId;
+  clicar('[data-act="loteRecAplicar"]');
+  eq(S.recorrentes.filter(function(r){ return r.id === ids[0]; })[0].categoriaId, antesCat, "sem categoria escolhida não muda nada");
+  ok(q("#loteRecCat").getAttribute("aria-invalid") === "true", "e diz porquê");
+  clicar('[data-act="loteRecLimpar"]');
+  ok(q(".lote") == null, "limpar a seleção tira a barra");
+})();
+
+G("créditos e ativos ao lado");
+(function(){
+  comExemplo();
+  irA("creditos");
+  var c = S.creditos[0];
+  ok(c != null, "o exemplo tem créditos");
+  if (!c) return;
+  clicar('[data-act="detalheAbrir"][data-tipo="credito"][data-id="' + c.id + '"]');
+  var p = q("#painelLateral");
+  ok(!p.hidden, "o crédito abre ao lado");
+  ok(p.innerText.indexOf(c.nome) >= 0, "com o nome no título");
+  ok(p.querySelector("details[open]") != null, "e o mapa de amortização já aberto");
+  ok(p.querySelector('[data-act="detalheAbrir"]') == null, "sem botão para se abrir a si mesmo");
+  ok(qq('[aria-label="Fechar"], [data-act="lateralFechar"]').length > 0, "com botão de fechar");
+  document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+  ok(p.hidden, "o Esc fecha-o");
+  // Um ativo que deixe de existir fecha o painel em vez de o deixar vazio
+  ui.lateral = {tipo:"ativo", id:"nao-existe"}; render();
+  ok(q("#painelLateral").hidden, "um detalhe sem dono não deixa painel vazio");
+  eq(ui.lateral, null, "e esquece-o");
+})();
+
+G("definições com índice e fiscalidade por imposto");
+(function(){
+  comExemplo();
+  ui.abertos = {};
+  clicar("#definicoesBtn");
+  clicar('#menuDefinicoes [data-act="pagina"][data-v="config"]');
+  var idx = qq('.indiceCfg [data-act="cfgIr"]');
+  ok(idx.length >= 7, "há índice no topo", idx.length);
+  ok(idx.every(function(b){ return document.getElementById(b.dataset.id) != null; }), "e cada entrada leva a uma secção que existe");
+  ok(q("#cfgSobre") != null, "há secção «Sobre»");
+  ok(q("#cfgSobre").textContent.indexOf(VERSAO_APP) >= 0, "com a versão");
+  var secs = qq("details.secFx");
+  ok(secs.length >= 5, "a fiscalidade divide-se por imposto", secs.length);
+  ok(secs.every(function(d){ return !d.open; }), "e começa recolhida");
+  ok(q("#cfgFiscal .kpi") != null, "mas os totais da carga fiscal ficam à vista");
+  secs[0].querySelector("summary").click();
+  ok(secs[0].open, "um imposto abre-se no seu título");
+  // «Sobre esta ferramenta» no menu da ajuda leva à secção
+  irA("painel");
+  clicar('#menuAjuda [data-act="sobreAbrir"]');
+  eq(VIEW, "config", "«Sobre» abre as definições");
 })();
 
 /* ============================================================
