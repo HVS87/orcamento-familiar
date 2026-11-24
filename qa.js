@@ -61,6 +61,9 @@ function reporEstado(){ S = estadoVazio(); limparCacheCredito(); MES = isoMes(ho
 /* ============================================================
    1. Utilitários numéricos e de data
    ============================================================ */
+/* Os testes correm dentro de um try: se um rebentar a meio, a reposição do
+   fim corre na mesma e os dados do utilizador voltam ao sítio. */
+try {
 G("parseNum");
 eq(parseNum("20.000"), 20000, "milhares com ponto");
 eq(parseNum("1.234,56"), 1234.56, "pt-PT completo");
@@ -3758,6 +3761,10 @@ G("planos: rendimento disponível");
   var inv = r2.alavancas.filter(function(a){ return a.k === "investir"; })[0];
   ok(inv && /para esses/i.test(inv.txt), "e o caminho para ele usa o excedente real, não o capital do calculador");
 })();
+
+} catch (e) {
+  ok(false, "a suite parou a meio — a reposição corre na mesma", (e && e.stack) || e);
+}
 
 /* ============================================================
    Relatório

@@ -31,6 +31,8 @@ var vistaInicial = VIEW, mesInicial = MES;
 var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
 var secaoInicial = ui.secaoDespesa;
 var secaoEstrInicial = ui.secaoEstrategia;
+var ultimaPaginaInicial = JSON.parse(JSON.stringify(ui.ultimaPagina || {}));
+var movVistaInicial = ui.movVista;
 
 /* Como nas outras suites: a sessão do utilizador sai de cena, para que um
    rascunho por recuperar não abra um diálogo por cima dos testes. */
@@ -151,6 +153,9 @@ var VISTAS_TODAS = ["painel","rendimentos","despesas","ativos","creditos","objet
 var SECOES = ["plano","movimentos","limites","planear"];
 var LIXO = /NaN|undefined|\[object |Infinity/;
 
+/* Os testes correm dentro de um try: se um rebentar a meio, a reposição do
+   fim corre na mesma e os dados do utilizador voltam ao sítio. */
+try {
 G("estados aleatórios — invariantes");
 (function(){
   var SEMENTES = 40;
@@ -443,7 +448,9 @@ G("macaco — sequências aleatórias de ações");
         break;
       }
 
-      var botoes = Array.prototype.slice.call(document.querySelectorAll("#app button"))
+      /* Também a barra de destinos e o painel lateral: é lá que vive agora
+         metade da navegação, e um clique ao acaso deve poder chegar-lhes. */
+      var botoes = Array.prototype.slice.call(document.querySelectorAll("#app button, #destinos button, #painelLateral button"))
         .filter(function(b){ return PROIBIDOS.indexOf(b.dataset.act || "") < 0 && !b.disabled; });
       if (!botoes.length) continue;
       var b = botoes[esc(botoes.length)];
@@ -546,7 +553,9 @@ G("desfazer tudo devolve o princípio");
 
     for (var passo = 0; passo < 16; passo++){
       irPara(umDe(vistas));
-      var botoes = Array.prototype.slice.call(document.querySelectorAll("#app button"))
+      /* Também a barra de destinos e o painel lateral: é lá que vive agora
+         metade da navegação, e um clique ao acaso deve poder chegar-lhes. */
+      var botoes = Array.prototype.slice.call(document.querySelectorAll("#app button, #destinos button, #painelLateral button"))
         .filter(function(b){ return PROIBIDOS.indexOf(b.dataset.act || "") < 0 && !b.disabled; });
       if (!botoes.length) continue;
       try {
@@ -736,6 +745,10 @@ G("aparência: paletas, densidade, texto e contraste");
   try { aplicarTema(); } catch(e){}
 })();
 
+} catch (e) {
+  ok(false, "a suite parou a meio — a reposição corre na mesma", (e && e.stack) || e);
+}
+
 /* Repor o que era do utilizador */
 S = estadoVazio();
 if (backup){ try { S = normalizar(JSON.parse(backup)); } catch(e){} localStorage.setItem(STORE_KEY, backup); }
@@ -750,6 +763,12 @@ MES = mesInicial; VIEW = vistaInicial;
    nome de uma compra inventada ao acaso. */
 filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categoria;
 filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
+filtros.semCat = false;
+ui.ultimaPagina = ultimaPaginaInicial;
+ui.movVista = movVistaInicial; ui.movDia = null; ui.recSel = {}; ui.movSel = {};
+ui.lateral = null; ui.personalizarPainel = false;
+if (typeof fecharMenus === "function") fecharMenus();
+if (typeof fecharPaleta === "function") fecharPaleta();
 editando = {};
 ui.relatorio = false; ui.simAtivo = null; ui.donutFoco = null; ui.movSel = {};
 ui.essencial = false; ui.privado = false; ui.fechoDispensado = null;

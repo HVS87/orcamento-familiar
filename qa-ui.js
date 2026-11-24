@@ -118,6 +118,8 @@ var vistaInicial = VIEW, mesInicial = MES;
 var filtrosIniciais = JSON.parse(JSON.stringify(filtros));
 var secaoInicial = ui.secaoDespesa;
 var secaoEstrInicial = ui.secaoEstrategia;
+var ultimaPaginaInicial = JSON.parse(JSON.stringify(ui.ultimaPagina || {}));
+var movVistaInicial = ui.movVista;
 
 /* A sessão é do utilizador, não da suite: sai de cena enquanto se testa.
    E se ficou um diálogo aberto (recuperação de rascunho, por exemplo),
@@ -134,6 +136,10 @@ if (q("#paleta")) q("#paleta").innerHTML = "";
 function contextoLimpo(){
   filtros.texto = ""; filtros.categoria = ""; filtros.membro = ""; filtros.tipo = ""; filtros.semCat = false;
   ui.movVista = "lista"; ui.movDia = null; ui.recSel = {};
+  ui.boasPasso = 1; ui.boasBruto = ""; ui.boasSubs = true; ui.verAdiados = false;
+  /* A última página de cada destino é da sessão do utilizador: herdada,
+     um destino abria noutra secção e o teste seguinte media a errada. */
+  ui.ultimaPagina = {};
   editando = {};
   ui.secaoDespesa = "plano";
   ui.secaoEstrategia = "simulador";
@@ -171,6 +177,9 @@ function mostrarCartoes(chaves){
   render();
 }
 
+/* Tudo o que se segue corre dentro de um try: se um teste rebentar a meio,
+   a limpeza do fim corre na mesma e os dados do utilizador voltam ao sítio. */
+try {
 comExemplo();
 
 /* ============================================================
@@ -1785,7 +1794,7 @@ G("visita guiada");
     var td = dlg.innerText;
     ok(/exemplo|demonstra/i.test(td), "diz que aquela família é de exemplo");
     ok(/Ana/.test(td) && /Bruno/.test(td), "e chama-lhe pelos nomes");
-    ok(/Dados/.test(td) && /Apagar tudo/.test(td),
+    ok(/Definições/.test(td) && /Cópias e exportações/.test(td) && /Apagar tudo/.test(td),
        "explica onde se apaga para começar de novo");
     ok(/ponto/i.test(td) && /partida/i.test(td),
        "e que a seguir aparecem os pontos de partida");
@@ -3345,19 +3354,33 @@ G("arranque por perfil e estados vazios");
 
   ui.perfil = {agregado:null, habitacao:"arrendada", regime:"credito"};
   irA("painel");
+  ok(q(".boasVindas ol.passos") != null, "o ecrã vazio é um caminho de três passos");
+  eq(qq(".boasVindas ol.passos li").length, 3, "com os três à vista");
+  ok(q('.boasVindas ol.passos li[aria-current="step"]') === qq(".boasVindas ol.passos li")[0], "começando no primeiro");
   eq(qq('[data-act="perfilAgregado"]').length, Object.keys(PERFIS_AGREGADO).length,
-     "o ecrã vazio oferece os agregados");
-  eq(qq('[data-act="perfilHabitacao"]').length, Object.keys(PERFIS_HABITACAO).length,
-     "e a habitação à parte, porque é independente do agregado");
+     "o primeiro passo oferece os agregados");
+  eq(qq('[data-act="perfilHabitacao"]').length, 0, "a habitação vem no segundo, à parte, porque é independente");
   ok(q('[data-act="perfilAplicar"]') == null, "sem agregado escolhido não há botão de aplicar");
+  ok(q('.boasVindas [data-act="exemplo"]') != null && q('.boasVindas [data-act="tutorialIniciar"]') != null,
+     "o exemplo e a visita continuam à mão");
 
   // A habitação é ortogonal: qualquer agregado combina com qualquer casa
   clicar('[data-act="perfilAgregado"][data-k="sozinho"]');
   eq(ui.perfil.agregado, "sozinho", "escolher o agregado guarda-o");
-  ok(q('[data-act="perfilAplicar"]') != null, "e faz aparecer o botão de começar");
+  eq(ui.boasPasso, 2, "e avança para a casa");
+  eq(qq('[data-act="perfilHabitacao"]').length, Object.keys(PERFIS_HABITACAO).length, "que oferece as habitações");
   eq(qq('[data-act="perfilRegime"]').length, 0, "a arrendar não há regime a escolher");
   clicar('[data-act="perfilHabitacao"][data-k="propria"]');
   eq(qq('[data-act="perfilRegime"]').length, 2, "casa própria abre paga ou com empréstimo");
+  clicar('[data-act="boasPasso"][data-v="1"]');
+  eq(ui.boasPasso, 1, "«Voltar» recua um passo");
+  eq(ui.perfil.habitacao, "propria", "sem esquecer o que já se escolheu");
+  clicar('[data-act="perfilAgregado"][data-k="sozinho"]');
+  clicar('[data-act="boasPasso"][data-v="3"]');
+  eq(ui.boasPasso, 3, "«Seguinte» leva ao rendimento");
+  ok(q("#boasBruto") != null, "que pede o vencimento bruto");
+  ok(q('[data-act="perfilAplicar"]') != null, "e só aí aparece o botão de começar");
+  ok(/opcional/i.test(q('label[for="boasBruto"]').textContent), "o rendimento é opcional");
 
   // As rubricas de habitação dependem da casa, e o valor do agregado
   var soCred = rubricasHabitacao("sozinho", "propria", "credito").map(function(r){ return r[0]; });
@@ -3652,6 +3675,7 @@ G("aviso de uso responsável ao criar um perfil");
   eq(temDados(), 0, "parte-se de um orçamento vazio");
 
   clicar('[data-act="perfilAgregado"]');
+  clicar('[data-act="boasPasso"][data-v="3"]');
   var texto = q("#app").innerText;
   ok(/gratuita e simples/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é simples e gratuita");
   ok(/uso responsável/i.test(texto), "e que se destina a uso responsável");
@@ -3687,7 +3711,7 @@ G("aviso de uso responsável ao criar um perfil");
        "enumera o que os leva: limpar o navegador, janela privada, mudar de aparelho, desinstalar");
     ok(/exporte uma cópia com regularidade/i.test(t),
        "e pede cópias com regularidade, que é a única defesa que existe");
-    ok(/Dados ▾/i.test(t) && /Exportar/i.test(t), "dizendo onde se exporta");
+    ok(/Cópias e exportações/i.test(t), "dizendo onde se exporta");
     ok(/cifrada/i.test(t), "e lembra a cópia cifrada para quem a mandar para fora");
 
     var realces = qq("#modalHost .dialog .note").map(function(n){
@@ -3724,6 +3748,146 @@ G("aviso de uso responsável ao criar um perfil");
     ok(/verificadas de forma independente/i.test(sobre.innerText), "e a mesma exigência de verificação");
   }
   comExemplo();
+})();
+
+G("boas-vindas: o vencimento do terceiro passo");
+(function(){
+  localStorage.removeItem(STORE_KEY);
+  S = estadoVazio(); MES = isoMes(hoje()); contextoLimpo(); irPara("painel");
+  clicar('[data-act="perfilAgregado"][data-k="casal"]');
+  clicar('[data-act="boasPasso"][data-v="3"]');
+  preencher("boasBruto", "1.600,00");
+  clicar('[data-act="perfilAplicar"]');
+  clicar('#modalHost [data-dlg="yes"]');
+  eq(S.rendimentos.length, 1, "o bruto indicado cria uma fonte de rendimento");
+  var rd = S.rendimentos[0];
+  eq(rd.regime, "dependente", "por conta de outrem");
+  eq(rd.membroId, S.membros[0].id, "do primeiro membro");
+  var base = (rd.componentes || []).filter(function(c){ return c.especie === "base"; })[0];
+  ok(base && base.valor === 1600 && base.frequencia === "mensal", "com o vencimento base mensal");
+  eq((rd.componentes || []).filter(function(c){ return c.especie === "ferias" || c.especie === "natal"; }).length, 2,
+     "e os dois subsídios, que são o normal");
+  ok(planoMes(MES).rend > 1600, "o plano passa a ter rendimento");
+  eq(VIEW, "painel", "e o Início mostra logo o mês");
+  ok(/sobram|faltam/.test(q(".fraseMes").textContent), "com a frase do mês");
+  desfazer();
+  eq(temDados(), 0, "anular desfaz tudo de uma vez — membros, despesas e o rendimento");
+
+  // Sem subsídios, só o base; sem bruto, nenhuma fonte
+  ok(rendimentoInicial(0, true) == null, "sem bruto não inventa rendimento");
+  S.membros = [{id:"m1", nome:"Eu"}];
+  var so = rendimentoInicial(900, false);
+  eq(so.componentes.length, 1, "sem subsídios fica só o base");
+  comExemplo();
+})();
+
+G("Início: a caixa de entrada do mês");
+(function(){
+  comExemplo();
+  MES = isoMes(hoje());
+  irA("painel");
+  var frase = q(".fraseMes");
+  ok(frase != null, "o Início abre com uma frase sobre o mês");
+  ok(/sobram|faltam|sobraram|faltaram/.test(frase.textContent), "a dizer quanto sobra ou falta");
+  ok(/precisa|Nada precisa/.test(frase.textContent), "e quantas coisas precisam de si");
+  eq(qq('.ferramentas [data-act="lateralAbrir"]').length, 3, "três ferramentas à mão, ao lado");
+  clicar('.ferramentas [data-act="lateralAbrir"][data-v="podePagar"]');
+  ok(!q("#painelLateral").hidden && /Posso pagar/.test(q("#painelLateral").innerText), "«Posso pagar isto?» abre ao lado");
+  clicar('[data-act="lateralFechar"]');
+
+  // Adiar e dispensar
+  var lista = alertasVisiveis();
+  ok(lista.length > 0, "o exemplo tem coisas a pedir atenção", lista.length);
+  if (!lista.length) return;
+  var primeiro = lista[0];
+  var k = chaveAlerta(primeiro);
+  var bt = q('[data-act="alertaAdiar"][data-k="' + CSS.escape(k) + '"][data-dias="3"]');
+  ok(bt != null, "cada aviso tem «adiar»");
+  ok(q('[data-act="alertaAdiar"][data-k="' + CSS.escape(k) + '"][data-v="mes"]') != null, "e «dispensar este mês»");
+  ok(bt && /Adiar/.test(bt.getAttribute("aria-label")) && bt.getAttribute("aria-label").indexOf(primeiro.titulo) >= 0,
+     "com o nome do aviso no rótulo, para o leitor de ecrã");
+  clicar(bt);
+  eq(alertasVisiveis().length, lista.length - 1, "adiar tira-o da lista");
+  ok(S.alertasAdiados[k] > isoDia(hoje()), "até daqui a uns dias");
+  ok(/adiado/.test(texto()), "e diz que há adiados");
+  clicar('[data-act="alertasAdiadosVer"]');
+  ok(q('[data-act="alertaRetomar"]') != null, "os adiados mostram-se a pedido");
+  clicar('[data-act="alertaRetomar"]');
+  eq(alertasVisiveis().length, lista.length, "e repõem-se");
+  // Dispensar até ao fim do mês
+  clicar('[data-act="alertaAdiar"][data-k="' + CSS.escape(k) + '"][data-v="mes"]');
+  var hj = hoje();
+  eq(S.alertasAdiados[k], isoDia(new Date(hj.getFullYear(), hj.getMonth() + 1, 1)), "dispensar vale até ao mês seguinte");
+  desfazer();
+  ok(!S.alertasAdiados[k], "e anula-se");
+  // Guarda-se, e o lixo não passa
+  var n = normalizar({alertasAdiados:{"a|b":"2999-01-01", "velho":"2000-01-01", "lixo":42, "x":"amanhã"}});
+  eq(Object.keys(n.alertasAdiados).join(","), "a|b", "só sobrevivem datas válidas e futuras");
+  eq(Object.keys(normalizar({alertasAdiados:[1,2]}).alertasAdiados).length, 0, "uma lista no lugar do mapa não passa");
+
+  // Próximos 7 dias
+  var prox = proximosDias(7);
+  ok(Array.isArray(prox), "os próximos dias calculam-se");
+  ok(prox.every(function(x){ return x.iso >= isoDia(hoje()); }), "e são todos de hoje em diante");
+  ok(/Próximos 7 dias/.test(texto()), "o cartão aparece no Início do mês corrente");
+  MES = mesShift(isoMes(hoje()), -2); render();
+  ok(!/Próximos 7 dias/.test(texto()), "e não num mês passado, onde não faria sentido");
+  MES = isoMes(hoje()); render();
+  clicar('[data-act="proximosAgenda"]');
+  eq(ui.movVista, "agenda", "«Agenda» abre a agenda");
+  eq(paginaAtual(), "movimentos", "nos movimentos");
+})();
+
+G("registar por frase, na pesquisa");
+(function(){
+  comExemplo();
+  var hj = hoje();
+  var ontem = isoDia(new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() - 1));
+  var p = lerFrase("45,90 continente ontem");
+  ok(p != null, "«45,90 continente ontem» lê-se");
+  eq(p.valor, 45.9, "o valor, com vírgula decimal");
+  eq(p.data, ontem, "o dia");
+  eq(p.tipo, "despesa", "despesa por omissão");
+  eq(p.descricao, "Continente", "e a descrição, com maiúscula");
+  eq(lerFrase("12.50 café").valor, 12.5, "ponto decimal também");
+  eq(lerFrase("1.234,56 € ikea").valor, 1234.56, "e milhares à portuguesa, com o símbolo");
+  eq(lerFrase("café 3,20 hoje").valor, 3.2, "o valor pode vir depois");
+  eq(lerFrase("+50 reembolso").tipo, "rendimento", "um + à frente é rendimento");
+  eq(lerFrase("recebi 200 explicações").tipo, "rendimento", "e «recebi» também");
+  eq(lerFrase("20 farmácia 03/02").data, hj.getFullYear() + "-02-03", "uma data dd/mm");
+  ok(lerFrase("20 farmácia 31/02") == null, "um dia que não existe não passa");
+  ok(lerFrase("continente") == null, "sem valor não é movimento");
+  ok(lerFrase("45") == null, "e só um valor também não");
+  ok(lerFrase("0 nada") == null, "zero não conta");
+  var sab = lerFrase("30 jantar sábado");
+  ok(sab && new Date(sab.data + "T12:00:00").getDay() === 6 && sab.data < isoDia(hj), "um dia da semana é o último que passou");
+  // A categoria vem do que já se sabe
+  S.regrasCategoria = [{padrao:"continente", categoriaId: catPorNome("Alimentação")}];
+  eq(lerFrase("45,90 continente ontem").categoriaId, catPorNome("Alimentação"), "as regras dão a categoria");
+  ["", "   ", "€", "++", "45,90,10", "abc 1e9", "<img src=x>"].forEach(function(t){
+    semErro(function(){ lerFrase(t); }, "frase estranha não rebenta: «" + t + "»");
+  });
+
+  // Na pesquisa, a frase vira a primeira linha e regista
+  abrirPaleta();
+  var inp = q("#paletaIn");
+  inp.value = "45,90 continente ontem";
+  inp.dispatchEvent(new Event("input", {bubbles:true}));
+  var primeira = q("#paletaLista li[data-i]");
+  ok(primeira && /Registar despesa de 45,90/.test(primeira.textContent), "a pesquisa propõe registar", primeira && primeira.textContent);
+  var n = S.movimentos.length;
+  executarPaleta(0);
+  eq(S.movimentos.length, n + 1, "escolher a linha regista o movimento");
+  var mv = S.movimentos[S.movimentos.length - 1];
+  ok(mv.valor === 45.9 && mv.data === ontem && mv.categoriaId === catPorNome("Alimentação"), "com tudo no sítio");
+  desfazer();
+  eq(S.movimentos.length, n, "e o Ctrl+Z anula");
+  // Uma procura normal continua a procurar
+  abrirPaleta();
+  q("#paletaIn").value = "ativos";
+  q("#paletaIn").dispatchEvent(new Event("input", {bubbles:true}));
+  ok(!/Registar/.test(q("#paletaLista").textContent), "sem valor, a pesquisa não propõe registos");
+  fecharPaleta();
 })();
 
 G("custo de trabalhar com um orçamento grande");
@@ -4887,6 +5051,10 @@ G("definições com índice e fiscalidade por imposto");
   eq(VIEW, "config", "«Sobre» abre as definições");
 })();
 
+} catch (e) {
+  ok(false, "a suite parou a meio — a limpeza corre na mesma", (e && e.stack) || e);
+}
+
 /* ============================================================
    Limpeza e relatório
    ============================================================ */
@@ -4905,6 +5073,12 @@ filtros.texto = filtrosIniciais.texto; filtros.categoria = filtrosIniciais.categ
 filtros.membro = filtrosIniciais.membro; filtros.tipo = filtrosIniciais.tipo;
 ui.secaoDespesa = secaoInicial;
 ui.secaoEstrategia = secaoEstrInicial;
+ui.ultimaPagina = ultimaPaginaInicial;
+ui.movVista = movVistaInicial;
+ui.lateral = null;
+if (typeof fecharMenus === "function") fecharMenus();
+if (q("#modalHost")) q("#modalHost").innerHTML = "";
+if (typeof fecharPaleta === "function") fecharPaleta();
 irPara(vistaInicial);
 /* A repintura agenda gravações adiadas (400 ms nos dados, 600 ms na
    sessão). Sem as cancelar, disparavam depois desta limpeza e voltavam a

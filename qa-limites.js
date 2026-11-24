@@ -50,6 +50,9 @@ function qq(s){ return Array.prototype.slice.call(document.querySelectorAll(s));
 /* ============================================================
    1. Valores absurdos não produzem NaN nem Infinity
    ============================================================ */
+/* Os testes correm dentro de um try: se um rebentar a meio, a reposição do
+   fim corre na mesma e os dados do utilizador voltam ao sítio. */
+try {
 G("robustez numérica");
 (function(){
   limpo();
@@ -770,6 +773,10 @@ G("importação defensiva");
     }, "importar " + txt.slice(0,40) + " não rebenta");
   });
 })();
+
+} catch (e) {
+  ok(false, "a suite parou a meio — a reposição corre na mesma", (e && e.stack) || e);
+}
 
 /* ============================================================
    Limpeza e relatório

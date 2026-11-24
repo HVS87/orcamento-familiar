@@ -1160,6 +1160,46 @@ ol.agenda{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:c
   position:sticky;top:var(--altCab, 64px);z-index:3;background:var(--bg)}
 .secCfg{scroll-margin-top:calc(var(--altCab, 64px) + 64px)}
 .secCfg h2:focus{outline:none}
+
+/* ---------- Início: frase do mês, ferramentas, caixa de entrada ---------- */
+.fraseMes{font-size:19px;line-height:1.45;margin:2px 0 12px;font-weight:500;color:var(--text)}
+.fraseMes strong{font-weight:750}
+.ferramentas{margin:0 0 14px}
+.ferramentas .ficha svg{width:16px;height:16px;margin-right:6px}
+.alertaLinha{display:flex;align-items:stretch;gap:4px}
+.alertaLinha > .alerta{flex:1 1 auto;min-width:0}
+.alertaAcoes{display:flex;align-items:center;gap:2px;flex:0 0 auto}
+.alertaAcoes .btn.icon{width:40px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.alertaAcoes svg{width:18px;height:18px}
+@media (hover:hover) and (pointer:fine){
+  .alertaLinha .alertaAcoes .btn{opacity:.55;transition:opacity .12s}
+  .alertaLinha:hover .alertaAcoes .btn, .alertaLinha:focus-within .alertaAcoes .btn{opacity:1}
+}
+.alertas.adiados .alerta{opacity:.8}
+ul.proximos{list-style:none;margin:0;padding:0}
+ul.proximos li{display:grid;grid-template-columns:minmax(96px,auto) 1fr auto;gap:10px;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border)}
+ul.proximos li:last-child{border-bottom:0}
+ul.proximos .pd{color:var(--muted);font-size:13px}
+ul.proximos .pn{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- Boas-vindas em três passos ---------- */
+.boasVindas .passos{list-style:none;display:flex;gap:8px;padding:0;margin:14px 0 18px;flex-wrap:wrap}
+.boasVindas .passos li{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;
+  background:var(--surface-2);color:var(--muted);font-size:13.5px;font-weight:600}
+.boasVindas .passos li .pn{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--border);color:var(--text);font-size:13px}
+.boasVindas .passos li[aria-current="step"]{color:var(--text);background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
+.boasVindas .passos li[aria-current="step"] .pn{background:var(--accent);color:var(--on-accent, #fff)}
+.boasVindas .passos li.feito .pn{background:var(--pos);color:var(--on-pos, #fff)}
+.boasVindas .tituloPasso{font-size:16px;margin:0 0 12px}
+.boasVindas .tituloPasso:focus{outline:none}
+.outrasVias{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+.outrasVias .muted{margin-right:4px;font-size:13px}
+.comoOrganiza{margin-top:12px}
+.comoOrganiza > summary{cursor:pointer;font-weight:600;color:var(--accent-forte);font-size:13.5px;min-height:32px;display:flex;align-items:center}
+label.chk{display:inline-flex;align-items:center;gap:8px;min-height:40px;cursor:pointer}
+label.chk input{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -2487,6 +2527,11 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  alertaAdiar:["Adiar ou dispensar", "Esconde este aviso por três dias, ou até ao fim do mês. Volta sozinho, ou mais cedo em «Mostrar os adiados».", ""],
+  alertasAdiadosVer:["Ver os adiados", "Mostra os avisos que adiou, com a data em que voltam, e deixa repô-los já.", ""],
+  alertaRetomar:["Repor", "Devolve o aviso à lista do que precisa de si.", ""],
+  proximosAgenda:["Agenda do mês", "Abre os movimentos na vista de agenda: o que já passou e o que ainda vem, dia a dia.", ""],
+  boasPasso:  ["Passo seguinte", "Avança ou recua nos três passos do ponto de partida. Nada é gravado antes de «Começar assim».", ""],
   movVista:   ["Ver os movimentos", "Lista para procurar e corrigir; calendário para ver os dias que pesam e escolher um; agenda para o que já passou e o que ainda vem este mês.", ""],
   movDia:     ["Escolher um dia", "Mostra só os movimentos desse dia. Carregar outra vez, ou em «Ver o mês todo», volta ao mês inteiro.", ""],
   movFiltro:  ["Mostrar", "Filtra a lista por tipo. «Por categorizar» junta os movimentos ainda sem categoria, para os arrumar de uma vez.", ""],
@@ -2732,6 +2777,7 @@ function estadoVazio(){
     fechados: {},      // mes ISO -> {em: dia} — meses arrumados no fecho guiado
     patrimonioHist: [], // [{mes, ativo, divida, liquido}] — instantâneos mensais
     dicasOcultas: [],   // sugestões de próximo passo já dispensadas
+    alertasAdiados: {}, // {"mês|título": "aaaa-mm-dd"} — escondido até esse dia
     tutorialVisto: false,
     /* Verdadeiro enquanto os dados forem a família de demonstração tal como
        foi semeada. A primeira alteração a sério limpa-o: a partir daí já há
@@ -2835,7 +2881,7 @@ function pintarEstadoGuardado(){
   if (!el) return;
   if (_guardado.erro){
     el.textContent = "⚠ por guardar";
-    el.title = "A última gravação falhou. Exporte uma cópia em Dados ▾ para não perder o trabalho.";
+    el.title = "A última gravação falhou. Exporte uma cópia em Definições → Cópias e exportações para não perder o trabalho.";
     el.className = "neg";
     return;
   }
@@ -3090,6 +3136,15 @@ function normalizar(d){
     if (p.objetivoId && !out.objetivos.some(o => o.id === p.objetivoId)) p.objetivoId = "";
   });
   out.dicasOcultas = Array.isArray(d.dicasOcultas) ? d.dicasOcultas : [];
+  /* Só datas válidas, e só as que ainda não passaram: o resto é lixo. */
+  out.alertasAdiados = {};
+  if (d.alertasAdiados && typeof d.alertasAdiados === "object" && !Array.isArray(d.alertasAdiados)){
+    const hj = isoDia(hoje());
+    Object.keys(d.alertasAdiados).slice(0, 500).forEach(k => {
+      const v = d.alertasAdiados[k];
+      if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && v > hj && k.length <= 300) out.alertasAdiados[k] = v;
+    });
+  }
   out.tutorialVisto = !!d.tutorialVisto;
   out.exemploDemo = !!d.exemploDemo;
   out.paleta = PALETAS[d.paleta] ? d.paleta : "meianoite";
@@ -5220,7 +5275,7 @@ const AVISO_LONGO = [
    "possível</strong>. Limpar os dados de navegação, usar uma janela privada, mudar "+
    "de navegador, de computador ou de telemóvel, ou desinstalar a aplicação, leva "+
    "consigo o orçamento inteiro — e não há «esqueci-me» que o traga de volta. "+
-   "<strong>Exporte uma cópia com regularidade</strong>, em <em>Dados ▾ → Exportar</em>, "+
+   "<strong>Exporte uma cópia com regularidade</strong>, em <em>Definições → Cópias e exportações</em>, "+
    "e guarde o ficheiro num sítio seguro. Se a cópia for para a nuvem ou para o "+
    "e-mail, use a <em>cópia cifrada</em>: leva o orçamento todo lá dentro.", "warn"],
 ];
@@ -5255,52 +5310,6 @@ function avisarUsoResponsavel(aoAceitar){
   host.querySelector('[data-dlg="yes"]').focus();
 }
 
-/** Escolha de ponto de partida, no ecrã de boas-vindas. */
-function escolhaPerfil(){
-  const p = ui.perfil || (ui.perfil = {agregado:null, habitacao:"arrendada", regime:"credito"});
-  const casaPropria = p.habitacao === "propria";
-
-  const agregados = '<div class="perfis no-print">'+Object.entries(PERFIS_AGREGADO).map(([k,a]) =>
-    '<button class="perfil" data-act="perfilAgregado" data-k="'+k+'" aria-pressed="'+(p.agregado === k)+'">'+
-      '<span class="pi" aria-hidden="true">'+a.icone+'</span>'+
-      '<span class="pl">'+esc(a.lbl)+'</span>'+
-      '<span class="pd">'+esc(a.desc)+'</span>'+
-    '</button>').join("")+'</div>';
-
-  const habitacao = '<div class="seg no-print" style="margin-top:11px">'+
-    Object.entries(PERFIS_HABITACAO).map(([k,h]) =>
-      '<button data-act="perfilHabitacao" data-k="'+k+'" aria-pressed="'+(p.habitacao === k)+'">'+
-      h.icone+' '+esc(h.lbl)+'</button>').join("")+'</div>';
-
-  const regimes = casaPropria
-    ? '<div class="seg no-print" style="margin-top:8px">'+
-      Object.entries(PERFIS_HABITACAO.propria.regimes).map(([k,r]) =>
-        '<button data-act="perfilRegime" data-k="'+k+'" aria-pressed="'+(p.regime === k)+'">'+
-        esc(r.lbl)+'</button>').join("")+'</div>'+
-      '<div class="muted" style="font-size:12px;margin-top:5px">'+
-      esc(PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].desc)+
-      (p.regime !== "paga"
-        ? ' A prestação entra como rubrica; para ver os juros separados do capital, acrescente o empréstimo em <strong>Créditos</strong>.'
-        : "")+'</div>'
-    : "";
-
-  // Pré-visualização do que vai ser criado, para não ser uma caixa fechada
-  const previa = p.agregado
-    ? (function(){
-        const a = PERFIS_AGREGADO[p.agregado];
-        const rs = a.rubricas.concat(rubricasHabitacao(p.agregado, p.habitacao, p.regime));
-        const total = rs.reduce((s,r) => s + r[2], 0);
-        return '<div class="note" style="margin-top:11px">Vai criar <strong>'+a.membros.length+
-          ' membro(s)</strong> e <strong>'+rs.length+' despesa(s) fixa(s)</strong>, '+
-          eur(total)+'/mês no total — valores de exemplo, para ajustar.</div>'+
-          '<div class="note" style="border-left-color:var(--warn);margin-top:9px">'+
-            '<strong>Antes de começar:</strong> '+esc(AVISO_CURTO)+'</div>'+
-          '<div class="actions"><button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
-      })()
-    : '<div class="muted" style="font-size:12px;margin-top:9px">Escolha o agregado para continuar.</div>';
-
-  return agregados + habitacao + regimes + previa;
-}
 
 /**
  * Estado vazio ilustrado: um mini-diagrama do que ali vai, para ensinar
@@ -5604,19 +5613,41 @@ document.addEventListener("click", (e) => {
 
 /** Cartão de alertas do painel. */
 function cartaoAtencao(){
-  const lista = alertas();
-  if (!lista.length) return "";
+  const lista = alertasVisiveis();
+  const nAdiados = nAlertasAdiados();
+  if (!lista.length && !nAdiados) return "";
   const cor = (g) => g === 2 ? "var(--neg)" : g === 1 ? "var(--warn)" : "var(--accent)";
   return '<div class="card"><div class="card-head"><div class="t"><h2>Precisa da sua atenção</h2>'+
     '<div class="sub">Reunido do que já está nos seus dados — limites, prazos, revisões de taxa e arrumação.</div></div>'+
-    '<span class="tag">'+lista.length+'</span></div>'+
+    (lista.length ? '<span class="tag">'+lista.length+'</span>' : "")+'</div>'+
+    (lista.length ? "" : '<div class="empty">Está tudo tratado por agora.</div>')+
     '<div class="alertas">'+lista.map(a =>
+      '<div class="alertaLinha">'+
       '<button class="alerta no-print" data-act="ir" data-view="'+esc(a.vista)+'">'+
         '<span class="ai" style="color:'+cor(a.grau)+'" aria-hidden="true">'+esc(a.icone)+'</span>'+
         '<span class="at"><span class="t1">'+esc(a.titulo)+'</span>'+
         '<span class="t2">'+esc(a.detalhe)+'</span></span>'+
         '<span class="av" aria-hidden="true">›</span>'+
-      '</button>').join("")+'</div></div>';
+      '</button>'+
+      '<span class="alertaAcoes no-print">'+
+        '<button class="btn sm icon ghost" data-act="alertaAdiar" data-k="'+esc(chaveAlerta(a))+'" data-dias="3" '+
+          'aria-label="Adiar três dias: '+esc(a.titulo)+'" title="Adiar três dias">'+ic("relogio")+'</button>'+
+        '<button class="btn sm icon ghost" data-act="alertaAdiar" data-k="'+esc(chaveAlerta(a))+'" data-v="mes" '+
+          'aria-label="Dispensar este mês: '+esc(a.titulo)+'" title="Dispensar este mês">'+ic("visto")+'</button>'+
+      '</span></div>').join("")+'</div>'+
+    (nAdiados
+      ? '<button class="btn sm ghost no-print" data-act="alertasAdiadosVer" aria-expanded="'+!!ui.verAdiados+'" style="margin-top:8px">'+
+          (ui.verAdiados ? "Esconder" : "Mostrar")+' '+(nAdiados === 1 ? "o adiado" : "os "+nAdiados+" adiados")+'</button>'+
+        (ui.verAdiados
+          ? '<div class="alertas adiados">'+alertas().filter(a => !(lista.indexOf(a) >= 0) &&
+              (S.alertasAdiados || {})[chaveAlerta(a)] > isoDia(hoje())).map(a =>
+              '<div class="alertaLinha"><span class="alerta" style="cursor:default"><span class="ai" aria-hidden="true">'+esc(a.icone)+'</span>'+
+              '<span class="at"><span class="t1">'+esc(a.titulo)+'</span><span class="t2">Até '+
+              esc(diaExtenso(S.alertasAdiados[chaveAlerta(a)]))+'</span></span></span>'+
+              '<span class="alertaAcoes no-print"><button class="btn sm ghost" data-act="alertaRetomar" data-k="'+esc(chaveAlerta(a))+'">Repor</button></span></div>').join("")+'</div>'
+          : "")
+      : "")+
+    '</div>';
 }
 
 /* ---------------------------------------------------------------
@@ -5764,27 +5795,7 @@ function viewPainel(){
   const prestacoesMes = S.creditos.reduce((s,c) => s + encargoCredito(c, MES), 0);
   const esforco = rend > 0 ? prestacoesMes / rend * 100 : 0;
 
-  if (!temDados()){
-    return '<div class="card"><h2>Bem-vindo 👋</h2>'+
-      '<p class="sub">Ainda não há dados. Comece por definir o <strong>Plano mensal</strong> '+
-      '(rendimentos e despesas fixas) ou registe <strong>Movimentos</strong> reais do dia a dia.</p>'+
-      '<div class="row"><div class="shrink"><button class="btn primary" data-act="ir" data-view="rendimentos">Definir rendimentos</button></div>'+
-      '<div class="shrink"><button class="btn" data-act="ir" data-view="despesas">Despesas</button></div>'+
-      '<div class="shrink"><button class="btn" data-act="ir" data-view="ativos">Ativos</button></div>'+
-      '<div class="shrink"><button class="btn ghost" data-act="exemplo">Carregar exemplo</button></div>'+
-      '<div class="shrink"><button class="btn ghost" data-act="tutorialIniciar">🎓 Visita guiada</button></div></div>'+
-      '<div style="margin-top:18px"><label class="field">Ou comece por um ponto de partida</label>'+
-      escolhaPerfil()+
-      '<div class="muted" style="font-size:12px;margin-top:7px">Semeia membros, despesas fixas típicas e limites — '+
-      'valores de exemplo, para ajustar. Os rendimentos ficam por sua conta.</div></div>'+
-      '<div style="margin-top:14px" class="note"><strong>Três coisas, e só três:</strong> '+
-      '<em>Rendimentos</em> (cada fonte decomposta em vencimento, subsídios, prémios — com IRS e Segurança Social), '+
-      '<em>Despesas</em> (fixas, movimentos e limites) e <em>Ativos</em> — onde cabe tudo o que tem valor, '+
-      'da conta à ordem ao PPR, dos ETFs ao apartamento. As poupanças são ativos como os outros.</div>'+
-      '<div style="margin-top:10px" class="note"><strong>O resto pendura-se destes três:</strong> os créditos ligam-se ao ativo que financiam '+
-      'e a prestação divide-se em juros, amortização e seguros; os impostos sobre rendimentos e ativos entram nas categorias respetivas. '+
-      'No fim, tudo fecha no <em>património líquido</em>.</div></div>';
-  }
+  if (!temDados()) return boasVindas();
 
   // KPIs, com a variação face ao mês anterior e o traço dos últimos 6 meses.
   // Com a comparação homóloga ligada, a legenda passa a mostrar o mesmo mês
@@ -5980,6 +5991,7 @@ function viewPainel(){
     atencao:     () => cartaoAtencao(),
     defice:      () => cartaoDefice(),
     fecho:       () => cartaoFechoMes(),
+    proximos:    () => cartaoProximos(),
     previsao:    () => cartaoPrevisao(),
     saude:       () => cartaoSaudeFinanceira(),
     provisoes:   () => cartaoProvisoes(),
@@ -6016,11 +6028,11 @@ function viewPainel(){
     return personalizar + (ui.personalizarPainel ? cartaoPainelConfig() + '<div style="height:16px"></div>' : "") +
       (corpo || '<div class="note">Não há cartões ligados. Escolha os que quer ver.</div>');
   }
-  return dicaProximoPasso() + kpis + '<div style="height:16px"></div>' +
+  return fraseDoMes() + ferramentasInicio() + dicaProximoPasso() + kpis + '<div style="height:16px"></div>' +
          montarPainel(produtores, k => CARTOES_INICIO.indexOf(k) >= 0);
 }
 /* Os cartões que respondem a «o que precisa de mim este mês» ficam no Início */
-const CARTOES_INICIO = ["atencao", "defice", "fecho"];
+const CARTOES_INICIO = ["atencao", "proximos", "defice", "fecho"];
 
 /**
  * Quanto está poupado para um objetivo.
@@ -7554,6 +7566,7 @@ function cartaoObjetivosResumo(){
    --------------------------------------------------------------- */
 const CARTOES_PAINEL = {
   atencao:     {lbl:"Precisa da sua atenção",   padrao:true,  largo:false},
+  proximos:    {lbl:"Próximos 7 dias",          padrao:true,  largo:false},
   defice:      {lbl:"Resolver o défice",        padrao:true,  largo:true},
   fecho:       {lbl:"Fechar o mês passado",     padrao:true,  largo:true},
   previsao:    {lbl:"Como vai fechar o mês",    padrao:true,  largo:false},
@@ -12490,7 +12503,7 @@ function cartaoAplicacao(){
   return '<div class="card"><h2>Guardar como aplicação</h2>'+ corpo + porque +
     '<div class="note" style="margin-top:12px"><strong>Instalar não copia nada para lado nenhum.</strong> '+
     'A aplicação continua sem servidor e sem conta: o que muda é a janela e o ícone. '+
-    'As cópias de segurança continuam a ser suas, em <em>Dados ▾</em>.</div></div>';
+    'As cópias de segurança continuam a ser suas, em <em>Definições → Cópias e exportações</em>.</div></div>';
 }
 
 /** Escolha e ordem dos cartões do painel. */
@@ -12515,7 +12528,7 @@ function cartaoPainelConfig(){
     }).join("")+
     '</tbody></table></div>'+
     '<div class="actions"><button class="btn ghost" data-act="painelReporPadrao">Repor o padrão</button></div>'+
-    '<div class="note" style="margin-top:11px">O botão <strong>◱</strong> do cabeçalho liga o <strong>modo essencial</strong>, '+
+    '<div class="note" style="margin-top:11px">A <strong>vista simples</strong>, nas definições rápidas, liga o <strong>modo essencial</strong>, '+
     'que mostra só o indispensável sem mexer nesta configuração. E cada cartão do painel pode ser fechado '+
     'no seu canto — fechado, nem chega a ser calculado.</div>'+
     '</div>';
@@ -12945,7 +12958,7 @@ function abrirRelatorio(modo){
 }
 function avisarImpressaoFalhou(e){
   toast("Não foi possível abrir a impressão neste navegador. "+
-        "Em Dados ▾ pode exportar uma cópia.");
+        "Em Definições → Cópias e exportações pode exportar uma cópia.");
   if (window.console && console.warn) console.warn("impressão:", e);
 }
 
@@ -13120,7 +13133,7 @@ function emblemasVistas(){
   const e = {};
   const somar = (v, n) => { if (n > 0) e[v] = (e[v] || 0) + n; };
   try {
-    somar("painel", alertas().filter(a => a.grau >= 1).length);
+    somar("painel", alertasVisiveis().filter(a => a.grau >= 1).length);
     somar("despesas", S.movimentos.filter(m => mesDoDia(m.data) === MES && !m.categoriaId).length);
     somar("creditos", S.creditos.filter(c => {
       if (!creditoAtivo(c, MES) || c.tipoTaxa !== "variavel") return false;
@@ -15049,12 +15062,12 @@ const ACOES = {
     apontarPara(".perfis");
   },
   demoFicar(){
-    toast("À vontade. Quando quiser começar o seu: Definições → Dados e cópias → Apagar tudo.");
+    toast("À vontade. Quando quiser começar o seu: Definições → Cópias e exportações → Apagar tudo.");
     apontarPara("#definicoesBtn");
   },
 
   /* --- arranque por perfil --- */
-  perfilAgregado(el){ ui.perfil.agregado = el.dataset.k; render(); },
+  perfilAgregado(el){ ui.perfil = ui.perfil || {habitacao:"arrendada", regime:"credito"}; ui.perfil.agregado = el.dataset.k; ui.boasPasso = 2; render(); },
   perfilHabitacao(el){ ui.perfil.habitacao = el.dataset.k; render(); },
   perfilRegime(el){ ui.perfil.regime = el.dataset.k; render(); },
   perfilAplicar(){
@@ -15066,11 +15079,16 @@ const ACOES = {
       (p.habitacao === "propria" ? " ("+PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].lbl.toLowerCase()+")" : "");
     /* O aviso vem antes de semear seja o que for: quem está a criar o seu
        orçamento é quem mais precisa de saber o que isto é, e o que não é. */
+    const bruto = $("#boasBruto") ? parseNum($("#boasBruto").value) : parseNum(ui.boasBruto);
+    const comSubs = $("#boasSubs") ? $("#boasSubs").checked : ui.boasSubs !== false;
     avisarUsoResponsavel(() => {
-      apagarComAnulacao("Ponto de partida aplicado: "+rotulo+".", () => {
+      apagarComAnulacao("Ponto de partida aplicado: "+rotulo+(bruto > 0 ? ", com "+eur(bruto)+" brutos" : "")+".", () => {
         aplicarPerfil(p.agregado, p.habitacao, p.regime);
+        const rd = rendimentoInicial(bruto, comSubs);
+        if (rd) S.rendimentos.push(rd);
       }, "ponto de partida");
-      irPara("despesas");
+      ui.boasPasso = 1; ui.boasBruto = "";
+      irPara(bruto > 0 ? "painel" : "despesas");
     });
   },
 
@@ -15742,13 +15760,20 @@ function abrirDados(){
         item("exportar", "Movimentos em CSV", "exportCSV")+
         item("exportar", "Património em CSV", "exportPatrimonioCSV")+
         item("imprimir", "Imprimir esta página", "imprimir")+
+        '<div class="sepMenu"></div>'+
+        '<button class="linhaMenu perigo" data-act="limpar">'+ic("apagar")+'<span class="lb">Apagar tudo</span></button>'+
       '</div>'+
       '<div class="actions" style="margin-top:12px"><button class="btn ghost" data-dlg="no">Fechar</button></div>'+
     '</div></div>';
   const fechar = () => { host.innerHTML = ""; };
   host.querySelector('[data-dlg="no"]').onclick = fechar;
   host.querySelector(".overlay").onclick = (ev) => { if (ev.target === ev.currentTarget) fechar(); };
-  host.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => setTimeout(fechar, 30)));
+  /* Fecha depois de a ação correr — mas só se este diálogo ainda lá estiver:
+     «Apagar tudo» e a cópia cifrada abrem o seu próprio diálogo no mesmo
+     sítio, e fechar às cegas levava-o com este. */
+  const proprio = host.querySelector(".dialog");
+  host.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () =>
+    setTimeout(() => { if (proprio.isConnected) fechar(); }, 30)));
 }
 
 /* ---------------------------------------------------------------
@@ -16053,7 +16078,7 @@ function abrirPaleta(){
   paletaSel = 0;
   $("#paleta").innerHTML =
     '<div class="overlay"><div class="caixa" role="dialog" aria-modal="true" aria-label="Paleta de comandos">'+
-    '<input id="paletaIn" placeholder="Escreva para procurar — vistas e ações" autocomplete="off">'+
+    '<input id="paletaIn" placeholder="Procure, ou registe — «45,90 continente ontem»" autocomplete="off" aria-label="Procurar ou registar um movimento">'+
     '<ul id="paletaLista" role="listbox"></ul></div></div>';
   pintarPaleta("");
   const inp = $("#paletaIn");
@@ -16105,7 +16130,8 @@ function filtrarComandos(termo){
   const t = semAcento(termo).trim();
   const lista = comandosPaleta();
   if (!t) return lista;
-  return lista.filter(c => semAcento(c.lbl).indexOf(t) >= 0).concat(comandosDados(t));
+  const frase = comandoFrase(termo);
+  return (frase ? [frase] : []).concat(lista.filter(c => semAcento(c.lbl).indexOf(t) >= 0), comandosDados(t));
 }
 function pintarPaleta(termo){
   const lista = filtrarComandos(termo);
@@ -16835,7 +16861,7 @@ function despedidaDaVisita(){
       '<div class="note" style="margin:4px 0 12px">'+
         '<strong>Para começar o seu, em qualquer altura:</strong>'+
         '<ol style="margin:7px 0 0 18px;padding:0;line-height:1.65">'+
-          '<li><strong>Dados ▾</strong>, no cabeçalho → <strong>Apagar tudo</strong></li>'+
+          '<li><strong>Definições</strong>, no cabeçalho → <strong>Cópias e exportações</strong> → <strong>Apagar tudo</strong></li>'+
           '<li>Volta o ecrã de boas-vindas com os <strong>pontos de partida</strong> — '+
             'sozinho/a, casal, com filhos… e casa própria ou arrendada</li>'+
           '<li><strong>Começar assim</strong> semeia membros, despesas fixas típicas '+
@@ -17715,6 +17741,284 @@ const ACOES_LISTAS = {
   },
 };
 Object.assign(ACOES, ACOES_LISTAS);
+
+/* ---------------------------------------------------------------
+   O Início como caixa de entrada do mês
+
+   Uma frase diz como vai o mês; por baixo, o que precisa de si — e cada
+   coisa trata-se, adia-se ou dispensa-se ali mesmo, como uma mensagem.
+   Os próximos sete dias mostram o que vai sair da conta.
+   --------------------------------------------------------------- */
+const chaveAlerta = (a) => MES + "|" + a.titulo;
+
+/** Os alertas que não foram adiados nem dispensados. */
+function alertasVisiveis(){
+  const adiados = S.alertasAdiados || {};
+  const hj = isoDia(hoje());
+  return alertas().filter(a => !(adiados[chaveAlerta(a)] > hj));
+}
+function nAlertasAdiados(){
+  const adiados = S.alertasAdiados || {};
+  const hj = isoDia(hoje());
+  return alertas().filter(a => adiados[chaveAlerta(a)] > hj).length;
+}
+
+/** Uma frase só, para o mês num relance. */
+function fraseDoMes(){
+  const p = planoMes(MES), r = realMes(MES);
+  const usarReal = r.rend > 0 || r.desp > 0;
+  const saldo = usarReal ? r.saldo : p.saldo;
+  const nome = mesLabel(MES);
+  const corrente = MES === isoMes(hoje());
+  const n = alertasVisiveis().length;
+  const quanto = saldo >= 0
+    ? (corrente ? "sobram " : "sobraram ") + '<strong class="pos">' + esc(eur(saldo)) + "</strong>"
+    : (corrente ? "faltam " : "faltaram ") + '<strong class="neg">' + esc(eur(-saldo)) + "</strong>";
+  const base = usarReal ? "" : ' <span class="muted">(pelo plano)</span>';
+  const pedidos = n === 0 ? "Nada precisa de si." : n === 1 ? "Uma coisa precisa de si." : n + " coisas precisam de si.";
+  return '<p class="fraseMes">' + esc(nome.charAt(0).toUpperCase() + nome.slice(1)) + ": " + quanto + base +
+    ". " + esc(pedidos) + "</p>";
+}
+
+/** Ferramentas que abrem ao lado, sem sair do Início. */
+function ferramentasInicio(){
+  const f = [["podePagar", "dinheiro", "Posso pagar isto?"], ["comparar", "comparar", "Comparar meses"],
+             ["nota", "nota", "Nota do mês"]];
+  return '<div class="fichas ferramentas no-print" role="group" aria-label="Ferramentas">' +
+    f.map(([k, icone, rot]) => '<button class="ficha" data-act="lateralAbrir" data-v="' + k + '">' + ic(icone) + esc(rot) + '</button>').join("") +
+    '</div>';
+}
+
+/** O que vai sair (ou entrar) nos próximos dias, a contar de hoje. */
+function proximosDias(n){
+  const hj = hoje();
+  const fim = new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() + (n || 7) - 1);
+  const hjIso = isoDia(hj), fimIso = isoDia(fim);
+  const meses = [isoMes(hj)];
+  if (isoMes(fim) !== meses[0]) meses.push(isoMes(fim));
+  const out = [];
+  meses.forEach(m => {
+    eventosDoMes(m).dias.forEach(d => {
+      const iso = m + "-" + String(d.dia).padStart(2, "0");
+      if (iso < hjIso || iso > fimIso) return;
+      d.itens.forEach(it => {
+        const nome = String(it.nome).replace(/^🛒\s*/, "");
+        const jaHa = S.movimentos.some(x => mesDoDia(x.data) === m && semAcento(x.descricao || "") === semAcento(nome));
+        if (!jaHa) out.push({iso, nome: it.nome, valor: it.valor, tipo: it.tipo, cor: it.cor});
+      });
+    });
+  });
+  return out.sort((a, b) => a.iso.localeCompare(b.iso));
+}
+function cartaoProximos(){
+  if (MES !== isoMes(hoje())) return "";
+  const lista = proximosDias(7);
+  const sai = lista.filter(x => x.tipo !== "rendimento").reduce((s, x) => s + x.valor, 0);
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Próximos 7 dias</h2>' +
+    '<div class="sub">' + (lista.length ? "Saem " + esc(eur(sai)) + " em pagamentos previstos." : "Sem pagamentos marcados.") + '</div></div>' +
+    '<button class="btn sm ghost no-print" data-act="proximosAgenda">Agenda</button></div>' +
+    (lista.length
+      ? '<ul class="proximos">' + lista.map(x =>
+          '<li><span class="pd">' + esc(diaExtenso(x.iso)) + '</span>' +
+          '<span class="pn"><span class="dot" style="background:' + esc(x.cor || "var(--muted)") + '"></span>' + esc(x.nome) + '</span>' +
+          '<span class="num ' + (x.tipo === "rendimento" ? "pos" : "") + '">' + (x.tipo === "rendimento" ? "+" : "−") + esc(eur(x.valor)) + '</span></li>').join("") + '</ul>'
+      : '<div class="empty">Marque o dia do mês nas despesas fixas e os pagamentos aparecem aqui antes de saírem.</div>') +
+  '</div>';
+}
+
+/* ---------------------------------------------------------------
+   Registar por frase
+
+   Na pesquisa, «45,90 continente ontem» é um movimento: o valor, a
+   descrição e o dia. A categoria vem das regras e do histórico. Nada se
+   grava sem escolher a linha — e o Ctrl+Z anula.
+   --------------------------------------------------------------- */
+const DIAS_FRASE = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+function lerFrase(texto){
+  let t = " " + String(texto || "").toLowerCase().replace(/\s+/g, " ").trim() + " ";
+  if (t.trim().length < 2) return null;
+  const hj = hoje();
+  let data = isoDia(hj);
+  const tirar = (re) => { t = t.replace(re, " "); };
+
+  // O dia: palavras, dia da semana, ou dd/mm
+  const sa = semAcento(t);
+  if (/\banteontem\b/.test(sa)){ data = isoDia(new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() - 2)); tirar(/\banteontem\b/); }
+  else if (/\bontem\b/.test(sa)){ data = isoDia(new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() - 1)); tirar(/\bontem\b/); }
+  else if (/\bhoje\b/.test(sa)){ tirar(/\bhoje\b/); }
+  else {
+    const ds = DIAS_FRASE.findIndex(d => new RegExp("\\b" + d + "(-feira)?\\b").test(sa));
+    if (ds >= 0){
+      let recuo = (hj.getDay() - ds + 7) % 7;
+      if (recuo === 0) recuo = 7;                     // «segunda» dita a uma segunda é a passada
+      data = isoDia(new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() - recuo));
+      t = semAcento(t).replace(new RegExp("\\b" + DIAS_FRASE[ds] + "(-feira)?\\b"), " ");
+    } else {
+      const m = t.match(/\s(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s/);
+      if (m){
+        let a = m[3] ? parseInt(m[3], 10) : hj.getFullYear();
+        if (a < 100) a += 2000;
+        const iso = a + "-" + String(m[2]).padStart(2, "0") + "-" + String(m[1]).padStart(2, "0");
+        const d = new Date(a, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        if (d.getMonth() === parseInt(m[2], 10) - 1 && d.getDate() === parseInt(m[1], 10)) data = iso;
+        else return null;
+        t = t.replace(m[0], " ");
+      }
+    }
+  }
+
+  // O valor: o primeiro número, com vírgula ou ponto decimais, e € opcional
+  const mv = t.match(/(^|\s)([+-]?)(\d{1,3}(?:[ .]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s?(€|eur|euros)?(?=\s)/);
+  if (!mv) return null;
+  const valor = parseNum(mv[3]);
+  if (!(valor > 0) || valor > 1e7) return null;
+  t = t.replace(mv[0], " ");
+
+  // Rendimento quando o diz; despesa por omissão
+  let tipo = mv[2] === "+" ? "rendimento" : "despesa";
+  if (/\b(recebi|rendimento|salario|ordenado|vencimento|reembolso)\b/.test(semAcento(t))) tipo = "rendimento";
+  t = t.replace(/\b(recebi|paguei|gastei|no|na|em|de|do|da)\b/g, " ");
+
+  let descricao = t.replace(/\s+/g, " ").trim();
+  if (!descricao && tipo === "despesa") return null;     // «45» sozinho não chega
+  descricao = descricao.charAt(0).toUpperCase() + descricao.slice(1);
+
+  // A categoria: regras, depois histórico, depois o nome da própria categoria
+  let categoriaId = descricao ? categoriaSugerida(descricao) : "";
+  if (!categoriaId && descricao){
+    const d = semAcento(descricao);
+    const c = S.categorias.find(c => c.tipo === tipo && d.split(" ").some(p => p.length >= 4 && semAcento(c.nome).indexOf(p) === 0));
+    if (c) categoriaId = c.id;
+  }
+  if (categoriaId && (cat(categoriaId) || {}).tipo !== tipo) categoriaId = "";
+  return {valor, data, tipo, descricao: descricao || "Rendimento", categoriaId};
+}
+function registarFrase(p){
+  alterar(() => {
+    S.movimentos.push({id: uid("mv"), tipo: p.tipo, data: p.data, descricao: p.descricao,
+      categoriaId: p.categoriaId, membroId: "", valor: p.valor});
+    MES = mesDoDia(p.data);
+  }, "movimento por frase");
+  toast(eur(p.valor) + " — " + p.descricao + (p.categoriaId ? " em " + catNome(p.categoriaId) : ", por categorizar") +
+    ", " + diaExtenso(p.data) + ". (Ctrl+Z anula.)");
+}
+function comandoFrase(termo){
+  const p = lerFrase(termo);
+  if (!p) return null;
+  return {icone: p.tipo === "rendimento" ? "＋" : "−",
+    lbl: "Registar " + (p.tipo === "rendimento" ? "rendimento" : "despesa") + " de " + eur(p.valor) + " — " + p.descricao +
+      " · " + diaExtenso(p.data) + (p.categoriaId ? " · " + catNome(p.categoriaId) : " · por categorizar"),
+    tipo: "registo", run: () => registarFrase(p)};
+}
+
+/* ---------------------------------------------------------------
+   Boas-vindas em três passos: quem vive aí, a casa, o que entra.
+   O aviso de uso responsável continua a vir antes de semear.
+   --------------------------------------------------------------- */
+function boasVindas(){
+  const p = ui.perfil || (ui.perfil = {agregado: null, habitacao: "arrendada", regime: "credito"});
+  const passo = Math.min(3, Math.max(1, ui.boasPasso || 1));
+  const nomes = ["Quem vive aí", "A casa", "O que entra"];
+  const cab = '<ol class="passos" aria-label="Três passos para começar">' + nomes.map((n, i) =>
+    '<li' + (i + 1 === passo ? ' aria-current="step"' : "") + (i + 1 < passo ? ' class="feito"' : "") + '>' +
+    '<span class="pn" aria-hidden="true">' + (i + 1 < passo ? "✓" : i + 1) + '</span><span>' + esc(n) + '</span></li>').join("") + '</ol>';
+  const voltar = passo > 1 ? '<button class="btn ghost" data-act="boasPasso" data-v="' + (passo - 1) + '">Voltar</button>' : "";
+  let corpo = "";
+  if (passo === 1){
+    corpo = '<h3 class="tituloPasso">Passo 1 de 3 — quem vive aí?</h3>' +
+      '<div class="perfis no-print">' + Object.entries(PERFIS_AGREGADO).map(([k, a]) =>
+        '<button class="perfil" data-act="perfilAgregado" data-k="' + k + '" aria-pressed="' + (p.agregado === k) + '">' +
+        '<span class="pi" aria-hidden="true">' + a.icone + '</span><span class="pl">' + esc(a.lbl) + '</span>' +
+        '<span class="pd">' + esc(a.desc) + '</span></button>').join("") + '</div>';
+  } else if (passo === 2){
+    const casaPropria = p.habitacao === "propria";
+    corpo = '<h3 class="tituloPasso">Passo 2 de 3 — e a casa?</h3>' +
+      '<div class="seg no-print">' + Object.entries(PERFIS_HABITACAO).map(([k, h]) =>
+        '<button data-act="perfilHabitacao" data-k="' + k + '" aria-pressed="' + (p.habitacao === k) + '">' + h.icone + ' ' + esc(h.lbl) + '</button>').join("") + '</div>' +
+      (casaPropria
+        ? '<div class="seg no-print" style="margin-top:8px">' + Object.entries(PERFIS_HABITACAO.propria.regimes).map(([k, r]) =>
+            '<button data-act="perfilRegime" data-k="' + k + '" aria-pressed="' + (p.regime === k) + '">' + esc(r.lbl) + '</button>').join("") + '</div>' +
+          '<div class="muted" style="font-size:12.5px;margin-top:6px">' +
+          esc(PERFIS_HABITACAO.propria.regimes[p.regime === "paga" ? "paga" : "credito"].desc) + '</div>'
+        : "") +
+      '<div class="actions">' + voltar + '<button class="btn primary" data-act="boasPasso" data-v="3">Seguinte</button></div>';
+  } else {
+    const a = PERFIS_AGREGADO[p.agregado] || PERFIS_AGREGADO.sozinho;
+    const rs = a.rubricas.concat(rubricasHabitacao(p.agregado || "sozinho", p.habitacao, p.regime));
+    const total = rs.reduce((s, r) => s + r[2], 0);
+    corpo = '<h3 class="tituloPasso">Passo 3 de 3 — quanto entra por mês?</h3>' +
+      '<div class="row no-print"><div style="flex:0 1 240px"><label class="field" for="boasBruto">Vencimento bruto mensal <span class="muted">(opcional)</span></label>' +
+        '<input id="boasBruto" inputmode="decimal" placeholder="Ex.: 1 600,00" value="' + esc(ui.boasBruto || "") + '"></div>' +
+        '<div style="flex:1 1 220px;align-self:end"><label class="chk"><input type="checkbox" id="boasSubs"' + (ui.boasSubs === false ? "" : " checked") + '> ' +
+        'Recebe subsídios de férias e de Natal</label></div></div>' +
+      '<div class="muted" style="font-size:12.5px;margin-top:6px">O bruto, como vem no recibo. O IRS e a Segurança Social calculam-se pelas tabelas de ' +
+        esc(TABELAS_RF._meta.ano) + '. Outras fontes juntam-se depois, em Rendimentos.</div>' +
+      '<div class="note" style="margin-top:12px">Vai criar <strong>' + a.membros.length + ' membro(s)</strong> e <strong>' + rs.length +
+        ' despesa(s) fixa(s)</strong>, ' + esc(eur(total)) + '/mês no total — valores de exemplo, para ajustar.</div>' +
+      '<div class="note" style="border-left-color:var(--warn);margin-top:9px"><strong>Antes de começar:</strong> ' + esc(AVISO_CURTO) + '</div>' +
+      '<div class="actions">' + voltar + '<button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
+  }
+  return '<div class="card boasVindas"><h2>Bem-vindo</h2>' +
+    '<p class="sub">Três perguntas e o orçamento ganha forma. Tudo se ajusta depois.</p>' + cab + corpo +
+    '<div class="outrasVias no-print"><span class="muted">Prefere outra via?</span>' +
+      '<button class="btn sm ghost" data-act="exemplo">Explorar com uma família de exemplo</button>' +
+      '<button class="btn sm ghost" data-act="tutorialIniciar">Visita guiada</button>' +
+      '<button class="btn sm ghost" data-act="ir" data-view="rendimentos">Começar do zero</button></div>' +
+    '<details class="comoOrganiza"><summary>Como está organizada a ferramenta</summary>' +
+      '<div class="note" style="margin-top:10px"><strong>Três coisas, e só três:</strong> ' +
+      '<em>Rendimentos</em> (cada fonte decomposta em vencimento, subsídios, prémios — com IRS e Segurança Social), ' +
+      '<em>Despesas</em> (fixas, movimentos e limites) e <em>Ativos</em> — onde cabe tudo o que tem valor, ' +
+      'da conta à ordem ao PPR, dos ETFs ao apartamento. As poupanças são ativos como os outros.</div>' +
+      '<div style="margin-top:10px" class="note"><strong>O resto pendura-se destes três:</strong> os créditos ligam-se ao ativo que financiam ' +
+      'e a prestação divide-se em juros, amortização e seguros; os impostos sobre rendimentos e ativos entram nas categorias respetivas. ' +
+      'No fim, tudo fecha no <em>património líquido</em>.</div></details>' +
+  '</div>';
+}
+
+/** O vencimento indicado no terceiro passo, como fonte de rendimento com componentes. */
+function rendimentoInicial(bruto, comSubsidios){
+  if (!(bruto > 0)) return null;
+  const m = S.membros[0];
+  const comp = (especie, nome, freq, catN) => ({id: uid("cp"), especie, nome, valor: bruto, frequencia: freq,
+    categoriaId: catPorNome(catN), ss: null, irs: null});
+  const componentes = [comp("base", "Vencimento base", "mensal", "Vencimento")];
+  if (comSubsidios){
+    componentes.push(comp("ferias", "Subsídio de férias", "anual", "Subsídios e abonos"));
+    componentes.push(comp("natal", "Subsídio de Natal", "anual", "Subsídios e abonos"));
+  }
+  return {id: uid("rd"), nome: "Vencimento" + (m ? " — " + m.nome : ""), membroId: m ? m.id : "",
+    ativo: true, regime: "dependente", componentes};
+}
+
+const ACOES_INICIO = {
+  alertaAdiar(el){
+    const k = el.dataset.k, dias = parseInt(el.dataset.dias, 10) || 3;
+    const hj = hoje();
+    const ate = el.dataset.v === "mes"
+      ? isoDia(new Date(hj.getFullYear(), hj.getMonth() + 1, 1))
+      : isoDia(new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() + dias));
+    alterar(() => {
+      if (!S.alertasAdiados || typeof S.alertasAdiados !== "object") S.alertasAdiados = {};
+      S.alertasAdiados[k] = ate;
+    }, el.dataset.v === "mes" ? "alerta dispensado" : "alerta adiado");
+    toast(el.dataset.v === "mes" ? "Dispensado até ao fim do mês. (Ctrl+Z anula.)" : "Adiado " + dias + " dias. (Ctrl+Z anula.)");
+  },
+  alertasAdiadosVer(){ ui.verAdiados = !ui.verAdiados; render(); },
+  alertaRetomar(el){
+    alterar(() => { if (S.alertasAdiados) delete S.alertasAdiados[el.dataset.k]; }, "alerta retomado");
+  },
+  proximosAgenda(){ ui.movVista = "agenda"; irPagina("movimentos"); },
+  boasPasso(el){
+    const b = $("#boasBruto"), sb = $("#boasSubs");
+    if (b) ui.boasBruto = b.value;
+    if (sb) ui.boasSubs = sb.checked;
+    ui.boasPasso = Math.min(3, Math.max(1, parseInt(el.dataset.v, 10) || 1));
+    render();
+    const alvo = $(".boasVindas .tituloPasso");
+    if (alvo){ alvo.setAttribute("tabindex", "-1"); alvo.focus({preventScroll: true}); }
+  },
+};
+Object.assign(ACOES, ACOES_INICIO);
 
 /* ---------------------------------------------------------------
    Arranque
