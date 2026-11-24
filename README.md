@@ -2,6 +2,8 @@
 
 Ferramenta de cálculo e gestão do **orçamento e do património** de um agregado familiar. Aplicação de **ficheiro único**, sem servidor e sem dependências externas: abre num browser, funciona offline e os dados nunca saem do computador.
 
+**Usar online:** https://hvs87.github.io/orcamento-familiar/ — instalável como aplicação e a funcionar sem rede depois da primeira visita.
+
 Pensada para a realidade portuguesa — euros, formatação pt-PT, subsídios de férias/Natal (14 meses), certificados de aforro, taxa de esforço do crédito e mapa de amortização em regime de prestação constante.
 
 ## Três coisas, e só três
@@ -563,7 +565,7 @@ Membros do agregado, categorias (nome, tipo, grupo 50/30/20 e cor) e gestão de 
 Basta abrir `orcamento-familiar.html` num browser moderno — não é preciso instalar nada nem ter ligação à internet.
 
 ```bash
-git clone https://github.com/seu-utilizador/orcamento-familiar.git
+git clone https://github.com/HVS87/orcamento-familiar.git
 cd orcamento-familiar
 # abra orcamento-familiar.html no browser
 ```
