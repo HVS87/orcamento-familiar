@@ -15,3 +15,6 @@ desktop.ini
 # Exportações locais do orçamento (dados pessoais — nunca versionar)
 orcamento-familiar-*.json
 movimentos-*.csv
+
+# Pacotes de cada versão (gerados a partir da tag; não se versionam)
+dist/
