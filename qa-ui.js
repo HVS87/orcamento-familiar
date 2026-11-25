@@ -3682,7 +3682,7 @@ G("aviso de uso responsável ao criar um perfil");
   var avisoBoas = q(".boasVindas .avisoBoas");
   ok(avisoBoas && avisoBoas.textContent === AVISO_CURTO, "o aviso está nas boas-vindas logo no primeiro passo, por inteiro");
   ok(/^Esta é uma ferramenta gratuita, sem fins lucrativos, para uso responsável\./.test(AVISO_CURTO) &&
-     /esta aplicação não recolhe nenhuns dados nem analytics\. Guarde cópias\.$/.test(AVISO_CURTO), "com o texto combinado, do princípio ao fim");
+     /esta aplicação não recolhe nenhuns dados nem analytics\. /.test(AVISO_CURTO) && /Guarde cópias\.$/.test(AVISO_CURTO), "com o texto combinado, do princípio ao fim");
   clicar('[data-act="boasPasso"][data-v="2"]');
   ok(q(".boasVindas .avisoBoas") != null, "e continua à vista no segundo passo");
   clicar('[data-act="boasPasso"][data-v="1"]');
@@ -3692,6 +3692,7 @@ G("aviso de uso responsável ao criar um perfil");
   var texto = q("#app").innerText;
   ok(/gratuita, sem fins lucrativos/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é gratuita e sem fins lucrativos");
   ok(/não recolhe nenhuns dados nem analytics/i.test(texto), "e que não recolhe dados nem analytics");
+  ok(/Se ligar a sincronização, os dados passam cifrados entre os seus aparelhos/.test(texto), "com a ressalva da sincronização");
   ok(/uso responsável/i.test(texto), "e que se destina a uso responsável");
   ok(/confirmar por si/i.test(texto), "e que os números são para confirmar");
   ok(/unicamente gravados no seu aparelho\/computador/i.test(texto), "e que os dados ficam só no aparelho ou computador");
