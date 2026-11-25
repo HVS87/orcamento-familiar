@@ -40,6 +40,17 @@ As páginas de cada destino aparecem em fichas por baixo do título, e um destin
 - **Painel lateral** — o detalhe de um ativo ou de um crédito, e as ferramentas do mês (posso pagar isto, comparar meses, nota, fecho), abrem ao lado sem perder a lista; no telemóvel ocupam o ecrã, com seta para voltar
 - **Listas primeiro** — com a lista já preenchida, os formulários de criação recolhem-se atrás de uma linha «Adicionar…», e as ações de cada linha aparecem ao passar o rato ou com o foco (ao dedo ficam sempre). Um erro de validação abre o formulário onde está
 
+## ♿ Acessibilidade
+
+*Definições → Acessibilidade* (também nas definições rápidas) junta tudo o que ajuda a ler e a usar. As escolhas ficam em cada aparelho e não seguem com a sincronização.
+
+- **Visão das cores** — habitual, protanopia, deuteranopia, tritanopia ou sem cores (acromatopsia). Cada uma tem o seu positivo, negativo e aviso, escolhidos por simulação (Machado et al., 2009) para ficarem tão afastados quanto possível para quem vê assim, sem descer dos 4,5:1 de contraste em nenhuma paleta nem modo. No vermelho-verde, o negativo e o aviso separam-se também pela claridade; sem cores, os negativos levam ainda um sublinhado. Os **gráficos** passam a usar oito cores escolhidas por otimização para essa visão (o par mais parecido fica a 34–37 de distância CIELAB, o dobro a triplo das paletas habituais) — só ao desenhar: as cores de cada categoria ficam guardadas como estão, e as Categorias mostram-nas. Uma **pré-visualização** mostra, lado a lado, as cores habituais e as escolhidas tal como as vê quem tem essa forma de daltonismo
+- **Tamanho do texto** e **contraste**
+- **Movimento reduzido**, mesmo que o sistema tenha as animações ligadas
+- **Foco do teclado reforçado** — anel mais grosso, com halo
+- **Ligações sublinhadas**
+- **Explicadores** ligados ou desligados
+
 ## ✨ Novidades da versão 2.1
 
 - **Aplicação de secretária** para Windows (um `.exe` portátil, que guarda os dados numa pasta ao lado dele, e um instalador), Mac (Apple e Intel) e Linux (AppImage e `.deb`). Lembra-se de onde ficou cada janela, guarda uma **cópia diária** dos dados numa pasta (as últimas 30) e escreve no disco a cada gravação — um corte de luz não leva a última alteração

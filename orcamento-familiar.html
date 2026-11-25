@@ -1293,6 +1293,42 @@ button,a,[role=button],summary{-webkit-tap-highlight-color:transparent}
 .codigoGrande{font:600 18px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.05em;word-break:break-all;
   background:var(--surface);border:1px solid var(--border-forte);border-radius:10px;padding:8px 10px;margin:8px 0}
 
+
+/* ============================================================
+   Acessibilidade
+   ============================================================ */
+/* Visão das cores. As cores habituais já se distinguem bem na maior parte das
+   formas de daltonismo; estas vão mais longe para cada uma (simulação de
+   Machado et al., 2009, e distância CIELAB), sem descer dos 4,5:1 de
+   contraste. No vermelho-verde, o negativo e o aviso só se separam pela
+   claridade: o negativo fica mais escuro no claro e mais pálido no escuro. */
+html[data-visao="protanopia"],html[data-visao="deuteranopia"]{--pos:#1d5fc4;--pos-soft:#e3ecfb;--neg:#7a1f1f;--neg-soft:#f6e2e0;--warn:#8a6400;--warn-soft:#f7eed4;--on-pos:#ffffff;--on-neg:#ffffff}
+html[data-visao="protanopia"][data-theme="dark"],html[data-visao="deuteranopia"][data-theme="dark"]{--pos:#5ea8ff;--pos-soft:#13243d;--neg:#ffb1a3;--neg-soft:#3b211d;--warn:#e8c547;--warn-soft:#33290d;--on-pos:#04111f;--on-neg:#2a0b06}
+@media (prefers-color-scheme:dark){html[data-visao="protanopia"][data-theme="auto"],html[data-visao="deuteranopia"][data-theme="auto"]{--pos:#5ea8ff;--pos-soft:#13243d;--neg:#ffb1a3;--neg-soft:#3b211d;--warn:#e8c547;--warn-soft:#33290d;--on-pos:#04111f;--on-neg:#2a0b06}}
+html[data-visao="tritanopia"]{--pos:#2c6e85;--pos-soft:#def0f5;--neg:#c4211c;--neg-soft:#fbe1df;--warn:#7a5a12;--warn-soft:#f5edd8;--on-pos:#ffffff;--on-neg:#ffffff}
+html[data-visao="tritanopia"][data-theme="dark"]{--pos:#5fd6d6;--pos-soft:#0f2e30;--neg:#ff6a5c;--neg-soft:#3d1a16;--warn:#e6cf8a;--warn-soft:#332a12;--on-pos:#032222;--on-neg:#2b0703}
+@media (prefers-color-scheme:dark){html[data-visao="tritanopia"][data-theme="auto"]{--pos:#5fd6d6;--pos-soft:#0f2e30;--neg:#ff6a5c;--neg-soft:#3d1a16;--warn:#e6cf8a;--warn-soft:#332a12;--on-pos:#032222;--on-neg:#2b0703}}
+html[data-visao="acromatopsia"]{--pos:#10234f;--pos-soft:#e4e8f2;--neg:#7d1b26;--neg-soft:#f4e3e5;--warn:#6e6526;--warn-soft:#f1eedb;--on-pos:#ffffff;--on-neg:#ffffff}
+html[data-visao="acromatopsia"][data-theme="dark"]{--pos:#9ec5ff;--pos-soft:#18263d;--neg:#e07a5f;--neg-soft:#3a211b;--warn:#f4eaa0;--warn-soft:#333015;--on-pos:#071326;--on-neg:#240a04}
+@media (prefers-color-scheme:dark){html[data-visao="acromatopsia"][data-theme="auto"]{--pos:#9ec5ff;--pos-soft:#18263d;--neg:#e07a5f;--neg-soft:#3a211b;--warn:#f4eaa0;--warn-soft:#333015;--on-pos:#071326;--on-neg:#240a04}}
+/* Sem cores, a claridade é a única diferença: os valores negativos levam também
+   um sublinhado, uma pista que não depende da cor. */
+html[data-visao="acromatopsia"] .neg:not(.tag):not(.btn):not(.badge){text-decoration:underline dotted;text-underline-offset:3px;text-decoration-thickness:1.5px}
+/* Movimento reduzido, escolhido aqui (além do que o sistema pedir) */
+html[data-movimento="reduzido"] *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
+/* Foco reforçado: um anel mais grosso e com halo, que se vê em qualquer fundo */
+html[data-foco="forte"] :focus-visible{outline:3px solid var(--text) !important;outline-offset:3px !important;box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 45%,transparent) !important}
+/* Ligações sublinhadas: não depender da cor para saber o que é ligação */
+html[data-ligacoes="sublinhadas"] a:not(.btn):not(.saltar){text-decoration:underline !important;text-underline-offset:2px}
+.prevVisao{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin-top:12px}
+.prevVisao .caixa{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
+.prevVisao .caixa h3{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600}
+.prevVisao .vals{display:flex;flex-wrap:wrap;gap:6px 14px;font-weight:650;font-variant-numeric:tabular-nums}
+.prevVisao .cores{display:flex;gap:4px;margin-top:10px}
+.prevVisao .cores span{flex:1 1 0;height:18px;border-radius:5px}
+.opcoesAcess{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:14px 22px;margin-top:16px}
+.opcoesAcess .sub{margin-top:4px}
+
 /* O atributo hidden manda sempre: sem isto, um display de classe (flex, inline-flex)
    mostrava o que a aplicação escondeu */
 [hidden]{display:none!important}
@@ -1386,6 +1422,7 @@ html.apresentacao main#app{margin-left:auto!important;margin-right:auto!importan
   <div class="sepMenu"></div>
   <button class="linhaMenu" role="menuitem" id="instalarMenu" data-act="appMenuInstalar" data-ic="telemovel" hidden><span class="lb">Instalar como app</span></button>
   <button class="linhaMenu" role="menuitem" id="ecra2Menu" data-act="ecra2Menu" data-ic="ecra" hidden><span class="lb">Janela companheira</span></button>
+  <button class="linhaMenu" role="menuitem" data-act="acessIr" data-ic="olho"><span class="lb">Acessibilidade</span><span class="st" id="acessEstado"></span></button>
   <button class="linhaMenu" role="menuitem" data-act="sincIr" data-ic="sinc"><span class="lb">Sincronizar aparelhos</span><span class="st" id="sincMenuEstado"></span></button>
   <button class="linhaMenu" role="menuitem" data-act="dadosAbrir" data-ic="exportar"><span class="lb">Cópias e exportações</span></button>
   <button class="linhaMenu" role="menuitem" data-act="pagina" data-v="config" data-ic="definicoes"><span class="lb">Todas as definições</span></button>
@@ -2664,6 +2701,13 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  acessVisao: ["Visão das cores", "Ajusta o positivo, o negativo, o aviso e as cores dos gráficos a uma forma de daltonismo, ou a quem não vê cores. A pré-visualização mostra a diferença como essa pessoa a vê.", ""],
+  acessGraficos:["Cores dos gráficos", "Com uma visão escolhida, os gráficos e as listas usam cores seguras para ela; as cores de cada categoria ficam guardadas como estão.", ""],
+  acessMovimento:["Movimento", "Reduzido desliga animações e transições, mesmo que o sistema as tenha ligadas.", ""],
+  acessFoco:  ["Foco do teclado", "Reforçado põe um anel mais grosso, com halo, à volta do que tem o foco — vê-se em qualquer fundo.", ""],
+  acessLigacoes:["Ligações", "Sublinhadas distinguem-se do texto à volta sem depender da cor.", ""],
+  acessAjudas:["Explicadores", "Liga ou desliga as explicações de cada número, que aparecem ao passar o ponteiro ou ao tocar.", ""],
+  acessIr:    ["Acessibilidade", "Leva às opções de leitura: cores para daltonismo, tamanho do texto, contraste, movimento, foco e ligações.", ""],
   sincCriar:  ["Criar código", "Liga a sincronização neste aparelho e mostra um código QR para o outro. A chave nasce aqui e só passa pelo QR.", ""],
   sincEntrar: ["Ligar com um código", "Junta este aparelho a outro que já mostra um código. Os dados dos dois juntam-se: nada se apaga.", ""],
   sincAgora:  ["Sincronizar agora", "Vai buscar o que mudou no outro aparelho e envia o que mudou aqui, sem esperar pela próxima alteração.", ""],
@@ -2943,6 +2987,11 @@ function estadoVazio(){
     cenarios: [],          // fotografias nomeadas dos parâmetros das estratégias
     texto: "normal",       // normal | grande | maior
     contraste: "normal",   // normal | alto
+    visao: "padrao",       // padrao | protanopia | deuteranopia | tritanopia | acromatopsia
+    coresGraficos: true,   // com uma visão escolhida, os gráficos usam cores seguras para ela
+    movimento: "auto",     // auto (o do sistema) | reduzido
+    foco: "normal",        // normal | forte
+    ligacoes: "normal",    // normal | sublinhadas
     // `ocultos: null` significa «nunca configurado»: quem resolve é o
     // `painelOcultos()`, porque o quadro dos cartões só existe mais abaixo.
     painel: {ocultos: null, ordem: [], fechados: []},
@@ -3016,6 +3065,13 @@ let _guardado = {em: null, erro: false};
  * o tiver não passa nada, e a função serializa como sempre.
  */
 function guardar(jaSerializado){
+  if (_coresTrocadas){
+    const reais = _coresTrocadas, trocadas = S.categorias.map(c => c.cor);
+    S.categorias.forEach((c, i) => { c.cor = reais[i]; });
+    _coresTrocadas = null;
+    try { return guardar(); }
+    finally { S.categorias.forEach((c, i) => { c.cor = trocadas[i]; }); _coresTrocadas = reais; }
+  }
   try{
     localStorage.setItem(STORE_KEY, jaSerializado || JSON.stringify(S));
     _guardado = {em: Date.now(), erro: false};
@@ -3306,6 +3362,11 @@ function normalizar(d){
   out.exemploDemo = !!d.exemploDemo;
   out.paleta = PALETAS[d.paleta] ? d.paleta : "meianoite";
   out.densidade = d.densidade === "compacta" ? "compacta" : "conforto";
+  out.visao = VISOES[d.visao] ? d.visao : "padrao";
+  out.coresGraficos = d.coresGraficos !== false;
+  out.movimento = d.movimento === "reduzido" ? "reduzido" : "auto";
+  out.foco = d.foco === "forte" ? "forte" : "normal";
+  out.ligacoes = d.ligacoes === "sublinhadas" ? "sublinhadas" : "normal";
   out.comparar = !!d.comparar;
   out.regrasCategoria = (Array.isArray(d.regrasCategoria) ? d.regrasCategoria : [])
     .filter(r => r && typeof r.padrao === "string" && r.padrao.trim())
@@ -3529,6 +3590,7 @@ function refazer(){
    arrumar uma sugestão ou reordenar os cartões do painel não faz de uns
    dados de demonstração um orçamento de alguém. */
 const CHAVES_INTERFACE = ["paleta", "densidade", "texto", "contraste", "painel",
+  "visao", "coresGraficos", "movimento", "foco", "ligacoes",
   "dicasOcultas", "tutorialVisto", "comparar", "exemploDemo",
   "recorrenciasIgnoradas"];
 /** Alguma coisa mudou para lá da interface, entre estas duas fotografias? */
@@ -9280,7 +9342,7 @@ function anelProgresso(prog, cor, tamanho){
 /* Confete de celebração — uma vez por objetivo, e nunca com
    prefers-reduced-motion ativo. */
 function festejar(){
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (reduzMovimento()) return;
   const cores = ["#4ade9b","#7aa2ff","#f0b64b","#ff8a7a","#a07ae8","#3a97d4"];
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
@@ -12431,18 +12493,6 @@ function viewConfig(){
           '<button data-act="temaDensidade" data-v="'+v+'" aria-pressed="'+((S.densidade || "conforto") === v)+'">'+esc(l)+'</button>').join("")+
         '</div></div>'+
     '</div>'+
-    '<div class="row" style="align-items:center;margin-bottom:14px">'+
-      '<div class="shrink"><label class="field">Tamanho do texto</label>'+
-        '<div class="seg no-print">'+
-        [["normal","A"],["grande","A+"],["maior","A++"]].map(([v,l]) =>
-          '<button data-act="temaTexto" data-v="'+v+'" aria-pressed="'+((S.texto || "normal") === v)+'">'+esc(l)+'</button>').join("")+
-        '</div></div>'+
-      '<div class="shrink"><label class="field">Contraste</label>'+
-        '<div class="seg no-print">'+
-        [["normal","Normal"],["alto","Alto"]].map(([v,l]) =>
-          '<button data-act="temaContraste" data-v="'+v+'" aria-pressed="'+((S.contraste || "normal") === v)+'">'+esc(l)+'</button>').join("")+
-        '</div></div>'+
-    '</div>'+
     '<label class="field">Paleta de cor</label>'+
     '<div class="paletas no-print">'+
       Object.entries(PALETAS).map(([k,p]) =>
@@ -12452,8 +12502,9 @@ function viewConfig(){
           esc(p.lbl)+
         '</button>').join("")+
     '</div>'+
-    '<div class="note" style="margin-top:12px">As cores com significado — verde de positivo, vermelho de negativo, '+
-    'âmbar de aviso — mantêm-se em todas as paletas, para que os números se leiam sempre da mesma maneira.</div>'+
+    '<div class="note" style="margin-top:12px">As cores com significado — positivo, negativo e aviso — mantêm-se em todas as paletas, '+
+    'para que os números se leiam sempre da mesma maneira. Para as ajustar a uma forma de daltonismo, e para o tamanho do texto '+
+    'e o contraste, veja <em>Acessibilidade</em>, acima.</div>'+
     '</div>';
 
   /* O aviso do arranque fica também aqui, para poder ser relido: um aviso que
@@ -12472,6 +12523,7 @@ function viewConfig(){
     ["cfgFiscal",    "Fiscalidade",   cartaoFiscalidade()],
     ["cfgCategorias","Categorias",    categorias],
     ["cfgRegras",    "Regras",        cartaoRegras()],
+    ["cfgAcessibilidade", "Acessibilidade", cartaoAcessibilidade()],
     ["cfgAparencia", "Aparência",     aparencia],
     ["cfgDados",     "Dados e cópias",dados + '<div style="height:16px"></div>' + cartaoSaudeDados()],
     ["cfgSinc",      "Sincronizar",   cartaoSinc()],
@@ -12485,6 +12537,88 @@ function viewConfig(){
     seccoes.map(x => '<section id="'+x[0]+'" class="secCfg" aria-label="'+esc(x[1])+'">'+x[2]+'</section>')
       .join('<div style="height:16px"></div>');
 }
+
+/* ---------------------------------------------------------------
+   Acessibilidade — tudo o que ajuda a ler e a usar, num sítio só
+
+   As escolhas ficam neste aparelho (não seguem com a sincronização): quem
+   precisa de letra maior no telemóvel não a quer no computador da sala.
+   --------------------------------------------------------------- */
+/* Cores de referência para a pré-visualização: as habituais, como hex, para
+   se poderem mostrar ao lado das da visão escolhida. */
+const CORES_HABITUAIS = {claro: {pos: "#006c70", neg: "#ab3e2b", warn: "#996200"}, escuro: {pos: "#00a5ab", neg: "#ff5e29", warn: "#f0b64b"}};
+const MATRIZES_VISAO = {
+  protanopia:   "0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0",
+  deuteranopia: "0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0",
+  tritanopia:   "1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0",
+  acromatopsia: "0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0",
+};
+function cartaoAcessibilidade(){
+  const v = VISOES[S.visao] ? S.visao : "padrao";
+  const seg = (act, atual, ops) => '<div class="seg no-print">' + ops.map(([val, l]) =>
+    '<button data-act="' + act + '" data-v="' + val + '" aria-pressed="' + (atual === val) + '">' + esc(l) + '</button>').join("") + '</div>';
+  const escuro = modoEfetivo() === "dark";
+  const hab = CORES_HABITUAIS[escuro ? "escuro" : "claro"];
+  const palCat = paletaDaVisao() || S.categorias.filter(c => c.tipo !== "rendimento").slice(0, 8).map(c => c.cor);
+  const palHab = S.categorias.filter(c => c.tipo !== "rendimento").slice(0, 8).map(c => c.cor);
+  const amostra = (cores, pal, filtro) =>
+    '<div' + (filtro ? ' style="filter:url(#filtroVisao)"' : '') + '><div class="vals">' +
+      '<span style="color:' + cores.pos + '">+1 250,00 €</span>' +
+      '<span style="color:' + cores.neg + '">−480,00 €</span>' +
+      '<span style="color:' + cores.warn + '">⚠ perto do limite</span></div>' +
+      '<div class="cores" aria-hidden="true">' + pal.map(c => '<span style="background:' + esc(c) + '"></span>').join("") + '</div></div>';
+  const atuais = (() => {
+    const cs = getComputedStyle(document.documentElement);
+    return {pos: cs.getPropertyValue("--pos").trim() || hab.pos, neg: cs.getPropertyValue("--neg").trim() || hab.neg, warn: cs.getPropertyValue("--warn").trim() || hab.warn};
+  })();
+  const prev = v === "padrao"
+    ? '<div class="prevVisao"><div class="caixa"><h3>Como fica</h3>' + amostra(atuais, palHab, false) + '</div></div>'
+    : '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="filtroVisao" color-interpolation-filters="linearRGB">' +
+        '<feColorMatrix type="matrix" values="' + MATRIZES_VISAO[v] + '"/></filter></svg>' +
+      '<div class="prevVisao">' +
+        '<div class="caixa"><h3>As cores habituais, vistas com ' + esc(VISOES[v].lbl.toLowerCase()) + '</h3>' + amostra(hab, palHab, true) + '</div>' +
+        '<div class="caixa"><h3>As escolhidas para ' + esc(VISOES[v].lbl.toLowerCase()) + ', vistas assim</h3>' + amostra(atuais, palCat, true) + '</div>' +
+      '</div>';
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Acessibilidade</h2>' +
+    '<div class="sub">Para ler e usar com conforto. Fica neste aparelho; os outros guardam as suas escolhas.</div></div></div>' +
+    '<label class="field">Visão das cores</label>' +
+    seg("acessVisao", v, Object.keys(VISOES).map(k => [k, VISOES[k].lbl])) +
+    '<p class="sub" style="margin-top:6px">' + esc(VISOES[v].sub) + '</p>' +
+    prev +
+    (v !== "padrao"
+      ? '<div style="margin-top:12px"><label class="field">Cores das categorias nos gráficos</label>' +
+        seg("acessGraficos", S.coresGraficos === false ? "minhas" : "seguras", [["seguras", "Seguras para esta visão"], ["minhas", "As que escolhi"]]) +
+        '<p class="sub" style="margin-top:4px">As seguras só se usam nos gráficos e nas listas; nas Categorias ficam as suas, por baixo, sem mudar.</p></div>'
+      : '') +
+    '<div class="opcoesAcess">' +
+      '<div><label class="field">Tamanho do texto</label>' + seg("temaTexto", S.texto || "normal", [["normal", "A"], ["grande", "A+"], ["maior", "A++"]]) + '</div>' +
+      '<div><label class="field">Contraste</label>' + seg("temaContraste", S.contraste || "normal", [["normal", "Normal"], ["alto", "Alto"]]) +
+        '<p class="sub">Bordas e texto mais fortes, sem sombras.</p></div>' +
+      '<div><label class="field">Movimento</label>' + seg("acessMovimento", S.movimento || "auto", [["auto", "Como o sistema"], ["reduzido", "Reduzido"]]) +
+        '<p class="sub">Sem animações nem transições, mesmo que o sistema as tenha ligadas.</p></div>' +
+      '<div><label class="field">Foco do teclado</label>' + seg("acessFoco", S.foco || "normal", [["normal", "Normal"], ["forte", "Reforçado"]]) +
+        '<p class="sub">Um anel mais grosso à volta do que tem o foco, para quem navega com o teclado.</p></div>' +
+      '<div><label class="field">Ligações</label>' + seg("acessLigacoes", S.ligacoes || "normal", [["normal", "Como estão"], ["sublinhadas", "Sublinhadas"]]) +
+        '<p class="sub">Distinguem-se do texto sem depender da cor.</p></div>' +
+      '<div><label class="field">Explicadores</label>' + seg("acessAjudas", S.ajudas === false ? "nao" : "sim", [["sim", "Ligados"], ["nao", "Desligados"]]) +
+        '<p class="sub">O que cada número quer dizer, ao passar o ponteiro ou ao tocar.</p></div>' +
+    '</div>' +
+    '<div class="note" style="margin-top:14px">Os valores levam sempre o sinal + ou −, e os avisos um símbolo: a cor nunca é a única pista.</div>' +
+    '</div>';
+}
+const ACOES_ACESS = {
+  acessVisao(el){
+    if (!VISOES[el.dataset.v]) return;
+    S.visao = el.dataset.v; guardar(); aplicarTema(); render();
+    toast(S.visao === "padrao" ? "Cores habituais." : "Cores para " + VISOES[S.visao].lbl.toLowerCase() + ".");
+  },
+  acessGraficos(el){ S.coresGraficos = el.dataset.v !== "minhas"; guardar(); render(); },
+  acessMovimento(el){ S.movimento = el.dataset.v === "reduzido" ? "reduzido" : "auto"; guardar(); aplicarTema(); render(); },
+  acessFoco(el){ S.foco = el.dataset.v === "forte" ? "forte" : "normal"; guardar(); aplicarTema(); render(); },
+  acessLigacoes(el){ S.ligacoes = el.dataset.v === "sublinhadas" ? "sublinhadas" : "normal"; guardar(); aplicarTema(); render(); },
+  acessAjudas(el){ S.ajudas = el.dataset.v !== "nao"; guardar(); aplicarAjudas(); render(); },
+  acessIr(){ fecharMenus(); irPagina("config"); setTimeout(() => { const e = $("#cfgAcessibilidade"); if (e) e.scrollIntoView({block: "start"}); }, 0); },
+};
 
 /* ---------------------------------------------------------------
    Guardar como aplicação
@@ -13030,7 +13164,7 @@ const ALIAS_VISTA = {
    --------------------------------------------------------------- */
 let _valoresAntes = new Map();
 function animarValores(){
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (reduzMovimento()) return;
   const agora = new Map();
   $$(".kpi").forEach(k => {
     const lbl = k.querySelector(".lbl"), val = k.querySelector(".val");
@@ -13352,6 +13486,48 @@ function pintarEmblemas(){
   });
 }
 
+/* As formas de ver cor, com as paletas de categorias para os gráficos.
+   Escolhidas por otimização: oito cores tão afastadas quanto possível entre
+   si na visão simulada e na comum (a menor distância fica entre 34 e 37, o
+   dobro a triplo das paletas habituais); sem cores, seis cinzentos de
+   claridade bem espaçada. */
+const VISOES = {
+  padrao:       {lbl: "Habitual", sub: "As cores de sempre, já escolhidas para se distinguirem na maior parte das formas de daltonismo."},
+  protanopia:   {lbl: "Protanopia", sub: "Pouca sensibilidade ao vermelho. O positivo passa a azul, e o negativo e o aviso separam-se também pela claridade.",
+    claro: ["#ca729e","#9fb81e","#2c2cdd","#8c3e17","#4ebc85","#2d2d76","#8484eb","#262626"],
+    escuro: ["#1eb89f","#4a2cdd","#dddd2c","#ab2b81","#8c6517","#b81e38","#c6e28d","#84b8eb"]},
+  deuteranopia: {lbl: "Deuteranopia", sub: "Pouca sensibilidade ao verde — a forma mais comum. Mesmas cores da protanopia para os valores, gráficos próprios.",
+    claro: ["#762d6a","#dda22c","#2c2cdd","#d8a297","#8484eb","#8c1717","#212183","#e28dd4"],
+    escuro: ["#8da9e2","#dddd2c","#76522d","#4a2cdd","#84ebb8","#2b56ab","#2d7676","#3bce54"]},
+  tritanopia:   {lbl: "Tritanopia", sub: "Pouca sensibilidade ao azul. O positivo fica verde-petróleo, longe do âmbar do aviso.",
+    claro: ["#b558e4","#dd2c2c","#1eb81e","#262626","#832141","#96ab2b","#2c2cdd","#eb8484"],
+    escuro: ["#8c8c17","#dd2c2c","#58e4e4","#b81eb8","#4a2cdd","#178c17","#e6e6e6","#eba684"]},
+  acromatopsia: {lbl: "Sem cores", sub: "Para quem não distingue cores. Tudo se separa pela claridade, e os valores negativos levam também um sublinhado.",
+    claro: ["#1f1f1f","#6f6f6f","#393939","#8e8e8e","#525252","#ababab"],
+    escuro: ["#f1f1f1","#8e8e8e","#cfcfcf","#6f6f6f","#aeaeae","#525252"]},
+};
+/** A paleta de categorias para a visão escolhida, ou nada (ficam as cores de cada categoria). */
+function paletaDaVisao(){
+  const v = VISOES[S.visao];
+  if (!v || !v.claro || S.coresGraficos === false) return null;
+  return modoEfetivo() === "dark" ? v.escuro : v.claro;
+}
+/* Desenha com as cores da visão no lugar das de cada categoria, e devolve as
+   de cada uma no fim — nunca chegam a ser gravadas nem a viajar para os
+   outros aparelhos. As Definições desenham com as verdadeiras, que é lá que
+   se escolhem. */
+var _coresTrocadas = null;   // var: guardar() pergunta por ela, e pode correr antes desta linha
+function comCoresDaVisao(fn){
+  const pal = paletaDaVisao();
+  if (!pal || _coresTrocadas || VIEW === "config") return fn();
+  const guardadas = S.categorias.map(c => c.cor);
+  const conta = {r: 0, d: 0};
+  S.categorias.forEach(c => { const t = c.tipo === "rendimento" ? "r" : "d"; c.cor = pal[conta[t]++ % pal.length]; });
+  _coresTrocadas = guardadas;
+  try { return fn(); }
+  finally { S.categorias.forEach((c, i) => { c.cor = guardadas[i]; }); _coresTrocadas = null; }
+}
+
 function render(){
   $("#mesSel").value = MES;
   const rm = rotuloMes(MES);
@@ -13364,7 +13540,7 @@ function render(){
   const pag = paginaAtual(), dest = destinoDaPagina(pag);
   if (dest){ ui.ultimaPagina = ui.ultimaPagina || {}; ui.ultimaPagina[dest] = pag; }
   // O relatório é uma folha: sem título de página nem fichas
-  $("#app").innerHTML = emPasse(() => (ui.relatorio ? "" : cabecalhoPagina()) + fn());
+  $("#app").innerHTML = comCoresDaVisao(() => emPasse(() => (ui.relatorio ? "" : cabecalhoPagina()) + fn()));
   recolherFormularios();
   encurtarNotas();
   marcarAjudas();
@@ -15872,6 +16048,7 @@ function pintarMenuDefinicoes(){
   st("privEstado", ui.privado ? "ligado" : "desligado");
   st("simplesEstado", ui.essencial ? "ligada" : "desligada");
   st("sincMenuEstado", sincCfg().codigo ? "ligada" : "desligada");
+  st("acessEstado", VISOES[S.visao] && S.visao !== "padrao" ? VISOES[S.visao].lbl.toLowerCase() : "");
   pintarMenuInstalar();
 }
 function pintarMenuAjuda(){
@@ -15917,7 +16094,7 @@ function pintarLateral(){
   const def = l && (LATERAIS[l.tipo] || (typeof DETALHES !== "undefined" && DETALHES[l.tipo]));
   if (!def){ p.hidden = true; p.innerHTML = ""; document.body.classList.remove("comLateral"); return; }
   let corpo = "";
-  try { corpo = emPasse(() => def.produz(l)); } catch(err){ corpo = '<div class="note">Não foi possível desenhar este painel.</div>'; }
+  try { corpo = comCoresDaVisao(() => emPasse(() => def.produz(l))); } catch(err){ corpo = '<div class="note">Não foi possível desenhar este painel.</div>'; }
   if (!corpo){ ui.lateral = null; p.hidden = true; p.innerHTML = ""; document.body.classList.remove("comLateral"); return; }
   const titulo = typeof def.lbl === "function" ? def.lbl(l) : def.lbl;
   p.innerHTML =
@@ -17595,6 +17772,13 @@ function aplicarTema(){
   else document.documentElement.removeAttribute("data-texto");
   if (S.contraste === "alto") document.documentElement.setAttribute("data-contraste", "alto");
   else document.documentElement.removeAttribute("data-contraste");
+  /* Acessibilidade: cada escolha é um atributo no <html>, e o CSS faz o resto */
+  const raizA = document.documentElement;
+  const atr = (nome, valor, omissao) => { if (valor && valor !== omissao) raizA.setAttribute(nome, valor); else raizA.removeAttribute(nome); };
+  atr("data-visao", VISOES[S.visao] ? S.visao : "padrao", "padrao");
+  atr("data-movimento", S.movimento, "auto");
+  atr("data-foco", S.foco, "normal");
+  atr("data-ligacoes", S.ligacoes, "normal");
   const nomeTema = S.tema === "dark" ? "escuro" : S.tema === "light" ? "claro" : "automático";
   const b = $("#temaBtn");
   if (b) b.title = "Tema: " + nomeTema + " — carregue para trocar";
@@ -17679,7 +17863,8 @@ document.addEventListener("click", (e) => {
 Object.assign(SLIDERS, SLIDERS_PLANOS);
 Object.assign(ACOES, ACOES_PLANOS);
 Object.assign(ACOES, ACOES_ESTRUTURA);
-const reduzMovimento = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const reduzMovimento = () => (typeof S !== "undefined" && S && S.movimento === "reduzido") ||
+  !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /* ---------------------------------------------------------------
    Listas primeiro, detalhe a pedido
@@ -18491,6 +18676,7 @@ const SINC_VERSOES_KEY = "orcamento-familiar-sinc-versoes";
 const SINC_SERVIDOR = "https://ntfy.sh";
 const PAGINA_ONLINE = "https://hvs87.github.io/orcamento-familiar/orcamento-familiar.html";
 const CHAVES_DO_APARELHO = ["tema", "paleta", "densidade", "texto", "contraste", "ajudas",
+  "visao", "coresGraficos", "movimento", "foco", "ligacoes",
   "painel", "dicasOcultas", "tutorialVisto", "exemploDemo"];
 const ALFABETO_CODIGO = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -19725,7 +19911,7 @@ document.addEventListener("keydown", (e) => {
     if (painelAberto()) fecharSegundoEcra(); else abrirSegundoEcra();
   }
 });
-Object.assign(ACOES, ACOES_SINC, ACOES_ECRAS, ACOES_INSTALAR);
+Object.assign(ACOES, ACOES_SINC, ACOES_ECRAS, ACOES_INSTALAR, ACOES_ACESS);
 
 ACOES.sincIr = () => { fecharMenus(); irPagina("config"); setTimeout(() => { const e = $("#cfgSinc"); if (e) e.scrollIntoView({block:"start"}); }, 0); };
 

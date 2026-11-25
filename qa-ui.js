@@ -4198,6 +4198,167 @@ G("daltonismo: positivo, negativo e aviso distinguem-se");
   ok(alertasIcone.every(function(a){ return a.textContent.trim().length > 0; }), "e cada aviso tem um símbolo, não só uma cor");
 })();
 
+G("acessibilidade: visão das cores, cada forma de daltonismo com as suas cores");
+(function(){
+  comExemplo();
+  var M = {
+    protanopia:   [[0.152286,1.052583,-0.204868],[0.114503,0.786281,0.099216],[-0.003882,-0.048116,1.051998]],
+    deuteranopia: [[0.367322,0.860646,-0.227968],[0.280085,0.672501,0.047413],[-0.011820,0.042940,0.968881]],
+    tritanopia:   [[1.255528,-0.076749,-0.178779],[-0.078411,0.930809,0.147602],[0.004733,0.691367,0.303900]],
+    acromatopsia: [[0.2126,0.7152,0.0722],[0.2126,0.7152,0.0722],[0.2126,0.7152,0.0722]]
+  };
+  var lin = function(v){ return v <= 0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  var delin = function(v){ v = Math.min(1, Math.max(0, v)); return v <= 0.0031308 ? 12.92*v : 1.055*Math.pow(v, 1/2.4) - 0.055; };
+  var tela = document.createElement("canvas"); tela.width = tela.height = 1;
+  var c2 = tela.getContext("2d", {willReadFrequently: true});
+  var deCor = function(c){
+    c2.clearRect(0,0,1,1); c2.fillStyle = "#000"; c2.fillStyle = c; c2.fillRect(0,0,1,1);
+    var p = c2.getImageData(0,0,1,1).data; return [p[0]/255, p[1]/255, p[2]/255];
+  };
+  var rgb = function(v){
+    var d = document.createElement("div"); d.style.color = "var(" + v + ")"; document.body.appendChild(d);
+    var c = getComputedStyle(d).color; d.remove(); return deCor(c);
+  };
+  var sim = function(c, t){ if (!t) return c; var l = c.map(lin), m = M[t];
+    return m.map(function(r){ return delin(r[0]*l[0] + r[1]*l[1] + r[2]*l[2]); }); };
+  var lab = function(c){ var l = c.map(lin);
+    var x = (0.4124*l[0]+0.3576*l[1]+0.1805*l[2])/0.95047, y = 0.2126*l[0]+0.7152*l[1]+0.0722*l[2], z = (0.0193*l[0]+0.1192*l[1]+0.9505*l[2])/1.08883;
+    var g = function(t){ return t > 0.008856 ? Math.cbrt(t) : 7.787*t + 16/116; };
+    return [116*g(y)-16, 500*(g(x)-g(y)), 200*(g(y)-g(z))]; };
+  var dE = function(a, b){ var p = lab(a), q = lab(b); return Math.hypot(p[0]-q[0], p[1]-q[1], p[2]-q[2]); };
+  var lum = function(c){ var l = c.map(lin); return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2]; };
+  var razao = function(a, b){ var x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  var menorPar = function(cs, t){
+    var m = 999;
+    for (var i = 0; i < cs.length; i++) for (var j = i + 1; j < cs.length; j++) m = Math.min(m, dE(sim(cs[i], t), sim(cs[j], t)));
+    return m;
+  };
+
+  var antes = {paleta: S.paleta, tema: S.tema, visao: S.visao, cg: S.coresGraficos, mov: S.movimento, foco: S.foco, lig: S.ligacoes, aj: S.ajudas, texto: S.texto, contraste: S.contraste};
+  var disco = localStorage.getItem(STORE_KEY);
+
+  /* 1. O cartão está nas Definições e junta o que é de leitura */
+  irA("config");
+  var cartao = q("#cfgAcessibilidade");
+  ok(cartao != null, "há secção «Acessibilidade» nas Definições");
+  ok(qq(".indiceCfg .ficha").some(function(b){ return b.textContent === "Acessibilidade"; }), "com entrada no índice");
+  eq(qq('#cfgAcessibilidade [data-act="acessVisao"]').length, 5, "cinco formas de ver cor: habitual, protanopia, deuteranopia, tritanopia e sem cores");
+  ok(q('#cfgAcessibilidade [data-act="temaTexto"]') && q('#cfgAcessibilidade [data-act="temaContraste"]'), "o tamanho do texto e o contraste vivem aqui");
+  ok(!q('#cfgAparencia [data-act="temaTexto"]') && !q('#cfgAparencia [data-act="temaContraste"]'), "e já não estão repetidos na Aparência");
+  ["acessMovimento", "acessFoco", "acessLigacoes", "acessAjudas"].forEach(function(a){
+    ok(q('#cfgAcessibilidade [data-act="' + a + '"]') != null, "tem a opção " + a);
+  });
+  ok(!q("#filtroVisao"), "na visão habitual não há simulação na pré-visualização");
+
+  /* 2. As cores de cada visão: afastadas para quem as vê assim, legíveis em todas as paletas */
+  var piores = {}, contraste = 99, contrasteNome = "", tonal = 99, tonalNome = "", n = 0, melhorQueHabitual = true, onde = "";
+  var habitual = {};
+  ["light", "dark"].forEach(function(modo){
+    S.visao = "padrao"; S.tema = modo; S.paleta = "meianoite"; aplicarTema();
+    habitual[modo] = [rgb("--pos"), rgb("--neg"), rgb("--warn")];
+  });
+  ["protanopia", "deuteranopia", "tritanopia", "acromatopsia"].forEach(function(v){
+    piores[v] = 999;
+    Object.keys(PALETAS).forEach(function(p){
+      ["light", "dark"].forEach(function(modo){
+        S.visao = v; S.paleta = p; S.tema = modo; aplicarTema();
+        n++;
+        var pos = rgb("--pos"), neg = rgb("--neg"), warn = rgb("--warn"), bg = rgb("--bg"), sup = rgb("--surface");
+        var m = menorPar([pos, neg, warn], v);
+        if (m < piores[v]) piores[v] = m;
+        if (p === "meianoite" && m < menorPar(habitual[modo], v)){ melhorQueHabitual = false; onde = v + "/" + modo; }
+        [["--pos", pos], ["--neg", neg], ["--warn", warn]].forEach(function(par){
+          var r = Math.min(razao(par[1], bg), razao(par[1], sup));
+          if (r < contraste){ contraste = r; contrasteNome = v + "/" + p + "/" + modo + " " + par[0]; }
+        });
+        [["--pos", "--pos-soft"], ["--neg", "--neg-soft"], ["--warn", "--warn-soft"], ["--on-pos", "--pos"], ["--on-neg", "--neg"]].forEach(function(par){
+          var r = razao(rgb(par[0]), rgb(par[1]));
+          if (r < tonal){ tonal = r; tonalNome = v + "/" + p + "/" + modo + " " + par[0] + " sobre " + par[1]; }
+        });
+      });
+    });
+  });
+  eq(n, 4 * Object.keys(PALETAS).length * 2, "quatro visões × oito paletas × dois modos medidas", n);
+  ["protanopia", "deuteranopia", "tritanopia"].forEach(function(v){
+    ok(piores[v] >= 25, v + ": positivo, negativo e aviso afastados para quem vê assim (o pior par)", "ΔE " + piores[v].toFixed(1));
+  });
+  ok(piores.acromatopsia >= 12, "sem cores: os três separam-se pela claridade", "ΔE " + piores.acromatopsia.toFixed(1));
+  ok(melhorQueHabitual, "cada visão fica com as três cores mais afastadas do que as habituais, vistas da mesma maneira", onde);
+  ok(contraste >= 4.5, "e todas se leem a 4,5:1 sobre o fundo e as superfícies", contrasteNome + ": " + contraste.toFixed(2));
+  ok(tonal >= 4.5, "texto sobre fundos tonais e sobre a própria cor também", tonalNome + ": " + tonal.toFixed(2));
+
+  /* 3. As paletas dos gráficos */
+  Object.keys(VISOES).forEach(function(v){
+    if (!VISOES[v].claro) return;
+    ["claro", "escuro"].forEach(function(m){
+      var cs = VISOES[v][m].map(deCor);
+      var minimo = menorPar(cs, v);
+      ok(minimo >= (v === "acromatopsia" ? 10 : 30), "gráficos em " + v + "/" + m + ": as cores separam-se para quem vê assim", "ΔE " + minimo.toFixed(1));
+      if (v !== "acromatopsia") ok(menorPar(cs, "") >= 30, "gráficos em " + v + "/" + m + ": e também na visão comum", "ΔE " + menorPar(cs, "").toFixed(1));
+      var fundo = deCor(m === "claro" ? "#ffffff" : "#141b26");
+      ok(cs.every(function(c){ return razao(c, fundo) >= 2.2; }), "gráficos em " + v + "/" + m + ": nenhuma cor se perde no fundo");
+    });
+  });
+
+  /* 4. As cores das categorias trocam-se só ao desenhar */
+  S.paleta = antes.paleta; S.tema = "light"; S.visao = "deuteranopia"; S.coresGraficos = true; aplicarTema();
+  var reais = S.categorias.map(function(c){ return c.cor; });
+  irA("painel"); irPag && irPag("analises");
+  var usadas = qq("#app svg [fill], #app .dot").map(function(e){ return (e.getAttribute("fill") || e.style.background || "").toLowerCase(); }).join(" ");
+  ok(VISOES.deuteranopia.claro.some(function(c){ return usadas.indexOf(c.toLowerCase()) >= 0; }), "os gráficos usam a paleta da visão");
+  ok(S.categorias.every(function(c, i){ return c.cor === reais[i]; }), "e as cores de cada categoria ficam como estavam");
+  guardar();
+  var gravadas = JSON.parse(localStorage.getItem(STORE_KEY)).categorias.map(function(c){ return c.cor; });
+  ok(gravadas.every(function(c, i){ return c === reais[i]; }), "no disco também");
+  comCoresDaVisao(function(){ guardar(); });
+  gravadas = JSON.parse(localStorage.getItem(STORE_KEY)).categorias.map(function(c){ return c.cor; });
+  ok(gravadas.every(function(c, i){ return c === reais[i]; }), "mesmo uma gravação a meio de um desenho grava as cores verdadeiras");
+  ok(!("visao" in estadoParaSinc(S)) && !("coresGraficos" in estadoParaSinc(S)) && !("movimento" in estadoParaSinc(S)), "estas escolhas não viajam com a sincronização");
+  irA("config");
+  var reaisRgb = reais.map(function(r){ var c = deCor(r); return "rgb(" + Math.round(c[0]*255) + ", " + Math.round(c[1]*255) + ", " + Math.round(c[2]*255) + ")"; });
+  var pontos = qq("#cfgCategorias .dot");
+  ok(pontos.length > 0 && pontos.every(function(d){ return reaisRgb.indexOf(d.style.backgroundColor) >= 0; }), "nas Categorias vê-se a cor verdadeira, que é onde se escolhe");
+  ok(q("#filtroVisao feColorMatrix") && /0\.367322/.test(q("#filtroVisao feColorMatrix").getAttribute("values")), "a pré-visualização simula a deuteranopia");
+  ACOES.acessGraficos({dataset: {v: "minhas"}});
+  ok(paletaDaVisao() === null, "«As que escolhi» volta às cores de cada categoria nos gráficos");
+  ACOES.acessGraficos({dataset: {v: "seguras"}});
+
+  /* 5. As outras escolhas chegam ao <html> e ao desenho */
+  var raiz = document.documentElement;
+  ACOES.acessVisao({dataset: {v: "acromatopsia"}});
+  eq(raiz.getAttribute("data-visao"), "acromatopsia", "a visão marca a página");
+  var neg = document.createElement("span"); neg.className = "neg"; neg.textContent = "−1"; q("#app").appendChild(neg);
+  ok(/underline/.test(getComputedStyle(neg).textDecorationLine), "sem cores, os negativos levam sublinhado");
+  neg.remove();
+  ACOES.acessVisao({dataset: {v: "padrao"}});
+  ok(!raiz.hasAttribute("data-visao"), "e a habitual tira a marca");
+  ACOES.acessMovimento({dataset: {v: "reduzido"}});
+  ok(reduzMovimento() && raiz.getAttribute("data-movimento") === "reduzido", "movimento reduzido, mesmo com o sistema a permitir");
+  var anim = document.createElement("div"); anim.style.transition = "opacity 2s"; q("#app").appendChild(anim);
+  ok(/^0s/.test(getComputedStyle(anim).transitionDuration), "e as transições desligam-se");
+  anim.remove();
+  ACOES.acessFoco({dataset: {v: "forte"}});
+  eq(raiz.getAttribute("data-foco"), "forte", "foco reforçado");
+  ACOES.acessLigacoes({dataset: {v: "sublinhadas"}});
+  var lig = document.createElement("a"); lig.href = "#x"; lig.textContent = "ligação"; q("#app").appendChild(lig);
+  ok(/underline/.test(getComputedStyle(lig).textDecorationLine), "ligações sublinhadas");
+  lig.remove();
+  ACOES.acessAjudas({dataset: {v: "nao"}});
+  eq(S.ajudas, false, "os explicadores desligam-se daqui");
+  ACOES.acessAjudas({dataset: {v: "sim"}});
+  var lixo = normalizar(Object.assign(estadoVazio(), {visao: "marciano", movimento: 3, foco: null, ligacoes: "x", coresGraficos: 0}));
+  ok(lixo.visao === "padrao" && lixo.movimento === "auto" && lixo.foco === "normal" && lixo.ligacoes === "normal" && lixo.coresGraficos === true, "valores estranhos voltam ao habitual");
+  fecharMenus(); clicar("#definicoesBtn");
+  ok(q('#menuDefinicoes [data-act="acessIr"]') != null, "as definições rápidas levam à acessibilidade");
+  fecharMenus();
+
+  S.paleta = antes.paleta; S.tema = antes.tema; S.visao = antes.visao; S.coresGraficos = antes.cg; S.movimento = antes.mov;
+  S.foco = antes.foco; S.ligacoes = antes.lig; S.ajudas = antes.aj; S.texto = antes.texto; S.contraste = antes.contraste;
+  aplicarTema(); aplicarAjudas();
+  if (disco !== null) localStorage.setItem(STORE_KEY, disco);
+})();
+
+
 G("acabamentos: ícones nos botões de linha, notas curtas, pílulas");
 (function(){
   comExemplo();

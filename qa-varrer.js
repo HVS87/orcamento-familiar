@@ -131,6 +131,16 @@ try {
     render(); medir(modo + " sincronizar ligada a dois");
     var av = document.querySelector("#cfgSinc details:not(.sincLigar)"); if (av){ av.open = true; medir(modo + " sincronizar, avançado"); }
     localStorage.removeItem(SINC_KEY); render();
+    // Acessibilidade: o cartão em cada visão, e o resumo com as cores de duas delas
+    var visaoAntes = S.visao, focoAntes = S.foco, ligAntes = S.ligacoes;
+    ["protanopia", "deuteranopia", "tritanopia", "acromatopsia", "padrao"].forEach(function(v){
+      S.visao = v; aplicarTema(); irPagina("config");
+      var ca = document.getElementById("cfgAcessibilidade"); if (ca) ca.scrollIntoView();
+      medir(modo + " acessibilidade " + v);
+    });
+    S.visao = "tritanopia"; S.foco = "forte"; S.ligacoes = "sublinhadas"; aplicarTema(); irPagina("analises"); medir(modo + " análises em tritanopia, foco reforçado");
+    S.visao = "acromatopsia"; aplicarTema(); irPagina("painel"); medir(modo + " resumo sem cores");
+    S.visao = visaoAntes; S.foco = focoAntes; S.ligacoes = ligAntes; aplicarTema();
     // Emparelhar no Safari do iPhone: o aviso de que a app guarda à parte, com o código
     var uaD = Object.getOwnPropertyDescriptor(navigator, "userAgent");
     Object.defineProperty(navigator, "userAgent", {value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", configurable: true});
