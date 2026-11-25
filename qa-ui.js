@@ -3683,10 +3683,11 @@ G("aviso de uso responsável ao criar um perfil");
   clicar('[data-act="perfilAgregado"]');
   clicar('[data-act="boasPasso"][data-v="3"]');
   var texto = q("#app").innerText;
-  ok(/gratuita e simples/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é simples e gratuita");
+  ok(/gratuita, sem fins lucrativos/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é gratuita e sem fins lucrativos");
+  ok(/não recolhe nenhuns dados nem analytics/i.test(texto), "e que não recolhe dados nem analytics");
   ok(/uso responsável/i.test(texto), "e que se destina a uso responsável");
   ok(/confirmar por si/i.test(texto), "e que os números são para confirmar");
-  ok(/só neste aparelho/i.test(texto), "e que os dados ficam só neste aparelho");
+  ok(/unicamente gravados no seu aparelho\/computador/i.test(texto), "e que os dados ficam só no aparelho ou computador");
   ok(/guarde cópias/i.test(texto), "pedindo cópias já na versão curta");
 
   clicar('[data-act="perfilAplicar"]');
