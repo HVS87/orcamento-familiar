@@ -17878,7 +17878,7 @@ const reduzMovimento = () => (typeof S !== "undefined" && S && S.movimento === "
    ficou aberta), as fichas grandes abrem-se no lugar ou ao lado, e as
    ações de cada linha aparecem quando o ponteiro passa ou o foco chega.
    --------------------------------------------------------------- */
-const VERSAO_APP = "2.1.0";
+const VERSAO_APP = "2.2.0";
 
 /** Que lista cada formulário alimenta — vazia, o formulário é o ponto de partida. */
 const FORM_TEM_LISTA = {
@@ -18376,11 +18376,13 @@ function boasVindas(){
         esc(TABELAS_RF._meta.ano) + '. Outras fontes juntam-se depois, em Rendimentos.</div>' +
       '<div class="note" style="margin-top:12px">Vai criar <strong>' + a.membros.length + ' membro(s)</strong> e <strong>' + rs.length +
         ' despesa(s) fixa(s)</strong>, ' + esc(eur(total)) + '/mês no total — valores de exemplo, para ajustar.</div>' +
-      '<div class="note" style="border-left-color:var(--warn);margin-top:9px"><strong>Antes de começar:</strong> ' + esc(AVISO_CURTO) + '</div>' +
       '<div class="actions">' + voltar + '<button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
   }
   return '<div class="card boasVindas"><h2>Bem-vindo</h2>' +
-    '<p class="sub">Três perguntas e o orçamento ganha forma. Tudo se ajusta depois.</p>' + cab + corpo +
+    '<p class="sub">Três perguntas e o orçamento ganha forma. Tudo se ajusta depois.</p>' +
+    /* O aviso à vista desde o primeiro passo, e não só no fim */
+    '<div class="note avisoBoas" role="note" style="border-left-color:var(--warn);margin:4px 0 14px">' + esc(AVISO_CURTO) + '</div>' +
+    cab + corpo +
     '<div class="outrasVias no-print"><span class="muted">Prefere outra via?</span>' +
       '<button class="btn sm ghost" data-act="exemplo">Explorar com uma família de exemplo</button>' +
       '<button class="btn sm ghost" data-act="tutorialIniciar">Visita guiada</button>' +
@@ -18934,25 +18936,40 @@ async function resumo(texto){
 function transporteNtfy(servidor, topico){
   const raiz = String(servidor || SINC_SERVIDOR).replace(/\/+$/, "");
   const base = raiz + "/" + topico;
-  const verificar = async (r) => { if (!r.ok) throw new Error("o serviço respondeu " + r.status); return r; };
+  /* Cada pedido tem prazo, até a resposta vir inteira. Sem isto, uma rede que
+     encrava a meio deixava a sincronização à espera para sempre — e tudo o
+     que viesse a seguir na fila também. Passado o prazo, o pedido falha, e
+     tenta-se outra vez na próxima alteração ou ao voltar ao separador. */
+  const pedir = async (url, opts, ms, ler) => {
+    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), ms) : null;
+    try {
+      const r = await fetch(url, Object.assign({}, opts, ctl ? {signal: ctl.signal} : {}));
+      if (!r.ok) throw new Error("o serviço respondeu " + r.status);
+      return ler ? await ler(r) : r;
+    } catch(e){
+      if (e && e.name === "AbortError") throw new Error("o serviço não respondeu a tempo");
+      throw e;
+    } finally { if (t) clearTimeout(t); }
+  };
   return {
+    prazo: {curto: 20000, longo: 60000},
     async publicarEstado(bytes, meta){
-      const r = await verificar(await fetch(base, {method: "PUT", headers: {"Filename": "estado.bin", "X-Message": meta}, body: bytes}));
-      return r.json().catch(() => ({}));
+      return pedir(base, {method: "PUT", headers: {"Filename": "estado.bin", "X-Message": meta}, body: bytes}, this.prazo.longo,
+        (r) => r.json().catch(() => ({})));
     },
     async publicarTexto(meta){
-      await verificar(await fetch(base, {method: "POST", body: meta}));
+      await pedir(base, {method: "POST", body: meta}, this.prazo.curto, (r) => r.text());
     },
     async desde(desde){
-      const r = await verificar(await fetch(base + "/json?poll=1&since=" + encodeURIComponent(desde || "12h")));
-      return (await r.text()).split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch(e){ return null; } })
+      const txt = await pedir(base + "/json?poll=1&since=" + encodeURIComponent(desde || "12h"), {}, this.prazo.curto, (r) => r.text());
+      return txt.split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch(e){ return null; } })
         .filter(m => m && m.event === "message");
     },
     async baixar(url){
       // Só se vai buscar ao próprio serviço: um endereço estranho numa mensagem não leva a lado nenhum.
       if (String(url).indexOf(raiz + "/") !== 0) throw new Error("anexo fora do serviço");
-      const r = await verificar(await fetch(url));
-      return new Uint8Array(await r.arrayBuffer());
+      return new Uint8Array(await pedir(url, {}, this.prazo.longo, (r) => r.arrayBuffer()));
     },
     escutar(desde, aoMsg, aoEstado){
       if (typeof EventSource === "undefined") return () => {};

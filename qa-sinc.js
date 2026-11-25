@@ -240,6 +240,9 @@ G("o que é de cada aparelho");
 var comTema = normalizar(estadoVazio()); comTema.paleta = "areia"; comTema.texto = "grande"; comTema.exemploDemo = true;
 var viaja = estadoParaSinc(comTema);
 ok(!("paleta" in viaja) && !("texto" in viaja) && !("exemploDemo" in viaja) && !("tutorialVisto" in viaja), "paleta, texto, exemplo e visita não viajam");
+["visao", "coresGraficos", "movimento", "foco", "ligacoes", "contraste", "ajudas"].forEach(function(k){
+  ok(CHAVES_DO_APARELHO.indexOf(k) >= 0 && !(k in estadoParaSinc(Object.assign(normalizar(estadoVazio()), {visao: "tritanopia", foco: "forte"}))), "a escolha de acessibilidade «" + k + "» fica no aparelho");
+});
 ok("movimentos" in viaja && "fiscal" in viaja && "categorias" in viaja, "os dados viajam");
 ok(semDadosProprios(estadoParaSinc(estadoVazio())), "um estado novo não tem dados próprios");
 ok(!semDadosProprios({movimentos: [{id: 1}]}), "com um movimento já tem");
@@ -480,7 +483,10 @@ $("#sincCodigo").value = "curto";
 ACOES.sincEntrar();
 eq($("#sincCodigo").getAttribute("aria-invalid"), "true", "um código curto marca o campo como inválido");
 ACOES.sincCriar();
-await dormir(300);
+/* O motor nasce depois de derivar a chave e de ganhar a vez (Web Locks): numa
+   máquina ocupada pode levar mais do que um instante. Espera-se por ele. */
+for (var espera = 0; espera < 50 && !SINC; espera++) await dormir(100);
+await dormir(100);
 ok(document.querySelector("#cfgSinc details.sincLigar") && document.querySelector("#cfgSinc details.sincLigar").open, "sem nenhum aparelho ligado, o QR aparece aberto");
 var cfg = sincCfg();
 ok(codigoValido(cfg.codigo), "criar guarda um código válido");
@@ -552,9 +558,32 @@ ok(!sincCfg().codigo && sincCfg().aparelho, "desligar esquece o código mas lemb
 ok($("#estadoSinc").hidden, "e o cabeçalho volta a calar-se");
 transporteNtfy = transporteOriginal;
 
+G("prazos: uma rede que encrava não pendura a sincronização");
+var fetchOrig = window.fetch;
+window.fetch = function(url, opts){
+  return new Promise(function(res, rej){
+    if (opts && opts.signal) opts.signal.addEventListener("abort", function(){ var e = new Error("abortado"); e.name = "AbortError"; rej(e); });
+  });   // nunca responde
+};
+try {
+  var tp = transporteNtfy("https://ntfy.exemplo.pt", "of-teste");
+  tp.prazo = {curto: 150, longo: 250};
+  var erros = [];
+  var t0 = Date.now();
+  for (var op of [function(){ return tp.desde("12h"); }, function(){ return tp.publicarTexto("x"); },
+                  function(){ return tp.publicarEstado(new Uint8Array(40), "m"); }, function(){ return tp.baixar("https://ntfy.exemplo.pt/file/x"); }]){
+    try { await op(); erros.push("respondeu?"); } catch(e){ erros.push(e.message); }
+  }
+  ok(erros.every(function(m){ return /não respondeu a tempo/.test(m); }), "os quatro pedidos desistem passado o prazo, com uma mensagem clara", erros.join(" | "));
+  ok(Date.now() - t0 < 3000, "e desistem depressa, sem ficar à espera", (Date.now() - t0) + " ms");
+  ok(transporteNtfy(SINC_SERVIDOR, "x").prazo.curto <= 30000 && transporteNtfy(SINC_SERVIDOR, "x").prazo.longo <= 90000, "os prazos verdadeiros são de segundos, não de minutos");
+} finally { window.fetch = fetchOrig; }
+
 if (window.__QASINC_REDE !== false){
   G("troca real pelo serviço público (ntfy.sh)");
-  try {
+  /* Com tecto: se a rede estiver em baixo, a suite diz que a troca não acabou
+     em vez de ficar pendurada. */
+  var trocaReal = (async function(){ try {
     var codReal = codigoNovo(), kr = await sincChaves(codReal);
     var caixaReal = {msgs: []};
     var real = function(nome){
@@ -593,7 +622,9 @@ if (window.__QASINC_REDE !== false){
       ok(anexo[0] === 1 && new TextDecoder("latin1").decode(anexo).indexOf("Segredo") < 0, "o anexo é cifrado (formato 1, sem texto às claras)");
     }
     RA.motor.desligar(); RB.motor.desligar();
-  } catch(e){ ok(false, "a troca real correu sem exceções", e && e.message); }
+  } catch(e){ ok(false, "a troca real correu sem exceções", e && e.message); } })();
+  var fimTroca = await Promise.race([trocaReal.then(function(){ return "acabou"; }), dormir(90000).then(function(){ return "tempo"; })]);
+  ok(fimTroca === "acabou", "a troca real acaba em menos de 90 s (se falhar: rede lenta ou o serviço em baixo)");
 }
 
 G("dois ecrãs — a principal fala com a companheira");
@@ -603,22 +634,27 @@ else {
   var ouvido = [];
   var canal = new BroadcastChannel("orcamento-familiar-ecras");
   canal.onmessage = function(e){ ouvido.push(e.data); };
+  /* As mensagens entre janelas chegam quando chegam (com o separador em fundo,
+     os temporizadores andam mais devagar): espera-se pela condição, com tecto. */
+  var ate = async function(cond, ms){ var fim = Date.now() + (ms || 3000); while (!cond() && Date.now() < fim) await dormir(50); return cond(); };
+  var estadoDe = function(pag){ return ouvido.filter(function(m){ return m.t === "estado" && m.pagina === pag; }).pop(); };
   ok(!painelAberto(), "sem companheira, a principal sabe que está sozinha");
   canal.postMessage({t: "ola"});
-  await dormir(100);
+  await ate(painelAberto);
   ok(painelAberto(), "a companheira diz olá: a principal sabe que ela está lá");
   ouvido = [];
   irPagina("movimentos");
-  await dormir(80);
-  var est = ouvido.filter(function(m){ return m.t === "estado"; }).pop();
+  await ate(function(){ return !!estadoDe("movimentos"); });
+  var est = estadoDe("movimentos");
   ok(est && est.pagina === "movimentos" && est.mes === MES, "ao mudar de página, avisa a companheira com a página e o mês", JSON.stringify(est));
+  await dormir(300);   // o que ainda vinha a caminho chega antes de se contar
   ouvido = [];
   render();
-  await dormir(60);
+  await dormir(400);
   eq(ouvido.filter(function(m){ return m.t === "estado"; }).length, 0, "redesenhar sem mudar nada não repete o aviso");
   ouvido = [];
   abrirLateral("nota");
-  await dormir(60);
+  await ate(function(){ return ouvido.some(function(m){ return m.t === "lateral"; }); });
   var lat = ouvido.filter(function(m){ return m.t === "lateral"; }).pop();
   ok(lat && lat.tipo === "nota", "a nota do mês abre no outro ecrã");
   ok(!ui.lateral, "e o painel lateral daqui fica fechado");
@@ -630,7 +666,7 @@ else {
   irPagina("config");
   ok($("#cfgEcras") && /Fechar a janela companheira/.test($("#cfgEcras").textContent), "as definições oferecem fechá-la");
   canal.postMessage({t: "adeus"});
-  await dormir(100);
+  await ate(function(){ return !painelAberto(); });
   ok(!painelAberto(), "a companheira despede-se: a principal volta a estar sozinha");
   eq(paginaDoPainel("movimentos"), "limites", "o que completa os movimentos são os limites");
   eq(paginaDoPainel("ativos"), "creditos", "o que completa os ativos são os créditos");

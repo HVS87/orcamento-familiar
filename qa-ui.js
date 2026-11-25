@@ -3679,6 +3679,13 @@ G("aviso de uso responsável ao criar um perfil");
   localStorage.removeItem(STORE_KEY);
   S = estadoVazio(); MES = isoMes(hoje()); contextoLimpo(); irPara("painel");
   eq(temDados(), 0, "parte-se de um orçamento vazio");
+  var avisoBoas = q(".boasVindas .avisoBoas");
+  ok(avisoBoas && avisoBoas.textContent === AVISO_CURTO, "o aviso está nas boas-vindas logo no primeiro passo, por inteiro");
+  ok(/^Esta é uma ferramenta gratuita, sem fins lucrativos, para uso responsável\./.test(AVISO_CURTO) &&
+     /esta aplicação não recolhe nenhuns dados nem analytics\. Guarde cópias\.$/.test(AVISO_CURTO), "com o texto combinado, do princípio ao fim");
+  clicar('[data-act="boasPasso"][data-v="2"]');
+  ok(q(".boasVindas .avisoBoas") != null, "e continua à vista no segundo passo");
+  clicar('[data-act="boasPasso"][data-v="1"]');
 
   clicar('[data-act="perfilAgregado"]');
   clicar('[data-act="boasPasso"][data-v="3"]');

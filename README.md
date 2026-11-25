@@ -51,6 +51,13 @@ As páginas de cada destino aparecem em fichas por baixo do título, e um destin
 - **Ligações sublinhadas**
 - **Explicadores** ligados ou desligados
 
+## ✨ Novidades da versão 2.2
+
+- **Acessibilidade** numa secção própria das Definições, com **cores para cada forma de daltonismo** — ver [Acessibilidade](#-acessibilidade)
+- **Aviso** mais claro, à vista nas boas-vindas desde o primeiro passo: ferramenta gratuita e sem fins lucrativos; os dados ficam só no aparelho ou computador; nenhuma recolha de dados nem analytics
+- **Sincronização** com prazo em cada pedido ao serviço: uma rede que encrava já não a deixa parada
+- Aplicação de secretária: as imagens Mac compilam-se uma arquitetura de cada vez, e as escolhas de acessibilidade ficam de um arranque para o outro
+
 ## ✨ Novidades da versão 2.1
 
 - **Aplicação de secretária** para Windows (um `.exe` portátil, que guarda os dados numa pasta ao lado dele, e um instalador), Mac (Apple e Intel) e Linux (AppImage e `.deb`). Lembra-se de onde ficou cada janela, guarda uma **cópia diária** dos dados numa pasta (as últimas 30) e escreve no disco a cada gravação — um corte de luz não leva a última alteração

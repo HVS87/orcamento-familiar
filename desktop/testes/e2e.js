@@ -164,7 +164,13 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
       ok(r && r.p === r.t, f + ": " + (r ? r.p + "/" + r.t : "sem resultado"), r && JSON.stringify(r.d));
       console.log("   " + f + ": " + (r ? r.p + "/" + r.t : "sem resultado"));
     }
-    ok((await memoria(P)) === antes, "o armazenamento fica igual ao byte depois de todas as suites");
+    const depois = await memoria(P);
+    const dif = (() => {
+      const A = Object.fromEntries(JSON.parse(antes)), D = Object.fromEntries(JSON.parse(depois));
+      return Object.keys(Object.assign({}, A, D)).filter(k => A[k] !== D[k]).map(k => k + (k in A ? "" : " (nova)") + (k in D ? "" : " (apagada)") +
+        (k in A && k in D ? " [" + String(A[k]).length + "→" + String(D[k]).length + " car.; 1.ª diferença em " + [...String(A[k])].findIndex((c, i) => c !== String(D[k])[i]) + ": …" + String(D[k]).slice(Math.max(0, [...String(A[k])].findIndex((c, i) => c !== String(D[k])[i]) - 40), [...String(A[k])].findIndex((c, i) => c !== String(D[k])[i]) + 60) + "…]" : ""));
+    })();
+    ok(depois === antes, "o armazenamento fica igual ao byte depois de todas as suites", dif.join(" ; "));
 
     G("janela companheira no segundo ecrã");
     await P.v(`localStorage.removeItem(ECRA2_KEY); irPagina("painel"); 0`);
@@ -264,6 +270,8 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
       pastaCopias + " — " + (fs.existsSync(pastaCopias) ? fs.readdirSync(pastaCopias).join(",") : "sem pasta") + " — na página: " +
       (await P.v("JSON.stringify({tem: S.movimentos.some(m => m.id === \"e2e-fica\"), t: typeof _copiaT})")));
     await P.v(`(()=>{ const w = window; w.__bounds = null; return 0; })()`);
+    // A acessibilidade escolhida aqui tem de sobreviver ao fecho
+    await P.v(`ACOES.acessVisao({dataset: {v: "tritanopia"}}); ACOES.acessFoco({dataset: {v: "forte"}}); ACOES.acessMovimento({dataset: {v: "reduzido"}}); 0`);
     const janAntes = await P.v("window.orcamentoDesktop._testeJanelas()");
     /* Fecha-se como fecha uma pessoa: a janela. E para provar que a gravação
        já está no disco mesmo sem isso, a segunda volta mata o processo. */
@@ -277,6 +285,15 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
     const P2 = await janela(u => u.startsWith("app://orcamento/") && u.indexOf("janela=painel") < 0);
     await pronta(P2);
     ok(await P2.v(`S.movimentos.some(m => m.id === "e2e-fica")`), "os dados ficam de um arranque para o outro");
+
+    G("acessibilidade entre arranques");
+    const ac = JSON.parse(await P2.v(`JSON.stringify({visao: document.documentElement.dataset.visao, foco: document.documentElement.dataset.foco,
+      mov: document.documentElement.dataset.movimento, reduz: reduzMovimento(), pal: paletaDaVisao(), esperada: VISOES.tritanopia[modoEfetivo() === "dark" ? "escuro" : "claro"],
+      pos: getComputedStyle(document.documentElement).getPropertyValue("--pos").trim()})`));
+    ok(ac.visao === "tritanopia" && ac.foco === "forte" && ac.mov === "reduzido" && ac.reduz, "a visão, o foco e o movimento escolhidos voltam com a aplicação", JSON.stringify(ac));
+    ok(JSON.stringify(ac.pal) === JSON.stringify(ac.esperada), "e os gráficos voltam com a paleta dessa visão");
+    ok(/^#(2c6e85|5fd6d6)$/i.test(ac.pos), "com o positivo próprio da tritanopia", ac.pos);
+    await P2.v(`ACOES.acessVisao({dataset: {v: "padrao"}}); ACOES.acessFoco({dataset: {v: "normal"}}); ACOES.acessMovimento({dataset: {v: "auto"}}); 0`);
     const janDepois = await P2.v("window.orcamentoDesktop._testeJanelas()");
     ok(janDepois.principal && Math.abs(janDepois.principal.bounds.x - janAntes.principal.bounds.x) < 4 &&
        Math.abs(janDepois.principal.bounds.width - janAntes.principal.bounds.width) < 4, "e a janela volta ao sítio e ao tamanho em que estava",
