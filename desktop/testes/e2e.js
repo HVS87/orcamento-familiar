@@ -183,7 +183,7 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
     G("as suites dentro da aplicação");
     const lista = process.env.ORCAMENTO_RAPIDO
       ? [["qa.js", "__QA"], ["qa-sinc.js", "__QASINC"], ["qa-atualizar.js", "__QAATUAL"]]
-      : [["qa.js", "__QA"], ["qa-ui.js", "__QAUI"], ["qa-limites.js", "__QALIM"], ["qa-fuzz.js", "__QAFUZZ"], ["qa-sinc.js", "__QASINC"], ["qa-atualizar.js", "__QAATUAL"], ["qa-varrer.js", "__QAVARRER"]];
+      : [["qa.js", "__QA"], ["qa-ui.js", "__QAUI"], ["qa-limites.js", "__QALIM"], ["qa-fuzz.js", "__QAFUZZ"], ["qa-sinc.js", "__QASINC"], ["qa-atualizar.js", "__QAATUAL"], ["qa-registo.js", "__QAREG"], ["qa-varrer.js", "__QAVARRER"]];
     await P.v(`(carregarExemplo(), document.querySelector('#modalHost [data-dlg="yes"]') && document.querySelector('#modalHost [data-dlg="yes"]').click(), 0)`);
     /* A própria aplicação grava o resultado da procura automática de
        atualizações, uns segundos depois de arrancar: espera-se por ela antes de

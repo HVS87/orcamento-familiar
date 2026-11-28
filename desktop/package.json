@@ -1,7 +1,7 @@
 {
   "name": "orcamento-familiar",
   "productName": "Orçamento Familiar",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Orçamento e património de um agregado familiar em Portugal — aplicação de secretária, com dois ecrãs e sincronização com o telemóvel.",
   "main": "main.js",
   "author": "HVS87",

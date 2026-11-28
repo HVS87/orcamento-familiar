@@ -1329,6 +1329,63 @@ html[data-ligacoes="sublinhadas"] a:not(.btn):not(.saltar){text-decoration:under
 .opcoesAcess{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:14px 22px;margin-top:16px}
 .opcoesAcess .sub{margin-top:4px}
 
+/* Dias da semana nas despesas fixas */
+.diasSemana{margin-top:10px}
+.chipsDias{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.chipDia{position:relative;display:inline-flex}
+.chipDia input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chipDia span{display:inline-flex;align-items:center;justify-content:center;min-width:46px;min-height:36px;padding:0 10px;border-radius:999px;
+  border:1px solid var(--border-forte);font-weight:600;font-size:13.5px;background:var(--surface)}
+.chipDia input:checked + span{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chipDia input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Revisão do extrato */
+.resumoCsv{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:12px;font-size:13.5px}
+.resumoCsv .csvSel{margin-left:auto;display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+.revisaoCsv{margin-top:8px;max-height:min(46vh,420px);overflow-y:auto}
+.revisaoCsv td{vertical-align:middle}
+.revisaoCsv td.num{white-space:nowrap}
+.revisaoCsv select{min-width:150px;max-width:220px}
+.revisaoCsv .csvDesc{min-width:160px}
+.revisaoCsv tr.csvFora td{opacity:.6}
+.estadoCsv.novo{background:var(--pos-soft, rgba(34,160,107,.15));color:var(--pos)}
+.estadoCsv.dup{background:var(--surface-3)}
+.estadoCsv.prov{background:var(--warn-soft, rgba(240,182,75,.18));color:var(--text)}
+.estadoCsv.inv{background:var(--neg-soft, rgba(192,57,43,.15))}
+.origemCsv{font-size:11.5px}
+.origemCsv.o-nada{opacity:.75}
+
+/* Poupança regular */
+.ppLista{display:grid;gap:8px}
+.ppItem{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-left:4px solid var(--pos);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.ppItem.inativa{opacity:.55}
+.ppIc{font-size:24px;width:32px;text-align:center}
+.ppTxt{flex:1 1 auto;min-width:0;display:grid;gap:2px}
+.ppTxt .muted{font-size:12.5px}
+.ppVal{display:grid;justify-items:end;gap:2px;white-space:nowrap}
+.ppAcoes{display:flex;gap:4px}
+@media (max-width:560px){.ppItem{flex-wrap:wrap}.ppVal{justify-items:start}.ppAcoes{margin-left:auto}}
+
+/* O agregado em cartões */
+.pessoas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:12px}
+.pessoa{position:relative;border:1px solid var(--border);border-top:4px solid var(--rc);border-radius:14px;padding:12px;background:var(--surface);display:grid;gap:9px}
+.pessoaTopo{display:flex;gap:8px;align-items:center}
+.rostoGrande{width:58px;min-width:58px;height:48px;font-size:24px;padding:0 4px;text-align:center}
+.nomePessoa{font-weight:650;font-size:16px;flex:1 1 auto;min-width:0}
+.corPessoa{width:44px;min-width:44px;height:44px;padding:3px}
+.seg.pequeno button{min-height:36px;padding:6px 12px}
+.pessoaAno{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.pessoaAno .field{flex:1 0 100%;margin-bottom:0}
+.pessoaAno input{width:96px}
+.pessoaNumeros{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.pessoaApagar{position:absolute;top:8px;right:8px}
+.pessoa .pessoaTopo{padding-right:40px}
+.quemSao{margin-top:14px;display:grid;gap:12px}
+.filhosPasso{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.contador{display:inline-flex;align-items:center;gap:10px}
+.contador output{min-width:24px;text-align:center;font-weight:700;font-size:18px}
+.filhosLista{display:grid;gap:8px}
+
 /* O atributo hidden manda sempre: sem isto, um display de classe (flex, inline-flex)
    mostrava o que a aplicação escondeu */
 [hidden]{display:none!important}
@@ -2701,6 +2758,13 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  csvTodas:   ["Marcar linhas", "Escolhe de uma vez as linhas a importar: só as novas (o normal), todas, ou nenhuma.", ""],
+  ppSalvar:   ["Guardar poupança regular", "Uma entrega que se repete — PPR, depósito, Certificados, ETF, ações, cripto. Sai do saldo como uma despesa, mas conta para a taxa de poupança, e ao lançar o plano entra como aporte no ativo ligado.", ""],
+  ppEditar:   ["Editar", "Abre esta poupança regular no formulário, para mudar o valor, a periodicidade ou o ativo onde entra.", ""],
+  ppInstr:    ["Instrumento", "Onde vai o dinheiro. Escolhe a categoria e o retorno de referência da projeção, e sugere o ativo a ligar.", ""],
+  mbPapel:    ["Adulto ou criança", "As crianças contam como dependentes no IRS e ajustam as despesas de partida. Os adultos são quem tem rendimentos e responsabilidades.", ""],
+  mbDependentes:["Dependentes no IRS", "Passa o número de crianças do agregado para os dependentes da fiscalidade, que mudam a retenção na fonte e o IRS.", ""],
+  boasFilhos: ["Crianças em casa", "Quantas crianças vivem na casa. Contam como dependentes no IRS, e as despesas de partida ajustam-se a elas.", ""],
   atualProcurar:["Procurar atualizações", "Pergunta qual é a versão mais recente e diz se há uma nova. Não envia dados seus.", ""],
   atualInstalar:["Atualizar agora", "Instala a versão nova e recarrega. Os dados e as preferências ficam como estão, e a sincronização envia antes o que tiver por enviar.", ""],
   atualAuto:  ["Procurar ao iniciar", "Ligado, procura uma versão nova a cada arranque e avisa só se houver.", ""],
@@ -2858,7 +2922,7 @@ const AJUDAS_ACAO = {
   cenarioAplicar:["Repor cenário", "Devolve os comandos aos valores guardados neste cenário.", ""],
   csvAbrir:   ["Importar extrato", "Cole ou escolha um CSV do banco. A ferramenta deteta o separador e as colunas, sugere categorias e ignora duplicados — tudo neste navegador.", ""],
   csvAnalisar:["Analisar o extrato", "Lê o texto colado, adivinha as colunas de data, descrição e valor, e mostra uma pré-visualização para confirmar.", ""],
-  csvImportar:["Importar os movimentos", "Cria um movimento por linha válida, com a categoria sugerida pelos movimentos parecidos já classificados. Duplicados e linhas inválidas ficam de fora.", ""],
+  csvImportar:["Importar os movimentos", "Cria um movimento por linha marcada, com a categoria escolhida na revisão. As já importadas e as que talvez já existam chegam desmarcadas; as categorias que mudar podem ficar como regras.", ""],
   tutorialIniciar: ["Visita guiada", "Um passeio opcional por todos os módulos — do painel às estratégias — com um passo por vista. Sai-se com Esc; sem dados, carrega o exemplo primeiro.", ""],
   tutorialSeguinte:["Passo seguinte", "Avança na visita guiada. A seta direita do teclado faz o mesmo.", ""],
   tutorialAnterior:["Passo anterior", "Recua na visita guiada. A seta esquerda do teclado faz o mesmo.", ""],
@@ -2931,6 +2995,10 @@ function categoriasSeed(){
     c("Impostos",             "despesa", "necessidades", "#5d6a86", "🏛️"),
     c("IRS e Segurança Social","despesa", "necessidades", "#4d5a76", "🧾"),
     c("Manutenção e reparações","despesa","necessidades", "#6d7a96", "🔧"),
+    c("Limpeza e Manutenção da Casa","despesa","necessidades", "#5c7fa3", "🧹"),
+    c("Lavandaria",           "despesa", "necessidades", "#6a9ec7", "👔"),
+    c("Nanny e Babysitting",  "despesa", "necessidades", "#b06fc9", "🧸"),
+    c("Comissões Bancárias",  "despesa", "necessidades", "#59647a", "🏦"),
     c("Juros de crédito",     "despesa", "necessidades", "#3d4a66", "📉"),
     c("Seguros de crédito",   "despesa", "necessidades", "#4d5a76", "📄"),
     c("Prestações de crédito","despesa", "necessidades", "#2d3a56", "🏦"),
@@ -2941,6 +3009,9 @@ function categoriasSeed(){
     c("Subscrições",          "despesa", "desejos", "#c98f5e", "📺"),
     c("Férias e viagens",     "despesa", "desejos", "#eec06f", "✈️"),
     c("Presentes",            "despesa", "desejos", "#e6b08a", "🎁"),
+    c("Estética e Cuidados Pessoais","despesa","desejos", "#d98bb0", "💅"),
+    c("Ginásios e Fitness",   "despesa", "desejos", "#e07b5a", "🏋️"),
+    c("Brinquedos",           "despesa", "desejos", "#e8b44f", "🪀"),
     c("Outras despesas",      "despesa", "desejos", "#b0906f", "🧺"),
     // Poupança — a amortização de capital não é consumo: converte
     // rendimento em património, tal como uma transferência para poupança.
@@ -2959,6 +3030,7 @@ function estadoVazio(){
     ajudas: true,      // explicadores ao passar o ponteiro
     membros: [],
     categorias: categoriasSeed(),
+    migracoes: ["cat-2.4"], // categorias acrescentadas por versões, já presentes aqui
     rendimentos: [],   // fontes de rendimento, cada uma com as suas componentes
     recorrentes: [],   // despesas fixas do plano mensal
     movimentos: [],    // lançamentos reais
@@ -3278,11 +3350,21 @@ function normalizar(d){
   out.membros.forEach((m, i) => {
     if (!m.icone) m.icone = ROSTOS_MEMBRO[i % ROSTOS_MEMBRO.length].icone;
     if (!m.cor)   m.cor   = ROSTOS_MEMBRO[i % ROSTOS_MEMBRO.length].cor;
+    // Adulto ou criança, e o ano em que nasceu (opcional) — dá a idade
+    m.papel = m.papel === "crianca" ? "crianca" : "adulto";
+    const ano = parseInt(m.nascimento, 10);
+    m.nascimento = ano >= 1900 && ano <= new Date().getFullYear() ? ano : "";
   });
   out.categorias  = Array.isArray(d.categorias) && d.categorias.length ? d.categorias : base.categorias;
   out.recorrentes = Array.isArray(d.recorrentes) ? d.recorrentes : [];
   // O dia do mês é opcional: sem ele, a rubrica não entra na linha do mês.
   out.recorrentes.forEach(r => { r.dia = diaDoMesValido(r.dia); });
+  // Dias da semana: só 0–6, sem repetir, pela ordem da semana
+  out.recorrentes.forEach(r => {
+    if (r.diasSemana == null && r.frequencia !== "diasSemana") return;
+    r.diasSemana = DIAS_SEMANA_ORDEM.filter(x => Array.isArray(r.diasSemana) && r.diasSemana.map(Number).indexOf(x) >= 0);
+    if (r.frequencia === "diasSemana") r.dia = "";
+  });
   out.movimentos  = Array.isArray(d.movimentos) ? d.movimentos : [];
   out.objetivos   = Array.isArray(d.objetivos) ? d.objetivos : [];
   // Um objetivo ligado a um ativo que desapareceu volta a acompanhar-se à mão
@@ -3534,6 +3616,19 @@ function normalizar(d){
     if (c.categoriaCapitalId == null) c.categoriaCapitalId = "";
     if (c.categoriaSeguroId == null) c.categoriaSeguroId = "";
   });
+  /* A marca das migrações vem só dos dados: herdá-la do estado vazio (que já
+     traz as categorias novas) faria saltar a migração em quem nunca a fez. */
+  // Poupança regular: rubricas de saída com instrumento e, opcionalmente, um ativo
+  out.recorrentes.forEach(r => {
+    if (r.poupanca){
+      r.poupanca = true; r.tipo = "despesa";
+      if (!INSTRUMENTOS_POUPANCA[r.instrumento]) r.instrumento = "outros";
+      if (typeof r.ativoId !== "string" || !(out.ativos || []).some(a => a.id === r.ativoId)) r.ativoId = "";
+    } else { delete r.poupanca; delete r.instrumento; delete r.ativoId; }
+  });
+  out.movimentos.forEach(m => { if (m.poupanca) m.poupanca = true; else delete m.poupanca; });
+  out.migracoes = Array.isArray(d.migracoes) ? d.migracoes.filter(x => typeof x === "string") : [];
+  migrarCategorias(out);
 
   return out;
 }
@@ -3671,8 +3766,39 @@ function recAtiva(r, mes){
   if (r.fim && mesDoDia(r.fim) < mes) return false;
   return true;
 }
-/** Valor mensal normalizado de uma rubrica (provisionamento). */
-const recMensal = (r) => parseNum(r.valor) * freqFator(r.frequencia);
+/* ---- Rubricas em dias da semana ----
+   «Todas as terças e quintas», «todos os sábados»: um valor por vez, e o
+   custo do mês é esse valor vezes os dias que o mês tem. Novembro de 2026
+   tem quatro terças e quatro quintas; dezembro tem cinco terças. */
+const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_SEMANA_PLURAL = ["domingos", "segundas", "terças", "quartas", "quintas", "sextas", "sábados"];
+const DIAS_SEMANA_ORDEM = [1, 2, 3, 4, 5, 6, 0];   // a semana começa à segunda
+/** Os dias do mês que caem nos dias da semana dados (0 = domingo). */
+function diasDaSemanaNoMes(mes, dias){
+  const [a, m] = String(mes || "").split("-").map(Number);
+  if (!a || !m || !Array.isArray(dias) || !dias.length) return [];
+  const n = new Date(a, m, 0).getDate(), out = [];
+  for (let d = 1; d <= n; d++) if (dias.indexOf(new Date(a, m - 1, d).getDay()) >= 0) out.push(d);
+  return out;
+}
+const vezesNoMes = (mes, dias) => diasDaSemanaNoMes(mes, dias).length;
+/** «Todas as terças e quintas», «Todos os sábados», «Às segundas e sábados». */
+function rotuloDiasSemana(dias){
+  const ds = DIAS_SEMANA_ORDEM.filter(x => (dias || []).indexOf(x) >= 0);
+  if (!ds.length) return "Em dias da semana";
+  if (ds.length === 7) return "Todos os dias";
+  const nomes = ds.map(x => DIAS_SEMANA_PLURAL[x]);
+  const lista = nomes.length === 1 ? nomes[0] : nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1];
+  const fem = ds.every(x => x >= 1 && x <= 5), masc = ds.every(x => x === 0 || x === 6);
+  return (fem ? "Todas as " : masc ? "Todos os " : "Às ") + lista;
+}
+/** A periodicidade de uma rubrica, por palavras. */
+const rotuloFrequencia = (r) => r.frequencia === "diasSemana" ? rotuloDiasSemana(r.diasSemana) : (FREQ[r.frequencia] || FREQ.mensal).lbl;
+/** Valor mensal normalizado de uma rubrica (provisionamento). Nas rubricas
+    em dias da semana depende do mês: quantas vezes esses dias lá cabem. */
+const recMensal = (r, mes) => r.frequencia === "diasSemana"
+  ? parseNum(r.valor) * vezesNoMes(mes || MES, r.diasSemana)
+  : parseNum(r.valor) * freqFator(r.frequencia);
 
 /* ---------------------------------------------------------------
    Rendimentos e fiscalidade
@@ -4155,13 +4281,14 @@ function planoMes(mes){
 
 function calcularPlanoMes(mes){
   const rubricas = S.recorrentes.filter(r => recAtiva(r, mes));
-  let rend = 0, desp = 0;
+  let rend = 0, desp = 0, poup = 0;
   const porCat = {};
   const add = (cid, v) => { if (v) porCat[cid] = (porCat[cid] || 0) + v; };
 
   for (const r of rubricas){
-    const v = recMensal(r);
+    const v = recMensal(r, mes);
     if (r.tipo === "rendimento") rend += v; else desp += v;
+    if (r.poupanca) poup += v;
     add(r.categoriaId, v);
   }
 
@@ -4229,7 +4356,7 @@ function calcularPlanoMes(mes){
     add(catPorNome("IRS e Segurança Social"), impostoRendas);
   }
 
-  return {rend, desp, saldo: rend - desp, porCat, itens: rubricas,
+  return {rend, desp, saldo: rend - desp, poup, porCat, itens: rubricas,
           detalheCredito, encargosAtivos, rendaAtivos, impostoRendas,
           brutoRend, cargaRend: (contarIRS ? cargaRend : 0) + impostoRendas, impostosAtivos};
 }
@@ -4241,14 +4368,15 @@ function realMes(mes){
   // sem cache varria a lista inteira de movimentos.
   if (_emPasse && _cacheReal.has(mes)) return _cacheReal.get(mes);
   const movs = S.movimentos.filter(m => mesDoDia(m.data) === mes);
-  let rend = 0, desp = 0;
+  let rend = 0, desp = 0, poup = 0;
   const porCat = {};
   for (const m of movs){
     const v = Math.abs(parseNum(m.valor));
     if (m.tipo === "rendimento") rend += v; else desp += v;
+    if (m.poupanca && m.tipo !== "rendimento") poup += v;
     porCat[m.categoriaId] = (porCat[m.categoriaId] || 0) + v;
   }
-  const r = {rend, desp, saldo: rend - desp, porCat, itens: movs};
+  const r = {rend, desp, saldo: rend - desp, poup, porCat, itens: movs};
   if (_emPasse) _cacheReal.set(mes, r);
   return r;
 }
@@ -5445,15 +5573,26 @@ function rubricasHabitacao(agregado, habitacao, regime){
  * `habitacao` e `regime` são independentes do agregado — é essa a razão
  * de existirem: a casa não define quem lá vive.
  */
-function aplicarPerfil(agregado, habitacao, regime){
+function aplicarPerfil(agregado, habitacao, regime, pessoas){
   const a = PERFIS_AGREGADO[agregado];
   if (!a) return false;
   const hab = PERFIS_HABITACAO[habitacao] ? habitacao : "arrendada";
+  pessoas = pessoas || {};
+  const filhos = Array.isArray(pessoas.filhos) ? pessoas.filhos : null;
 
-  a.membros.forEach(nome => {
-    if (!S.membros.some(m => m.nome === nome)) S.membros.push({id: uid("mb"), nome});
+  a.membros.forEach((omissao, k) => {
+    const nome = ((pessoas.adultos || [])[k] || "").trim() || omissao;
+    if (!S.membros.some(m => m.nome === nome)) S.membros.push({id: uid("mb"), nome, papel: "adulto", nascimento: ""});
   });
-  const todas = a.rubricas.concat(rubricasHabitacao(agregado, hab, regime));
+  (filhos || []).forEach((fx, k) => {
+    const nome = (fx.nome || "").trim() || "Criança " + (k + 1);
+    const ano = parseInt(fx.ano, 10);
+    if (!S.membros.some(m => m.nome === nome))
+      S.membros.push({id: uid("mb"), nome, icone: "🧒", papel: "crianca", nascimento: ano >= 1900 && ano <= new Date().getFullYear() ? ano : ""});
+  });
+  // As crianças são dependentes no IRS
+  if (filhos) S.fiscal.dependentes = filhos.length;
+  const todas = rubricasDoAgregado(agregado, filhos ? filhos.length : null, a.membros.length).concat(rubricasHabitacao(agregado, hab, regime));
   todas.forEach(([nome, cat, valor]) => {
     if (S.recorrentes.some(r => r.nome === nome)) return;
     const catId = catPorNome(cat);
@@ -6023,7 +6162,8 @@ function viewPainel(){
   const rend = usarReal ? r.rend : p.rend;
   const desp = usarReal ? r.desp : p.desp;
   const saldo = rend - desp;
-  const taxaPoup = rend > 0 ? saldo / rend * 100 : 0;
+  const poupMes = usarReal ? (r.poup || 0) : (p.poup || 0);
+  const taxaPoup = rend > 0 ? (saldo + poupMes) / rend * 100 : 0;
 
   const prestacoesMes = S.creditos.reduce((s,c) => s + encargoCredito(c, MES), 0);
   const esforco = rend > 0 ? prestacoesMes / rend * 100 : 0;
@@ -6814,7 +6954,7 @@ const COMPONENTES_SAUDE = [
       const p = planoMes(MES), r = realMes(MES);
       const usa = (r.rend > 0 || r.desp > 0) ? r : p;
       if (usa.rend <= 0) return {valor:0, nota:0, txt:"Sem rendimento registado"};
-      const taxa = usa.saldo / usa.rend * 100;
+      const taxa = (usa.saldo + (usa.poup || 0)) / usa.rend * 100;
       const nota = Math.max(0, Math.min(1, taxa / 20));   // 20% é o alvo da regra
       return {valor: taxa, nota, txt: pct(taxa)+" do rendimento", alvo:"20%"};
     },
@@ -7521,6 +7661,10 @@ function eventosDoMes(mes){
   S.recorrentes.filter(r => recAtiva(r, m) && r.dia && r.frequencia === "mensal")
     .forEach(r => juntar(diaNoMes(r.dia, m), r.nome, recMensal(r),
       r.tipo === "rendimento" ? "rendimento" : "despesa", catCor(r.categoriaId)));
+  // As rubricas em dias da semana caem em cada um desses dias
+  S.recorrentes.filter(r => recAtiva(r, m) && r.frequencia === "diasSemana")
+    .forEach(r => diasDaSemanaNoMes(m, r.diasSemana).forEach(d => juntar(d, r.nome, parseNum(r.valor),
+      r.tipo === "rendimento" ? "rendimento" : "despesa", catCor(r.categoriaId))));
 
   // Compras planeadas marcadas para este mês, no fim do mês (não têm dia)
   (S.planeadas || []).filter(p => !p.feitaEm && p.mes === m && parseNum(p.valor) > 0)
@@ -8687,6 +8831,21 @@ function formComponente(rd){
     '</div>';
 }
 
+/** «Em novembro: 8 vezes × 15,00 € = 120,00 €», para a rubrica em dias da semana. */
+function textoDiasCalc(valor, dias){
+  const n = vezesNoMes(MES, dias || []), v = Math.abs(parseNum(valor));
+  if (!dias || !dias.length) return "Escolha os dias. O custo do mês conta quantas vezes eles lá cabem.";
+  const mesNome = mesLabel(MES).split(" ")[0].toLowerCase();
+  return "Em " + mesNome + ": " + n + " vez" + (n === 1 ? "" : "es") + (v > 0 ? " × " + eur(v) + " = " + eur(n * v) : "") +
+    ". Os meses com mais destes dias custam mais.";
+}
+function atualizarDiasCalc(){
+  const el = $("#rcDiasCalc");
+  if (!el) return;
+  const dias = Array.prototype.map.call(document.querySelectorAll('input[name="rcDiaSem"]:checked'), c => parseInt(c.value, 10));
+  el.textContent = textoDiasCalc($("#rcValor") ? $("#rcValor").value : 0, dias);
+}
+document.addEventListener("input", (e) => { if (e.target && e.target.id === "rcValor") atualizarDiasCalc(); });
 /* ------------------------------- Plano mensal ------------------------------- */
 function viewPlano(){
   const ed = editando.rec ? S.recorrentes.find(r => r.id === editando.rec) : null;
@@ -8702,13 +8861,22 @@ function viewPlano(){
         selectCategorias("rcCat", f.categoriaId, f.tipo || "despesa")+'</div>'+
       '<div style="flex:1 1 130px"><label class="field" for="rcMembro">Membro</label>'+
         selectMembros("rcMembro", f.membroId)+'</div>'+
-      '<div style="flex:0 0 115px"><label class="field" for="rcValor">Valor (€)</label>'+
+      '<div style="flex:0 0 115px"><label class="field" for="rcValor" id="rcValorRot">'+(f.frequencia === "diasSemana" ? "Valor por vez (€)" : "Valor (€)")+'</label>'+
         '<input id="rcValor" inputmode="decimal" placeholder="0,00" value="'+valEur(f.valor)+'"></div>'+
-      '<div style="flex:0 0 165px"><label class="field" for="rcFreq">Periodicidade</label>'+
+      '<div style="flex:0 0 185px"><label class="field" for="rcFreq">Periodicidade</label>'+
         '<select id="rcFreq">'+Object.entries(FREQ).map(([k,v]) =>
-          '<option value="'+k+'"'+(f.frequencia===k?" selected":"")+'>'+esc(v.lbl)+'</option>').join("")+'</select></div>'+
-      '<div style="flex:0 0 120px"><label class="field" for="rcDia">Dia do mês <span class="muted">(opc.)</span></label>'+
+          '<option value="'+k+'"'+(f.frequencia===k?" selected":"")+'>'+esc(v.lbl)+'</option>').join("")+
+          '<option value="diasSemana"'+(f.frequencia==="diasSemana"?" selected":"")+'>Em dias da semana</option></select></div>'+
+      '<div style="flex:0 0 120px" id="rcDiaBox"'+(f.frequencia === "diasSemana" ? " hidden" : "")+'><label class="field" for="rcDia">Dia do mês <span class="muted">(opc.)</span></label>'+
         '<input id="rcDia" inputmode="numeric" placeholder="—" maxlength="2" value="'+esc(f.dia || "")+'"></div>'+
+    '</div>'+
+    /* Os dias da semana, à mostra só quando é essa a periodicidade */
+    '<div id="rcDiasBox" class="diasSemana"'+(f.frequencia === "diasSemana" ? "" : " hidden")+' role="group" aria-labelledby="rcDiasT">'+
+      '<span class="field" id="rcDiasT">Em que dias?</span>'+
+      '<div class="chipsDias">'+DIAS_SEMANA_ORDEM.map(d =>
+        '<label class="chipDia"><input type="checkbox" name="rcDiaSem" value="'+d+'"'+((f.diasSemana || []).indexOf(d) >= 0 ? " checked" : "")+'>'+
+        '<span>'+DIAS_SEMANA_CURTO[d]+'</span></label>').join("")+'</div>'+
+      '<div class="muted" id="rcDiasCalc" aria-live="polite">'+esc(textoDiasCalc(f.valor, f.diasSemana))+'</div>'+
     '</div>'+
     '<div class="row" style="margin-top:9px">'+
       '<div style="flex:0 0 160px"><label class="field" for="rcInicio">Início (opcional)</label>'+
@@ -8726,8 +8894,8 @@ function viewPlano(){
 
   function bloco(tipo, titulo){
     // Ordem manual (arrastar) quando existe; senão, por peso mensal.
-    const temOrdem = S.recorrentes.some(r => r.tipo === tipo && r.ordem != null);
-    const itens = S.recorrentes.filter(r => r.tipo === tipo)
+    const temOrdem = S.recorrentes.some(r => r.tipo === tipo && !r.poupanca && r.ordem != null);
+    const itens = S.recorrentes.filter(r => r.tipo === tipo && !r.poupanca)
       .sort((a,b) => temOrdem
         ? (a.ordem != null ? a.ordem : 1e9) - (b.ordem != null ? b.ordem : 1e9)
         : recMensal(b) - recMensal(a));
@@ -8747,8 +8915,9 @@ function viewPlano(){
           '<td>'+esc(r.nome || "—")+(ativa ? "" : ' <span class="tag">inativa</span>')+'</td>'+
           '<td><span class="tag"><span class="dot" style="background:'+esc(catCor(r.categoriaId))+'"></span>'+esc(catRotulo(r.categoriaId))+'</span></td>'+
           '<td>'+membroPastilha(r.membroId)+'</td>'+
-          '<td>'+esc((FREQ[r.frequencia] || FREQ.mensal).lbl)+
-            (r.dia ? ' <span class="tag">dia '+esc(r.dia)+'</span>' : "")+'</td>'+
+          '<td>'+esc(rotuloFrequencia(r))+
+            (r.dia ? ' <span class="tag">dia '+esc(r.dia)+'</span>' : "")+
+            (r.frequencia === "diasSemana" ? ' <span class="tag">'+vezesNoMes(MES, r.diasSemana)+'× este mês</span>' : "")+'</td>'+
           '<td class="r num">'+esc(eur(parseNum(r.valor)))+'</td>'+
           '<td class="r num"><strong>'+esc(eur(recMensal(r)))+'</strong></td>'+
           '<td class="r no-print acoesLinha" style="white-space:nowrap">'+
@@ -8790,6 +8959,8 @@ function viewPlano(){
       kpi("Saldo previsto", eur(p.saldo), p.saldo >= 0 ? "Disponível para poupar" : "Plano deficitário", p.saldo >= 0 ? "accent" : "bad")+
     '</div>'+
     bloco("despesa","Despesas")+notaCredito+notaAtivos+
+    (p.poup > 0 ? '<div class="note" style="margin-top:10px">A <strong>poupança regular</strong> ('+esc(eur(p.poup))+'/mês) tem página própria '+
+      '<button class="btn sm" data-act="pagina" data-v="poupanca">Ver poupança regular</button> e já está incluída na despesa prevista acima.</div>' : "")+
     '<div class="note no-print" style="margin-top:10px">Os rendimentos vivem na página '+
     '<strong>Rendimentos</strong>, onde cada fonte se decompõe em vencimento, subsídios, prémios e afins, '+
     'com o respetivo tratamento fiscal.</div>'+
@@ -9332,6 +9503,7 @@ function viewDespesas(){
   const corpo = sec === "movimentos" ? viewMovimentos()
               : sec === "limites"    ? viewOrcamento()
               : sec === "planear"    ? viewPlanear()
+              : sec === "poupanca"   ? viewPoupanca()
               : viewPlano();
   return corpo;
 }
@@ -12389,33 +12561,7 @@ function viewConfig(){
   const edC = editando.cat ? cat(editando.cat) : null;
   const fc = edC || {tipo:"despesa", grupo:"necessidades", cor:"#2f5fd0"};
 
-  const membros =
-    '<div class="card"><div class="card-head"><div class="t"><h2>Agregado familiar</h2>'+
-    '<div class="sub">Identifique quem contribui e quem gasta, para análises por pessoa.</div></div></div>'+
-    '<div class="row no-print" style="margin-bottom:12px">'+
-      '<div style="flex:2 1 200px"><input id="mbNome" placeholder="Nome do membro"></div>'+
-      '<div class="shrink"><button class="btn primary" data-act="mbAdd">Adicionar</button></div>'+
-    '</div>'+
-    (S.membros.length
-      ? '<div class="tblwrap"><table><thead><tr><th>Rosto</th><th>Nome</th><th class="r">Rendimento no plano</th>'+
-        '<th class="r">Despesa no plano</th><th class="no-print"></th></tr></thead><tbody>'+
-        S.membros.map(m => {
-          const rs = S.recorrentes.filter(r => r.membroId === m.id && recAtiva(r, MES));
-          const rr = rs.filter(r => r.tipo === "rendimento").reduce((s,r) => s + recMensal(r), 0);
-          const dd = rs.filter(r => r.tipo !== "rendimento").reduce((s,r) => s + recMensal(r), 0);
-          return '<tr><td class="no-print" style="white-space:nowrap">'+
-              '<select data-act="mbIcone" data-id="'+esc(m.id)+'" aria-label="Emoji de '+esc(m.nome)+'" '+
-                'style="width:auto;padding:4px 6px">'+
-                EMOJIS_MEMBRO.map(e => '<option value="'+esc(e)+'"'+(m.icone === e ? " selected" : "")+'>'+esc(e)+'</option>').join("")+
-              '</select> '+
-              '<input type="color" data-act="mbCor" data-id="'+esc(m.id)+'" value="'+esc(m.cor || "#2f5fd0")+'" '+
-                'aria-label="Cor de '+esc(m.nome)+'" style="padding:3px;height:34px;width:44px"></td>'+
-            '<td>'+membroPastilha(m.id)+'</td><td class="r num pos">'+esc(eur(rr))+'</td>'+
-            '<td class="r num neg">'+esc(eur(dd))+'</td>'+
-            '<td class="r no-print"><button class="btn sm ghost icon" data-act="mbApagar" data-id="'+esc(m.id)+'" aria-label="Eliminar">'+ic("apagar")+'</button></td></tr>';
-        }).join("")+'</tbody></table></div>'
-      : '<div class="empty">Sem membros. Opcional — pode usar a ferramenta sem os definir.</div>')+
-    '</div>';
+  const membros = cartaoAgregado();
 
   const formCat =
     '<div class="form no-print"><h3>'+(edC ? "Editar categoria" : "Nova categoria")+'</h3>'+
@@ -15050,7 +15196,7 @@ const ACOES = {
   csvAbrir(){
     const host = $("#modalHost");
     host.innerHTML =
-      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" style="max-width:640px">'+
+      '<div class="overlay"><div class="dialog dialogoExtrato" role="dialog" aria-modal="true" style="max-width:900px">'+
       '<h3>Importar extrato bancário (CSV)</h3>'+
       '<p>Cole o conteúdo do extrato, ou escolha o ficheiro. Nada sai deste navegador.</p>'+
       '<input type="file" id="csvFicheiro" accept=".csv,.txt" style="margin-bottom:8px">'+
@@ -15084,50 +15230,72 @@ const ACOES = {
     const dados = temCabec ? linhas.slice(1) : linhas;
     const prev = dados.slice(0, 4).map(l =>
       '<tr>'+cols.map((c, i) => '<td>'+esc(l[i] || "")+'</td>').join("")+'</tr>').join("");
-    _csv = {dados};
+    _csv = {dados, manual: {}};
     $("#csvPasso2").innerHTML =
       '<div class="row" style="margin-top:10px">'+
-        '<div><label class="field">Coluna da data</label>'+sel("csvColData", Math.max(0, palpite.data))+'</div>'+
-        '<div><label class="field">Coluna da descrição</label>'+sel("csvColDesc", Math.max(0, palpite.desc))+'</div>'+
-        '<div><label class="field">Coluna do valor</label>'+sel("csvColValor", Math.max(0, palpite.valor))+'</div>'+
+        '<div><label class="field" for="csvColData">Coluna da data</label>'+sel("csvColData", Math.max(0, palpite.data))+'</div>'+
+        '<div><label class="field" for="csvColDesc">Coluna da descrição</label>'+sel("csvColDesc", Math.max(0, palpite.desc))+'</div>'+
+        '<div><label class="field" for="csvColValor">Coluna do valor</label>'+sel("csvColValor", Math.max(0, palpite.valor))+'</div>'+
       '</div>'+
       '<label style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;margin-top:9px">'+
         '<input type="checkbox" id="csvNeg" checked> Valores negativos são despesas; positivos, rendimentos</label>'+
-      '<div class="tblwrap" style="margin-top:9px;max-height:150px;overflow-y:auto"><table><thead><tr>'+
-        cols.map(c => '<th>'+esc(c)+'</th>').join("")+'</tr></thead><tbody>'+prev+'</tbody></table></div>'+
-      '<div class="actions" style="margin-top:10px">'+
-        '<button class="btn primary" data-act="csvImportar">Importar '+dados.length+' linha(s)</button></div>'+
-      '<div class="note" style="margin-top:8px">A categoria de cada movimento é sugerida pelos movimentos já '+
-      'classificados com descrições parecidas; duplicados (mesma data, valor e descrição) são ignorados.</div>';
+      '<details style="margin-top:6px"><summary class="muted" style="font-size:13px;cursor:pointer">Ver as primeiras linhas como vieram</summary>'+
+      '<div class="tblwrap" style="margin-top:6px;max-height:130px;overflow-y:auto"><table><thead><tr>'+
+        cols.map(c => '<th>'+esc(c)+'</th>').join("")+'</tr></thead><tbody>'+prev+'</tbody></table></div></details>'+
+      '<div id="csvRevisao"></div>';
+    const passo = $("#csvPasso2");
+    passo.addEventListener("change", (e) => {
+      const t = e.target;
+      if (t.id === "csvColData" || t.id === "csvColDesc" || t.id === "csvColValor" || t.id === "csvNeg"){ _csv.manual = {}; csvMostrarRevisao(); return; }
+      const linha = _csv.linhas && _csv.linhas[parseInt(t.dataset.linha, 10)];
+      if (!linha) return;
+      if (t.dataset.csv === "incl"){ linha.incluir = t.checked; csvAtualizarContagem(); }
+      else if (t.dataset.csv === "cat"){
+        // Uma categoria escolhida vale para as outras linhas do mesmo comerciante
+        linha.categoriaId = t.value; linha.origem = "escolha";
+        _csv.manual[linha.comerciante] = t.value;
+        _csv.linhas.forEach((x, k) => {
+          if (x === linha || x.comerciante !== linha.comerciante || x.tipo !== linha.tipo || x.origem === "escolha") return;
+          x.categoriaId = t.value; x.origem = "igual";
+          const s2 = passo.querySelector('select[data-csv="cat"][data-linha="'+k+'"]');
+          if (s2) s2.value = t.value;
+          const o2 = passo.querySelector('[data-csv-origem="'+k+'"]');
+          if (o2) o2.outerHTML = csvEtiquetaOrigem(x, k);
+        });
+        const o = passo.querySelector('[data-csv-origem="'+t.dataset.linha+'"]');
+        if (o) o.outerHTML = csvEtiquetaOrigem(linha, t.dataset.linha);
+      }
+    });
+    csvMostrarRevisao();
+  },
+  csvTodas(el){
+    if (!_csv || !_csv.linhas) return;
+    const v = el.dataset.v;
+    _csv.linhas.forEach(x => { if (x.estado !== "invalida") x.incluir = v === "todas" ? true : v === "nenhuma" ? false : x.estado === "novo"; });
+    csvMostrarRevisao(true);
   },
   csvImportar(){
     if (!_csv || !_csv.dados){ toast("Analise o extrato primeiro."); return; }
-    const iData = parseInt($("#csvColData").value, 10);
-    const iDesc = parseInt($("#csvColDesc").value, 10);
-    const iValor = parseInt($("#csvColValor").value, 10);
-    const negDespesa = $("#csvNeg").checked;
-    const existentes = new Set(S.movimentos.map(m =>
-      (m.data || "")+"|"+Math.abs(parseNum(m.valor)).toFixed(2)+"|"+semAcento(m.descricao)));
-    let novos = [], duplicados = 0, invalidas = 0;
-    _csv.dados.forEach(l => {
-      const data = csvDataISO(l[iData]);
-      const bruto = String(l[iValor] || "");
-      const negativo = /^-|^\(/.test(bruto.trim());
-      const valor = Math.abs(parseNum(bruto));
-      if (!data || !(valor > 0)){ invalidas++; return; }
-      const descricao = l[iDesc] || "";
-      const chave = data+"|"+valor.toFixed(2)+"|"+semAcento(descricao);
-      if (existentes.has(chave)){ duplicados++; return; }
-      existentes.add(chave);
-      novos.push({id: uid("mv"), data, descricao,
-        tipo: negDespesa ? (negativo ? "despesa" : "rendimento") : "despesa",
-        valor, categoriaId: categoriaSugerida(descricao), membroId: ""});
-    });
-    if (!novos.length){
+    if (!_csv.linhas) csvMostrarRevisao();
+    const escolhidas = _csv.linhas.filter(x => x.incluir && x.estado !== "invalida");
+    const duplicados = _csv.linhas.filter(x => !x.incluir && (x.estado === "duplicado" || x.estado === "repetido" || x.estado === "provavel")).length;
+    const invalidas = _csv.linhas.filter(x => x.estado === "invalida").length;
+    if (!escolhidas.length){
       toast("Nada para importar — "+duplicados+" duplicado(s), "+invalidas+" linha(s) inválida(s).");
       return;
     }
-    alterar(() => { novos.forEach(m => S.movimentos.push(m)); }, "importação de "+novos.length+" movimento(s)");
+    const novos = escolhidas.map(x => ({id: uid("mv"), data: x.data, descricao: x.descricao, tipo: x.tipo,
+      valor: x.valor, categoriaId: x.categoriaId || "", membroId: "", extrato: x.chave}));
+    const aprender = $("#csvAprender") && $("#csvAprender").checked;
+    const regrasNovas = aprender ? Object.entries(_csv.manual || {}).filter(([padrao, catId]) => padrao && catId &&
+      !(S.regrasCategoria || []).some(r => semAcento(r.padrao) === padrao)) : [];
+    alterar(() => {
+      novos.forEach(m => S.movimentos.push(m));
+      if (regrasNovas.length){
+        if (!Array.isArray(S.regrasCategoria)) S.regrasCategoria = [];
+        regrasNovas.forEach(([padrao, categoriaId]) => S.regrasCategoria.push({padrao, categoriaId}));
+      }
+    }, "importação de "+novos.length+" movimento(s)");
     // Saltar para o mês com mais movimentos importados, para os ver já.
     const porMes = {};
     novos.forEach(m => { const k = m.data.slice(0, 7); porMes[k] = (porMes[k] || 0) + 1; });
@@ -15139,10 +15307,13 @@ const ACOES = {
     toast("Importados "+novos.length+" movimento(s)"+
       (duplicados ? ", "+duplicados+" duplicado(s) ignorado(s)" : "")+
       (invalidas ? ", "+invalidas+" inválida(s)" : "")+
+      (regrasNovas.length ? ", "+regrasNovas.length+" regra(s) aprendida(s)" : "")+
       (semCat ? " — "+semCat+" sem categoria, atribua-a ao editar." : "."));
   },
   gerarPlano(){
     const rubricas = S.recorrentes.filter(r => recAtiva(r, MES) && r.frequencia === "mensal");
+    const porDiasSemana = S.recorrentes.filter(r => recAtiva(r, MES) && r.frequencia === "diasSemana");
+    const vezes = porDiasSemana.reduce((s, r) => s + vezesNoMes(MES, r.diasSemana), 0);
     const creds = S.creditos.filter(c => creditoAtivo(c, MES));
     // Encargos e rendimentos mensais dos ativos
     const fluxosAtivos = [];
@@ -15164,7 +15335,7 @@ const ACOES = {
       if (p.seguro > 0)  linhasCredito.push({nome:"Seguros — "+nome,     valor:p.seguro,  categoriaId: catCredito(c,"seguro")});
     });
 
-    const total = rubricas.length + linhasCredito.length + fluxosAtivos.length;
+    const total = rubricas.length + vezes + linhasCredito.length + fluxosAtivos.length;
     if (!total){ toast("Sem rubricas mensais no plano."); return; }
     confirmar("Lançar plano", "Serão criados "+total+" movimentos em "+mesLabel(MES)+
       " a partir das rubricas mensais, dos encargos dos ativos e das prestações de crédito "+
@@ -15173,11 +15344,19 @@ const ACOES = {
         const dia1 = MES + "-01";
         // Cada rubrica com dia próprio cai no seu dia; as outras no dia 1.
         // Um dia 31 num mês de 30 encosta ao último dia, que é o que o banco faz.
-        rubricas.forEach(r => S.movimentos.push({
-          id:uid("mv"),
-          data: r.dia ? MES + "-" + String(diaNoMes(r.dia, MES)).padStart(2, "0") : dia1,
-          tipo:r.tipo, descricao:r.nome,
-          categoriaId:r.categoriaId, membroId:r.membroId || "", valor:parseNum(r.valor),
+        rubricas.forEach(r => {
+          const data = r.dia ? MES + "-" + String(diaNoMes(r.dia, MES)).padStart(2, "0") : dia1;
+          const mv = {id:uid("mv"), data, tipo:r.tipo, descricao:r.nome,
+            categoriaId:r.categoriaId, membroId:r.membroId || "", valor:parseNum(r.valor)};
+          if (r.poupanca){ mv.poupanca = true; aporteDaPoupanca(r, data, parseNum(r.valor)); }
+          S.movimentos.push(mv);
+        });
+        // As rubricas em dias da semana: um movimento em cada dia
+        porDiasSemana.forEach(r => diasDaSemanaNoMes(MES, r.diasSemana).forEach(d => {
+          const mv = {id: uid("mv"), data: MES + "-" + String(d).padStart(2, "0"),
+            tipo: r.tipo, descricao: r.nome, categoriaId: r.categoriaId, membroId: r.membroId || "", valor: parseNum(r.valor)};
+          if (r.poupanca){ mv.poupanca = true; aporteDaPoupanca(r, mv.data, mv.valor); }
+          S.movimentos.push(mv);
         }));
         fluxosAtivos.forEach(x => S.movimentos.push({
           id:uid("mv"), data:dia1, tipo:x.tipo, descricao:x.nome,
@@ -15206,11 +15385,15 @@ const ACOES = {
     if (diaBruto && !diaDoMesValido(diaBruto)){
       invalido("rcDia", "O dia do mês vai de 1 a 31."); return;
     }
+    const freq = $("#rcFreq").value;
+    const diasSemana = Array.prototype.map.call(document.querySelectorAll('input[name="rcDiaSem"]:checked'), c => parseInt(c.value, 10));
+    if (freq === "diasSemana" && !diasSemana.length){ invalido("rcFreq", "Escolha pelo menos um dia da semana."); return; }
     const dados = {
       tipo: $("#rcTipo").value, nome, categoriaId: catId, membroId: $("#rcMembro").value,
-      valor: Math.abs(valor), frequencia: $("#rcFreq").value,
+      valor: Math.abs(valor), frequencia: freq,
       inicio: ini ? ini+"-01" : "", fim: fim ? fim+"-01" : "",
-      dia: diaDoMesValido(diaBruto),
+      dia: freq === "diasSemana" ? "" : diaDoMesValido(diaBruto),
+      diasSemana: freq === "diasSemana" ? DIAS_SEMANA_ORDEM.filter(d => diasSemana.indexOf(d) >= 0) : undefined,
     };
     alterar(() => {
       if (editando.rec){
@@ -15443,7 +15626,28 @@ const ACOES = {
   },
 
   /* --- arranque por perfil --- */
-  perfilAgregado(el){ ui.perfil = ui.perfil || {habitacao:"arrendada", regime:"credito"}; ui.perfil.agregado = el.dataset.k; ui.boasPasso = 2; render(); },
+  perfilAgregado(el){
+    ui.perfil = ui.perfil || {habitacao:"arrendada", regime:"credito"};
+    lerBoasPasso1();
+    const antes = ui.perfil.agregado;
+    ui.perfil.agregado = el.dataset.k;
+    // A família começa com duas crianças, os outros sem nenhuma; quem já mexeu no número fica com o seu
+    if (antes !== el.dataset.k && !ui.perfil.filhosMexidos)
+      ui.perfil.filhos = el.dataset.k === "familia" ? [{nome: "", ano: ""}, {nome: "", ano: ""}] : [];
+    ui.boasPasso = 1;
+    render();
+    const alvo = $("#boasAdulto0");
+    if (alvo && !aoToque()) alvo.focus({preventScroll: true});
+  },
+  boasFilhos(el){
+    lerBoasPasso1();
+    const p = ui.perfil || (ui.perfil = {habitacao:"arrendada", regime:"credito"});
+    p.filhos = p.filhos || [];
+    if (parseInt(el.dataset.v, 10) > 0 && p.filhos.length < 8) p.filhos.push({nome: "", ano: ""});
+    else if (parseInt(el.dataset.v, 10) < 0) p.filhos.pop();
+    p.filhosMexidos = true;
+    render();
+  },
   perfilHabitacao(el){ ui.perfil.habitacao = el.dataset.k; render(); },
   perfilRegime(el){ ui.perfil.regime = el.dataset.k; render(); },
   perfilAplicar(){
@@ -15459,7 +15663,7 @@ const ACOES = {
     const comSubs = $("#boasSubs") ? $("#boasSubs").checked : ui.boasSubs !== false;
     avisarUsoResponsavel(() => {
       apagarComAnulacao("Ponto de partida aplicado: "+rotulo+(bruto > 0 ? ", com "+eur(bruto)+" brutos" : "")+".", () => {
-        aplicarPerfil(p.agregado, p.habitacao, p.regime);
+        aplicarPerfil(p.agregado, p.habitacao, p.regime, {adultos: p.adultos, filhos: p.filhos});
         const rd = rendimentoInicial(bruto, comSubs);
         if (rd) S.rendimentos.push(rd);
       }, "ponto de partida");
@@ -15748,14 +15952,24 @@ const ACOES = {
   },
 
   /* --- membros e categorias --- */
-  mbAdd(){
+  mbAdd(el){
     const nome = $("#mbNome").value.trim();
-    if (!nome){ $("#mbNome").focus(); return; }
+    if (!nome){ invalido("mbNome", "Escreva o nome."); return; }
+    const crianca = el && el.dataset && el.dataset.v === "crianca";
     alterar(() => {
-      const r = ROSTOS_MEMBRO[S.membros.length % ROSTOS_MEMBRO.length];
-      S.membros.push({id:uid("mb"), nome, icone:r.icone, cor:r.cor});
-    });
-    toast("Membro adicionado.");
+      const r = crianca ? {icone: "🧒", cor: ROSTOS_MEMBRO[(S.membros.length + 3) % ROSTOS_MEMBRO.length].cor}
+                        : ROSTOS_MEMBRO[S.membros.length % ROSTOS_MEMBRO.length];
+      S.membros.push({id:uid("mb"), nome, icone:r.icone, cor:r.cor, papel: crianca ? "crianca" : "adulto", nascimento: ""});
+    }, crianca ? "criança no agregado" : "adulto no agregado");
+    toast((crianca ? "Criança" : "Adulto") + " adicionado ao agregado.");
+  },
+  mbPapel(el){
+    alterar(() => { const m = membro(el.dataset.id); if (m) m.papel = el.dataset.v === "crianca" ? "crianca" : "adulto"; }, "papel no agregado");
+  },
+  mbDependentes(){
+    const n = S.membros.filter(m => m.papel === "crianca").length;
+    alterar(() => { S.fiscal.dependentes = n; }, "dependentes no IRS");
+    toast("O IRS passa a contar " + n + (n === 1 ? " dependente." : " dependentes."));
   },
   mbIcone(el){
     alterar(() => { const m = membro(el.dataset.id); if (m) m.icone = el.value; }, "rosto do membro");
@@ -15912,7 +16126,7 @@ function pintarIcones(raiz){
 const DESTINOS = [
   {k:"inicio",     lbl:"Início",     ic:"casa",     paginas:["painel","analises"]},
   {k:"movimentos", lbl:"Movimentos", ic:"lista",    paginas:["movimentos"]},
-  {k:"orcamento",  lbl:"Orçamento",  ic:"carteira", paginas:["rendimentos","plano","limites"]},
+  {k:"orcamento",  lbl:"Orçamento",  ic:"carteira", paginas:["rendimentos","plano","poupanca","limites"]},
   {k:"patrimonio", lbl:"Património", ic:"banco",    paginas:["ativos","creditos"]},
   {k:"planear",    lbl:"Planear",    ic:"alvo",     paginas:["objetivos","compras","simulador","casa","investir","maximizar","ese"]},
 ];
@@ -15923,6 +16137,7 @@ const PAGINAS = {
   movimentos:  {lbl:"Movimentos",            vista:"despesas",    secD:"movimentos"},
   rendimentos: {lbl:"Rendimentos",           vista:"rendimentos"},
   plano:       {lbl:"Despesas fixas",        vista:"despesas",    secD:"plano"},
+  poupanca:    {lbl:"Poupança regular",      vista:"despesas",    secD:"poupanca"},
   limites:     {lbl:"Limites",               vista:"despesas",    secD:"limites"},
   ativos:      {lbl:"Ativos",                vista:"ativos"},
   creditos:    {lbl:"Créditos",              vista:"creditos"},
@@ -15935,7 +16150,7 @@ const PAGINAS = {
   ese:         {lbl:"E se…?",                vista:"ese"},
   config:      {lbl:"Definições",            vista:"config"},
 };
-const SEC_DESPESA_PAGINA = {movimentos:"movimentos", plano:"plano", limites:"limites", planear:"compras"};
+const SEC_DESPESA_PAGINA = {movimentos:"movimentos", plano:"plano", poupanca:"poupanca", limites:"limites", planear:"compras"};
 
 /** A página em que se está, tirada da vista e da secção. */
 function paginaAtual(){
@@ -16171,6 +16386,7 @@ const CRIAVEIS = [
   {ic:"lista",    lbl:"Movimento completo",   pag:"movimentos", campo:"mvValor",  form:"mov"},
   {ic:"carteira", lbl:"Rendimento",           pag:"rendimentos",campo:"rdNome",   form:"rd"},
   {ic:"calendario",lbl:"Despesa fixa",        pag:"plano",      campo:"rcNome",   form:"rec"},
+  {ic:"banco",    lbl:"Poupança regular",     pag:"poupanca",   campo:"ppNome",   form:"pp"},
   {ic:"banco",    lbl:"Ativo",                pag:"ativos",     campo:"ptNome",   form:"pat"},
   {ic:"chave",    lbl:"Crédito",              pag:"creditos",   campo:"crNome",   form:"cr"},
   {ic:"alvo",     lbl:"Objetivo",             pag:"objetivos",  campo:"obNome",   form:"obj"},
@@ -16230,6 +16446,9 @@ const ACOES_ESTRUTURA = {
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-act]");
   if (!el) return;
+  /* Uma lista ou um seletor de cor age ao mudar de valor (ver o «change»).
+     Tratá-los aqui impedia a lista de abrir e a paleta de cores de aparecer. */
+  if (el.tagName === "SELECT" || (el.tagName === "INPUT" && (el.type === "color" || el.type === "text" || el.type === "number"))) return;
   const fn = ACOES[el.dataset.act];
   if (fn){ e.preventDefault(); fn(el); }
 });
@@ -16872,6 +17091,132 @@ function csvDataISO(v){
   if (mes < 1 || mes > 12 || dia < 1) return null;
   if (dia > new Date(a, mes, 0).getDate()) return null;   // dia inexistente nesse mês
   return a + "-" + String(mes).padStart(2,"0") + "-" + String(dia).padStart(2,"0");
+}
+
+/* ---------------------------------------------------------------
+   Rever o extrato antes de importar
+
+   Cada linha chega com uma categoria sugerida — pelas regras ensinadas,
+   pelo que já se classificou antes, ou pelas palavras que os bancos
+   costumam escrever — e com o estado: nova, duplicada (já importada, mesmo
+   que a descrição tenha sido mudada depois), repetida no próprio extrato,
+   ou um provável duplicado (mesmo valor, até 3 dias de diferença e uma
+   descrição parecida, como quando o movimento foi escrito à mão antes).
+   Os duplicados chegam desmarcados; escolhe-se o que entra.
+   --------------------------------------------------------------- */
+const PALAVRAS_DE_BANCO = /^(compra|compras|pagamento|pagto|pag|trf|transf|transferencia|debito|deb|direto|dd|sepa|mb|way|mbway|cartao|cart|c|ref|refa|lev|levantamento|pos|tpa|op|n|no)$/;
+/** O nome do comerciante, sem o que o banco acrescenta: as duas primeiras palavras que contam. */
+function chaveComerciante(descricao){
+  return semAcento(descricao).split(/[^a-z]+/).filter(t => t.length >= 3 && !PALAVRAS_DE_BANCO.test(t)).slice(0, 2).join(" ");
+}
+const _palavrasLongas = (t) => semAcento(t).split(/[^a-z0-9]+/).filter(x => x.length >= 4 && !PALAVRAS_DE_BANCO.test(x));
+function descricoesParecidas(a, b){
+  const x = semAcento(a).trim(), y = semAcento(b).trim();
+  if (!x || !y) return true;
+  if (x.indexOf(y) >= 0 || y.indexOf(x) >= 0) return true;
+  const px = _palavrasLongas(a), py = new Set(_palavrasLongas(b));
+  return px.some(t => py.has(t));
+}
+/** A categoria sugerida para uma linha do extrato, e de onde veio. */
+function categoriaDaLinha(descricao, tipo){
+  const daMesma = (id) => { const c = id && cat(id); return c && c.tipo === tipo ? id : ""; };
+  const d = semAcento(descricao);
+  const regra = (S.regrasCategoria || []).find(r => r.categoriaId && d.indexOf(semAcento(r.padrao)) >= 0);
+  if (regra && daMesma(regra.categoriaId)) return {categoriaId: regra.categoriaId, origem: "regra"};
+  const hist = daMesma(categoriaSugerida(descricao));
+  if (hist) return {categoriaId: hist, origem: "historico"};
+  const pal = tipo === "rendimento"
+    ? (/ordenado|vencimento|salario|remuneracao/.test(d) ? daMesma(catPorNome("Vencimento")) : "")
+    : daMesma(categoriaPorPalavras(descricao));
+  if (pal) return {categoriaId: pal, origem: "palavra"};
+  return {categoriaId: "", origem: ""};
+}
+/** Lê as linhas com as colunas escolhidas e classifica cada uma. */
+function csvRever(){
+  const iData = parseInt($("#csvColData").value, 10);
+  const iDesc = parseInt($("#csvColDesc").value, 10);
+  const iValor = parseInt($("#csvColValor").value, 10);
+  const negDespesa = $("#csvNeg").checked;
+  // O que já existe: pela chave do extrato de onde veio, e pela chave atual
+  const chaveDe = (data, valor, desc) => data + "|" + Math.abs(parseNum(valor)).toFixed(2) + "|" + semAcento(desc);
+  const existentes = new Set();
+  S.movimentos.forEach(m => { existentes.add(chaveDe(m.data || "", m.valor, m.descricao)); if (m.extrato) existentes.add(m.extrato); });
+  const vistas = new Set();
+  return _csv.dados.map(l => {
+    const data = csvDataISO(l[iData]);
+    const bruto = String(l[iValor] || "");
+    const negativo = /^-|^\(/.test(bruto.trim());
+    const valor = Math.abs(parseNum(bruto));
+    const descricao = String(l[iDesc] || "").trim();
+    if (!data || !(valor > 0)) return {estado: "invalida", incluir: false, data: data || "", descricao, valor, bruto: l};
+    const tipo = negDespesa ? (negativo ? "despesa" : "rendimento") : "despesa";
+    const chave = chaveDe(data, valor, descricao);
+    const linha = Object.assign({data, descricao, valor, tipo, chave, comerciante: chaveComerciante(descricao)}, categoriaDaLinha(descricao, tipo));
+    if (existentes.has(chave)) Object.assign(linha, {estado: "duplicado", incluir: false});
+    else if (vistas.has(chave)) Object.assign(linha, {estado: "repetido", incluir: false});
+    else {
+      const dia = diasDesdeEpoca(data);
+      const igual = S.movimentos.find(m => m.tipo === tipo && Math.abs(Math.abs(parseNum(m.valor)) - valor) < 0.005 && m.data &&
+        Math.abs(diasDesdeEpoca(m.data) - dia) <= 3 && descricoesParecidas(m.descricao, descricao));
+      if (igual) Object.assign(linha, {estado: "provavel", incluir: false, parecido: igual});
+      else Object.assign(linha, {estado: "novo", incluir: true});
+    }
+    vistas.add(chave);
+    // A categoria que a pessoa já escolheu para este comerciante, neste extrato
+    if (_csv.manual && _csv.manual[linha.comerciante] && (cat(_csv.manual[linha.comerciante]) || {}).tipo === tipo){
+      linha.categoriaId = _csv.manual[linha.comerciante]; linha.origem = "igual";
+    }
+    return linha;
+  });
+}
+const ORIGENS_CSV = {regra: "regra", historico: "como antes", palavra: "sugestão", escolha: "escolhida", igual: "como a de cima", "": "sem sugestão"};
+function csvEtiquetaOrigem(x, k){
+  return '<span class="tag origemCsv o-' + (x.origem || "nada") + '" data-csv-origem="' + k + '">' + esc(ORIGENS_CSV[x.origem || ""]) + '</span>';
+}
+function csvAtualizarContagem(){
+  const ls = _csv.linhas, n = ls.filter(x => x.incluir).length;
+  const b = document.querySelector('#csvPasso2 [data-act="csvImportar"]');
+  if (b){ b.textContent = "Importar " + n + " movimento(s)"; b.disabled = !n; }
+}
+function csvMostrarRevisao(manterEscolhas){
+  const antes = manterEscolhas && _csv.linhas;
+  _csv.linhas = antes || csvRever();
+  const ls = _csv.linhas;
+  const conta = (e) => ls.filter(x => x.estado === e).length;
+  const nNovo = conta("novo"), nDup = conta("duplicado") + conta("repetido"), nProv = conta("provavel"), nInv = conta("invalida");
+  const opcoes = (tipo, sel) => '<option value="">— sem categoria —</option>' + S.categorias.filter(c => c.tipo === tipo).map(c =>
+    '<option value="' + esc(c.id) + '"' + (c.id === sel ? " selected" : "") + '>' + esc((c.icone ? c.icone + " " : "") + c.nome) + '</option>').join("");
+  const estado = (x) => x.estado === "novo" ? '<span class="tag estadoCsv novo">nova</span>'
+    : x.estado === "duplicado" ? '<span class="tag estadoCsv dup">já importada</span>'
+    : x.estado === "repetido" ? '<span class="tag estadoCsv dup">repetida no extrato</span>'
+    : x.estado === "provavel" ? '<span class="tag estadoCsv prov" title="' + esc("Parecida com «" + (x.parecido.descricao || "sem descrição") + "» de " + x.parecido.data.split("-").reverse().join("/")) + '">talvez já exista</span>'
+    : '<span class="tag estadoCsv inv">inválida</span>';
+  const linhas = ls.map((x, k) => x.estado === "invalida"
+    ? '<tr class="csvInv"><td></td><td colspan="5" class="muted">Linha sem data ou valor válidos: ' + esc((x.bruto || []).join(" · ").slice(0, 80)) + '</td><td>' + estado(x) + '</td></tr>'
+    : '<tr class="' + (x.incluir ? "" : "csvFora") + '">' +
+      '<td><input type="checkbox" data-csv="incl" data-linha="' + k + '"' + (x.incluir ? " checked" : "") + ' aria-label="Importar ' + esc(x.descricao) + '"></td>' +
+      '<td class="num">' + esc(x.data.split("-").reverse().join("/")) + '</td>' +
+      '<td class="csvDesc">' + esc(x.descricao || "—") + (x.estado === "provavel" ? '<div class="muted" style="font-size:12px">parecida com «' + esc(x.parecido.descricao || "—") + '», ' + esc(x.parecido.data.split("-").reverse().join("/")) + '</div>' : "") + '</td>' +
+      '<td class="r num ' + (x.tipo === "rendimento" ? "pos" : "neg") + '">' + (x.tipo === "rendimento" ? "+" : "−") + esc(eur(x.valor)) + '</td>' +
+      '<td><select data-csv="cat" data-linha="' + k + '" aria-label="Categoria de ' + esc(x.descricao) + '">' + opcoes(x.tipo, x.categoriaId) + '</select></td>' +
+      '<td>' + csvEtiquetaOrigem(x, k) + '</td><td>' + estado(x) + '</td></tr>').join("");
+  $("#csvRevisao").innerHTML =
+    '<div class="resumoCsv" role="status">' +
+      '<span><strong>' + nNovo + '</strong> nova(s)</span>' +
+      (nDup ? '<span><strong>' + nDup + '</strong> já importada(s)</span>' : "") +
+      (nProv ? '<span><strong>' + nProv + '</strong> talvez já exista(m)</span>' : "") +
+      (nInv ? '<span><strong>' + nInv + '</strong> inválida(s)</span>' : "") +
+      '<span class="csvSel no-print">Marcar: <button class="btn sm ghost" data-act="csvTodas" data-v="novas">só as novas</button>' +
+      '<button class="btn sm ghost" data-act="csvTodas" data-v="todas">todas</button><button class="btn sm ghost" data-act="csvTodas" data-v="nenhuma">nenhuma</button></span>' +
+    '</div>' +
+    '<div class="tblwrap revisaoCsv"><table><thead><tr><th></th><th>Data</th><th>Descrição</th><th class="r">Valor</th><th>Categoria</th><th>Origem</th><th>Estado</th></tr></thead>' +
+      '<tbody>' + linhas + '</tbody></table></div>' +
+    '<label style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;margin-top:9px">' +
+      '<input type="checkbox" id="csvAprender" checked> Lembrar as categorias que escolher, para os próximos extratos</label>' +
+    '<div class="actions" style="margin-top:10px"><button class="btn primary" data-act="csvImportar">Importar</button></div>' +
+    '<div class="note" style="margin-top:8px">A categoria vem das suas regras, do que já classificou antes, ou das palavras que os bancos costumam usar — confirme-a. ' +
+      'Mudar a categoria de uma linha muda as outras do mesmo comerciante. As linhas já importadas (mesmo que tenha mudado a descrição depois) e as que talvez já existam chegam desmarcadas.</div>';
+  csvAtualizarContagem();
 }
 
 /**
@@ -17619,6 +17964,27 @@ document.addEventListener("change", (e) => {
   }
   if (t.id === "fCat"){ filtros.categoria = t.value; render(); }
   else if (t.id === "fMembro"){ filtros.membro = t.value; render(); }
+  else if (t.dataset && t.dataset.mbCampo){
+    const m = membro(t.dataset.id);
+    if (!m) return;
+    if (t.dataset.mbCampo === "nome"){
+      const v = t.value.trim();
+      if (!v){ t.value = m.nome; return; }
+      alterar(() => { m.nome = v.slice(0, 40); }, "nome no agregado");
+    } else {
+      const ano = parseInt(t.value, 10);
+      if (t.value.trim() && !(ano >= 1900 && ano <= new Date().getFullYear())){ invalido(t.id, "Um ano entre 1900 e " + new Date().getFullYear() + "."); return; }
+      alterar(() => { m.nascimento = t.value.trim() ? ano : ""; }, "ano de nascimento");
+    }
+  }
+  else if (t.id === "rcFreq"){
+    const dias = t.value === "diasSemana";
+    if ($("#rcDiasBox")) $("#rcDiasBox").hidden = !dias;
+    if ($("#rcDiaBox")) $("#rcDiaBox").hidden = dias;
+    if ($("#rcValorRot")) $("#rcValorRot").textContent = dias ? "Valor por vez (€)" : "Valor (€)";
+    atualizarDiasCalc();
+  }
+  else if (t.name === "rcDiaSem") atualizarDiasCalc();
   else if (t.id === "mvTipo" || t.id === "rcTipo" || t.id === "ctTipo"){
     // Ao mudar o tipo, recarregar as categorias compatíveis.
     const mapa = {mvTipo:"mvCat", rcTipo:"rcCat"};
@@ -17890,7 +18256,7 @@ const reduzMovimento = () => (typeof S !== "undefined" && S && S.movimento === "
    ficou aberta), as fichas grandes abrem-se no lugar ou ao lado, e as
    ações de cada linha aparecem quando o ponteiro passa ou o foco chega.
    --------------------------------------------------------------- */
-const VERSAO_APP = "2.3.0";
+const VERSAO_APP = "2.4.0";
 /* A aplicação de secretária mais antiga que consegue correr esta página. Sobe
    só quando a página precisar de algo novo do processo principal; até lá, as
    versões novas chegam à aplicação de secretária sem reinstalar. */
@@ -17900,14 +18266,15 @@ const VERSAO_SHELL_MINIMA = "2.3.0";
 const FORM_TEM_LISTA = {
   mov:  () => S.movimentos.some(m => mesDoDia(m.data) === MES),
   rd:   () => S.rendimentos.length > 0,
-  rec:  () => S.recorrentes.some(r => r.tipo !== "rendimento"),
+  rec:  () => S.recorrentes.some(r => r.tipo !== "rendimento" && !r.poupanca),
+  pp:   () => S.recorrentes.some(r => r.poupanca),
   pat:  () => S.ativos.length > 0,
   cr:   () => S.creditos.length > 0,
   obj:  () => S.objetivos.length > 0,
   plan: () => (S.planeadas || []).length > 0,
 };
 const FORM_ROTULO = {
-  mov: "Adicionar movimento", rd: "Adicionar fonte de rendimento", rec: "Adicionar despesa fixa",
+  mov: "Adicionar movimento", rd: "Adicionar fonte de rendimento", rec: "Adicionar despesa fixa", pp: "Adicionar poupança regular",
   pat: "Adicionar ativo", cr: "Adicionar crédito", obj: "Adicionar objetivo", plan: "Planear uma compra",
 };
 
@@ -18362,11 +18729,33 @@ function boasVindas(){
   const voltar = passo > 1 ? '<button class="btn ghost" data-act="boasPasso" data-v="' + (passo - 1) + '">Voltar</button>' : "";
   let corpo = "";
   if (passo === 1){
+    const a1 = PERFIS_AGREGADO[p.agregado];
+    const nAd = a1 ? a1.membros.length : 0;
+    const filhos = p.filhos || [];
+    const anoMax = new Date().getFullYear();
     corpo = '<h3 class="tituloPasso">Passo 1 de 3 — quem vive aí?</h3>' +
       '<div class="perfis no-print">' + Object.entries(PERFIS_AGREGADO).map(([k, a]) =>
         '<button class="perfil" data-act="perfilAgregado" data-k="' + k + '" aria-pressed="' + (p.agregado === k) + '">' +
         '<span class="pi" aria-hidden="true">' + a.icone + '</span><span class="pl">' + esc(a.lbl) + '</span>' +
-        '<span class="pd">' + esc(a.desc) + '</span></button>').join("") + '</div>';
+        '<span class="pd">' + esc(a.desc) + '</span></button>').join("") + '</div>' +
+      (a1
+        ? '<div class="quemSao">' +
+            '<div class="row">' + Array.from({length: nAd}, (_, k) =>
+              '<div style="flex:1 1 180px"><label class="field" for="boasAdulto' + k + '">' + (nAd === 1 ? "O seu nome" : "Nome do " + (k + 1) + ".º adulto") + '</label>' +
+              '<input id="boasAdulto' + k + '" maxlength="40" placeholder="' + esc(a1.membros[k]) + '" value="' + esc((p.adultos || [])[k] || "") + '"></div>').join("") + '</div>' +
+            '<div class="filhosPasso"><span class="field">Crianças em casa</span>' +
+              '<div class="contador"><button class="btn icon" data-act="boasFilhos" data-v="-1" aria-label="Menos uma criança"' + (filhos.length ? "" : " disabled") + '>−</button>' +
+              '<output aria-live="polite">' + filhos.length + '</output>' +
+              '<button class="btn icon" data-act="boasFilhos" data-v="1" aria-label="Mais uma criança"' + (filhos.length >= 8 ? " disabled" : "") + '>+</button></div></div>' +
+            (filhos.length ? '<div class="filhosLista">' + filhos.map((fx, k) =>
+              '<div class="row"><div style="flex:2 1 160px"><label class="field" for="boasFilhoN' + k + '">' + (k + 1) + '.ª criança <span class="muted">(nome, opc.)</span></label>' +
+                '<input id="boasFilhoN' + k + '" maxlength="40" placeholder="Criança ' + (k + 1) + '" value="' + esc(fx.nome || "") + '"></div>' +
+              '<div style="flex:1 1 110px"><label class="field" for="boasFilhoA' + k + '">Ano em que nasceu <span class="muted">(opc.)</span></label>' +
+                '<input id="boasFilhoA' + k + '" inputmode="numeric" maxlength="4" placeholder="' + (anoMax - 5) + '" value="' + esc(fx.ano || "") + '"></div></div>').join("") +
+              '<p class="muted" style="font-size:12.5px;margin:4px 0 0">As crianças contam como dependentes no IRS, e as despesas de partida ajustam-se ao número delas.</p></div>' : "") +
+            '<div class="actions"><button class="btn primary" data-act="boasPasso" data-v="2">Seguinte</button></div>' +
+          '</div>'
+        : "");
   } else if (passo === 2){
     const casaPropria = p.habitacao === "propria";
     corpo = '<h3 class="tituloPasso">Passo 2 de 3 — e a casa?</h3>' +
@@ -18381,7 +18770,8 @@ function boasVindas(){
       '<div class="actions">' + voltar + '<button class="btn primary" data-act="boasPasso" data-v="3">Seguinte</button></div>';
   } else {
     const a = PERFIS_AGREGADO[p.agregado] || PERFIS_AGREGADO.sozinho;
-    const rs = a.rubricas.concat(rubricasHabitacao(p.agregado || "sozinho", p.habitacao, p.regime));
+    const nFilhos = (p.filhos || []).length;
+    const rs = rubricasDoAgregado(p.agregado || "sozinho", nFilhos, a.membros.length).concat(rubricasHabitacao(p.agregado || "sozinho", p.habitacao, p.regime));
     const total = rs.reduce((s, r) => s + r[2], 0);
     corpo = '<h3 class="tituloPasso">Passo 3 de 3 — quanto entra por mês?</h3>' +
       '<div class="row no-print"><div style="flex:0 1 240px"><label class="field" for="boasBruto">Vencimento bruto mensal <span class="muted">(opcional)</span></label>' +
@@ -18390,7 +18780,7 @@ function boasVindas(){
         'Recebe subsídios de férias e de Natal</label></div></div>' +
       '<div class="muted" style="font-size:12.5px;margin-top:6px">O bruto, como vem no recibo. O IRS e a Segurança Social calculam-se pelas tabelas de ' +
         esc(TABELAS_RF._meta.ano) + '. Outras fontes juntam-se depois, em Rendimentos.</div>' +
-      '<div class="note" style="margin-top:12px">Vai criar <strong>' + a.membros.length + ' membro(s)</strong> e <strong>' + rs.length +
+      '<div class="note" style="margin-top:12px">Vai criar <strong>' + (a.membros.length + nFilhos) + ' pessoa(s) no agregado</strong>' + (nFilhos ? ' (' + nFilhos + (nFilhos === 1 ? ' criança' : ' crianças') + ', também como dependentes no IRS)' : '') + ' e <strong>' + rs.length +
         ' despesa(s) fixa(s)</strong>, ' + esc(eur(total)) + '/mês no total — valores de exemplo, para ajustar.</div>' +
       '<div class="actions">' + voltar + '<button class="btn primary" data-act="perfilAplicar">Começar assim</button></div>';
   }
@@ -18448,6 +18838,7 @@ const ACOES_INICIO = {
   },
   proximosAgenda(){ ui.movVista = "agenda"; irPagina("movimentos"); },
   boasPasso(el){
+    lerBoasPasso1();
     const b = $("#boasBruto"), sb = $("#boasSubs");
     if (b) ui.boasBruto = b.value;
     if (sb) ui.boasSubs = sb.checked;
@@ -20179,6 +20570,444 @@ const ACOES_ATUAL = {
 };
 
 Object.assign(ACOES, ACOES_ATUAL);
+
+/* ---------------------------------------------------------------
+   Escrever menos
+
+   - Nas listas (categoria, membro…), carregar numa letra salta para a
+     primeira opção que começa por ela, e carregar outra vez corre as
+     seguintes. Várias letras seguidas procuram o começo inteiro («la»
+     vai à Lavandaria). O emoji à frente do nome não conta, e os acentos
+     também não: «e» encontra a Educação e a Estética.
+   - Nas descrições, a escrita completa-se a partir do que já se escreveu
+     antes (movimentos e rubricas, as mais usadas primeiro): o resto aparece
+     selecionado, Tab ou Enter aceita, e continuar a escrever substitui-o.
+     A categoria vem atrás, se ainda não tiver sido escolhida à mão.
+   --------------------------------------------------------------- */
+const _letrasTeclado = {buffer: "", t: 0, el: null};
+const rotuloSemEmoji = (t) => semAcento(String(t || "").replace(/^[^0-9A-Za-zÀ-ÿ]+/, "")).trim();
+/** Procura numa lista a opção seguinte que começa pelo que se escreveu. */
+function procurarNaLista(sel, prefixo, desde){
+  const ops = Array.prototype.slice.call(sel.options);
+  const n = ops.length;
+  for (let k = 1; k <= n; k++){
+    const i = (desde + k) % n;
+    const o = ops[i];
+    if (o.disabled || !o.value) continue;
+    if (rotuloSemEmoji(o.textContent).indexOf(prefixo) === 0) return i;
+  }
+  return -1;
+}
+document.addEventListener("keydown", (e) => {
+  const sel = e.target;
+  if (!sel || sel.tagName !== "SELECT" || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!e.key || e.key.length !== 1 || !/[0-9A-Za-zÀ-ÿ]/.test(e.key)) return;
+  const agora = Date.now();
+  const letra = semAcento(e.key);
+  if (_letrasTeclado.el !== sel || agora - _letrasTeclado.t > 900) _letrasTeclado.buffer = "";
+  const repetida = _letrasTeclado.buffer.length === 1 && _letrasTeclado.buffer === letra;
+  _letrasTeclado.buffer = repetida ? letra : _letrasTeclado.buffer + letra;
+  _letrasTeclado.t = agora; _letrasTeclado.el = sel;
+  /* A mesma letra outra vez corre para a seguinte; uma palavra procura desde
+     a opção atual (inclusive), para «la» não saltar a Lavandaria se já lá está. */
+  const desde = repetida ? sel.selectedIndex : sel.selectedIndex - 1;
+  let i = procurarNaLista(sel, _letrasTeclado.buffer, desde);
+  if (i < 0 && !repetida && _letrasTeclado.buffer.length > 1){ _letrasTeclado.buffer = letra; i = procurarNaLista(sel, letra, sel.selectedIndex); }
+  if (i < 0) return;
+  e.preventDefault();
+  if (i !== sel.selectedIndex){
+    sel.selectedIndex = i;
+    sel.dataset.escolhidaAMao = "1";
+    sel.dispatchEvent(new Event("change", {bubbles: true}));
+  }
+}, true);
+
+/* Escrita preditiva nas descrições */
+const CAMPOS_PREDITIVOS = {mvDesc: "mvCat", rcNome: "rcCat", rapidoDesc: null, ppNome: null};
+/** As descrições já usadas, das mais frequentes (e recentes) para as menos. */
+function descricoesConhecidas(){
+  const conta = new Map();
+  const juntar = (t, peso) => {
+    const d = String(t || "").trim();
+    if (d.length < 2) return;
+    const k = semAcento(d);
+    const x = conta.get(k) || {texto: d, n: 0};
+    x.n += peso; conta.set(k, x);
+  };
+  S.movimentos.forEach((m, i) => juntar(m.descricao, 1 + i / Math.max(1, S.movimentos.length)));
+  S.recorrentes.forEach(r => juntar(r.nome, 2));
+  return Array.from(conta.values()).sort((a, b) => b.n - a.n).map(x => x.texto);
+}
+/** A primeira descrição conhecida que começa pelo que se escreveu (sem acentos nem maiúsculas). */
+function preverDescricao(escrito){
+  const e = semAcento(escrito);
+  if (e.length < 2) return null;
+  return descricoesConhecidas().find(d => semAcento(d).indexOf(e) === 0 && d.length > escrito.length) || null;
+}
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el || !(el.id in CAMPOS_PREDITIVOS)) return;
+  // Apagar não completa: quem apaga está a corrigir, não a pedir sugestões
+  if (e.inputType && e.inputType.indexOf("delete") === 0) return;
+  const escrito = el.value;
+  if (el.selectionStart !== escrito.length) return;
+  const sugestao = preverDescricao(escrito);
+  if (!sugestao) return;
+  el.value = escrito + sugestao.slice(escrito.length);
+  el.setSelectionRange(escrito.length, el.value.length);
+  el.dataset.previsto = "1";
+});
+document.addEventListener("keydown", (e) => {
+  const el = e.target;
+  if (!el || !(el.id in CAMPOS_PREDITIVOS) || !el.dataset.previsto) return;
+  if ((e.key === "Tab" || e.key === "Enter") && el.selectionEnd > el.selectionStart){
+    if (e.key === "Tab") e.preventDefault();
+    el.setSelectionRange(el.value.length, el.value.length);
+    delete el.dataset.previsto;
+    categoriaPelaDescricao(el);
+  }
+});
+document.addEventListener("change", (e) => { if (e.target && e.target.id in CAMPOS_PREDITIVOS) categoriaPelaDescricao(e.target); });
+/** Escolhida a descrição, a categoria vem atrás — se ninguém a tiver escolhido à mão. */
+function categoriaPelaDescricao(el){
+  const idCat = CAMPOS_PREDITIVOS[el.id];
+  const sel = idCat && document.getElementById(idCat);
+  if (!sel || sel.dataset.escolhidaAMao) return;
+  const c = categoriaSugerida(el.value) || categoriaPorPalavras(el.value);
+  if (c && Array.prototype.some.call(sel.options, o => o.value === c) && sel.value !== c){
+    sel.value = c;
+    sel.dispatchEvent(new Event("change", {bubbles: true}));
+    sel.dataset.escolhidaAMao = "";
+  }
+}
+document.addEventListener("change", (e) => {
+  // Uma categoria escolhida com o rato também conta como escolha à mão
+  const t = e.target;
+  if (t && t.tagName === "SELECT" && e.isTrusted) t.dataset.escolhidaAMao = "1";
+}, true);
+
+/* ---------------------------------------------------------------
+   Categorias pelo que costuma vir nos extratos
+
+   Quando não há regra nem histórico, uma palavra conhecida decide: os
+   nomes dos supermercados, das gasolineiras, das operadoras, as comissões
+   do banco. É só uma sugestão de partida — a pessoa confirma ao importar.
+   --------------------------------------------------------------- */
+const PALAVRAS_CATEGORIA = [
+  [/continente|pingo doce|lidl|aldi|intermarche|minipreco|mercadona|auchan|jumbo|el corte ingles super|supermercado|mercearia|talho|peixaria|padaria|frutaria/, "Alimentação"],
+  [/restaurante|cafe |pastelaria|mcdonald|burger|pizza|telepizza|uber eats|glovo|bolt food|tasca|sushi|snack/, "Restauração"],
+  [/edp|endesa|iberdrola|goldenergy|galp energia|gas natural|eletricidade/, "Eletricidade e gás"],
+  [/galp|repsol|bp |cepsa|prio|combustivel|portagem|via verde|cp |comboios|metro|carris|stcp|uber|bolt|free now|estacionamento|parque/, "Transportes"],
+  [/epal|aguas de|agua |smas/, "Água"],
+  [/meo|nos comunic|vodafone|nowo|digi|internet|telemovel/, "Telecom e internet"],
+  [/netflix|spotify|disney|hbo|max |prime video|apple\.com|icloud|google storage|youtube premium/, "Subscrições"],
+  [/farmacia|clinica|hospital|cuf |luz saude|lusiadas|dentista|analises|otica|consulta/, "Saúde"],
+  [/ginasio|fitness|holmes place|solinca|fitness hut|go fit|crossfit|pilates|yoga/, "Ginásios e Fitness"],
+  [/cabeleireiro|barbearia|estetica|manicure|spa |depilacao|wells|perfumaria|sephora|douglas/, "Estética e Cuidados Pessoais"],
+  [/lavandaria|engomadoria|lavagem a seco|wash/, "Lavandaria"],
+  [/limpeza|empregada|detergente|leroy merlin|aki |bricomarche|ikea|maxmat/, "Limpeza e Manutenção da Casa"],
+  [/babysit|ama |nanny|creche|ats |atl /, "Nanny e Babysitting"],
+  [/brinquedo|toys|imaginarium|toy planet|lego/, "Brinquedos"],
+  [/comissao|comissoes|manutencao de conta|despesas de manutencao|imposto do selo|anuidade|taxa de servico|encargos de conta/, "Comissões Bancárias"],
+  [/zara|primark|h&m|pull|bershka|mango|decathlon|sport zone|vestuario|calcado/, "Vestuário"],
+  [/escola|colegio|propinas|livraria|bertrand|papelaria|explicacoes/, "Educação"],
+  [/seguro|fidelidade|tranquilidade|allianz|ageas|zurich|generali|mapfre/, "Seguros"],
+  [/renda |condominio/, "Habitação"],
+  [/cinema|nos cinemas|teatro|museu|concerto|ticketline|fnac/, "Lazer e cultura"],
+  [/hotel|booking|airbnb|ryanair|tap air|easyjet|viagem/, "Férias e viagens"],
+  [/at - |autoridade tributaria|financas|iuc|imi /, "Impostos"],
+];
+function categoriaPorPalavras(descricao){
+  const d = " " + semAcento(descricao) + " ";
+  for (const [re, nome] of PALAVRAS_CATEGORIA){
+    if (re.test(d)){
+      const c = S.categorias.find(x => x.nome === nome);
+      if (c) return c.id;
+    }
+  }
+  return "";
+}
+
+/* ---------------------------------------------------------------
+   Categorias acrescentadas numa versão: entram uma vez em cada orçamento
+   que já existia, sem duplicar (comparadas pelo nome) e sem voltar se a
+   pessoa as apagar — a marca fica guardada com os dados, e viaja com eles.
+   --------------------------------------------------------------- */
+const CATEGORIAS_NOVAS = [
+  ["cat-2.4", [
+    ["Limpeza e Manutenção da Casa", "despesa", "necessidades", "#5c7fa3", "🧹"],
+    ["Lavandaria",                   "despesa", "necessidades", "#6a9ec7", "👔"],
+    ["Nanny e Babysitting",          "despesa", "necessidades", "#b06fc9", "🧸"],
+    ["Comissões Bancárias",          "despesa", "necessidades", "#59647a", "🏦"],
+    ["Estética e Cuidados Pessoais", "despesa", "desejos",      "#d98bb0", "💅"],
+    ["Ginásios e Fitness",           "despesa", "desejos",      "#e07b5a", "🏋️"],
+    ["Brinquedos",                   "despesa", "desejos",      "#e8b44f", "🪀"],
+  ]],
+];
+function migrarCategorias(est){
+  if (!Array.isArray(est.migracoes)) est.migracoes = [];
+  CATEGORIAS_NOVAS.forEach(([marca, lista]) => {
+    if (est.migracoes.indexOf(marca) >= 0) return;
+    lista.forEach(([nome, tipo, grupo, cor, icone]) => {
+      if (est.categorias.some(c => semAcento(c.nome) === semAcento(nome) && c.tipo === tipo)) return;
+      est.categorias.push({id: uid("cat"), nome, tipo, grupo, cor, icone});
+    });
+    est.migracoes.push(marca);
+  });
+  return est;
+}
+
+/* ---------------------------------------------------------------
+   O agregado — quem vive na casa
+
+   Cada pessoa é um cartão: rosto, nome, adulto ou criança, o ano em que
+   nasceu (dá a idade) e a cor. O número de crianças pode passar para os
+   dependentes do IRS com um toque, que é onde ele conta nas contas.
+   --------------------------------------------------------------- */
+const idadeDe = (m) => m && m.nascimento ? Math.max(0, new Date().getFullYear() - m.nascimento) : null;
+function resumoAgregado(){
+  const ad = S.membros.filter(m => m.papel !== "crianca").length, cr = S.membros.filter(m => m.papel === "crianca").length;
+  const partes = [];
+  if (ad) partes.push(ad + (ad === 1 ? " adulto" : " adultos"));
+  if (cr) partes.push(cr + (cr === 1 ? " criança" : " crianças"));
+  return partes.join(" e ") || "ninguém ainda";
+}
+function cartaoAgregado(){
+  const cr = S.membros.filter(m => m.papel === "crianca").length;
+  const dep = Math.max(0, Math.round(parseNum(S.fiscal.dependentes)));
+  const pessoa = (m) => {
+    const rs = S.recorrentes.filter(r => r.membroId === m.id && recAtiva(r, MES));
+    const dd = rs.filter(r => r.tipo !== "rendimento").reduce((s, r) => s + recMensal(r), 0);
+    const rend = S.rendimentos.filter(rd => rd.membroId === m.id && rd.ativo !== false)
+      .reduce((s, rd) => s + fiscalRendimento(rd).liquido, 0);
+    const id = esc(m.id), idade = idadeDe(m);
+    return '<div class="pessoa" style="--rc:' + esc(m.cor || "#2f5fd0") + '">' +
+      '<div class="pessoaTopo">' +
+        '<select class="rostoGrande" data-act="mbIcone" data-id="' + id + '" aria-label="Rosto de ' + esc(m.nome) + '">' +
+          EMOJIS_MEMBRO.map(e => '<option value="' + esc(e) + '"' + (m.icone === e ? " selected" : "") + '>' + esc(e) + '</option>').join("") +
+        '</select>' +
+        '<input class="nomePessoa" data-mb-campo="nome" data-id="' + id + '" value="' + esc(m.nome) + '" aria-label="Nome" maxlength="40">' +
+        '<input type="color" data-act="mbCor" data-id="' + id + '" value="' + esc(m.cor || "#2f5fd0") + '" aria-label="Cor de ' + esc(m.nome) + '" class="corPessoa">' +
+      '</div>' +
+      '<div class="seg pequeno" role="group" aria-label="Adulto ou criança">' +
+        '<button data-act="mbPapel" data-id="' + id + '" data-v="adulto" aria-pressed="' + (m.papel !== "crianca") + '">Adulto</button>' +
+        '<button data-act="mbPapel" data-id="' + id + '" data-v="crianca" aria-pressed="' + (m.papel === "crianca") + '">Criança</button></div>' +
+      '<div class="pessoaAno"><label class="field" for="mbAno-' + id + '">Ano de nascimento <span class="muted">(opc.)</span></label>' +
+        '<input id="mbAno-' + id + '" data-mb-campo="nascimento" data-id="' + id + '" inputmode="numeric" maxlength="4" placeholder="—" value="' + esc(m.nascimento || "") + '">' +
+        (idade != null ? '<span class="muted">' + idade + (idade === 1 ? " ano" : " anos") + '</span>' : "") + '</div>' +
+      '<div class="pessoaNumeros"><span>Rendimento <strong class="pos">' + esc(eur(rend)) + '</strong></span>' +
+        '<span>Despesa <strong class="neg">' + esc(eur(dd)) + '</strong></span></div>' +
+      '<button class="btn sm ghost icon pessoaApagar" data-act="mbApagar" data-id="' + id + '" aria-label="Eliminar ' + esc(m.nome) + '">' + ic("apagar") + '</button>' +
+    '</div>';
+  };
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Agregado familiar</h2>' +
+    '<div class="sub">Quem vive na casa: ' + esc(resumoAgregado()) + '. Serve para ver rendimentos e despesas por pessoa; as crianças contam para o IRS.</div></div></div>' +
+    (S.membros.length ? '<div class="pessoas">' + S.membros.map(pessoa).join("") + '</div>'
+      : '<div class="empty">Ainda sem ninguém. Opcional — mas com as pessoas, as tabelas e os filtros dizem de quem é cada coisa.</div>') +
+    '<div class="row no-print novaPessoa" style="margin-top:12px">' +
+      '<div style="flex:2 1 200px"><label class="field" for="mbNome">Nome</label><input id="mbNome" placeholder="Ex.: Ana" maxlength="40"></div>' +
+      '<div style="flex:1 1 220px;min-width:0;align-self:flex-end;display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn primary" data-act="mbAdd" data-v="adulto">' + ic("mais") + 'Adicionar adulto</button>' +
+        '<button class="btn" data-act="mbAdd" data-v="crianca">' + ic("mais") + 'Adicionar criança</button></div>' +
+    '</div>' +
+    (cr > 0 && cr !== dep ? '<div class="note" style="margin-top:12px">' + (cr === 1 ? "Há 1 criança" : "Há " + cr + " crianças") + ' no agregado e ' +
+      (dep === 1 ? "1 dependente" : dep + " dependentes") + ' na fiscalidade. ' +
+      '<button class="btn sm" data-act="mbDependentes">Usar ' + cr + (cr === 1 ? " dependente" : " dependentes") + ' no IRS</button></div>' : "") +
+  '</div>';
+}
+
+/* As despesas das crianças, por criança: para os pontos de partida com um
+   número de crianças diferente do que o perfil traz feito. */
+const EXTRAS_POR_CRIANCA = [["Creche, escola e ATL", "Educação", 140], ["Alimentação das crianças", "Alimentação", 100],
+  ["Saúde das crianças", "Saúde", 30], ["Roupa e calçado das crianças", "Vestuário", 40], ["Brinquedos e atividades", "Brinquedos", 20]];
+/** As rubricas do ponto de partida, contando as crianças que a pessoa disse ter. */
+function rubricasDoAgregado(agregado, nFilhos, nAdultos){
+  const a = PERFIS_AGREGADO[agregado] || PERFIS_AGREGADO.sozinho;
+  const implicitas = agregado === "familia" ? 2 : 0;
+  if (nFilhos == null || nFilhos === implicitas) return a.rubricas;
+  const base = (nAdultos || a.membros.length) >= 2 ? PERFIS_AGREGADO.casal.rubricas : PERFIS_AGREGADO.sozinho.rubricas;
+  return base.concat(nFilhos > 0 ? EXTRAS_POR_CRIANCA.map(([n, c, v]) =>
+    [n + (nFilhos > 1 ? " (" + nFilhos + ")" : ""), c, v * nFilhos]) : []);
+}
+/** Lê o primeiro passo das boas-vindas para a memória (nomes e crianças). */
+function lerBoasPasso1(){
+  const p = ui.perfil;
+  if (!p) return;
+  const ad = [];
+  for (let k = 0; k < 2; k++){ const el = $("#boasAdulto" + k); if (el) ad[k] = el.value.trim(); }
+  if (ad.length) p.adultos = ad;
+  (p.filhos || []).forEach((fx, k) => {
+    const n = $("#boasFilhoN" + k), a = $("#boasFilhoA" + k);
+    if (n) fx.nome = n.value.trim();
+    if (a) fx.ano = a.value.trim();
+  });
+}
+
+/* ---------------------------------------------------------------
+   Poupança e investimentos regulares
+
+   Uma entrega que se repete (o PPR todos os meses, Certificados de Aforro
+   a cada trimestre, um ETF às sextas) não é uma despesa como a luz: o
+   dinheiro sai da conta, mas fica na família. Por isso tem página própria,
+   conta para a taxa de poupança, e ao lançar o plano dá um aporte no ativo
+   onde entra — que passa a ter a TIR certa sem ninguém escrever nada.
+   --------------------------------------------------------------- */
+const INSTRUMENTOS_POUPANCA = {
+  ppr:        {lbl:"PPR",                          ic:"🧓", cat:"Investimentos"},
+  deposito:   {lbl:"Depósito a prazo",             ic:"🏦", cat:"Poupança programada"},
+  poupanca:   {lbl:"Conta poupança",               ic:"🐖", cat:"Poupança programada"},
+  aforro:     {lbl:"Certificados de Aforro",       ic:"📜", cat:"Poupança programada"},
+  tesouro:    {lbl:"Certificados do Tesouro",      ic:"📜", cat:"Poupança programada"},
+  obrigacoes: {lbl:"Obrigações",                   ic:"🧾", cat:"Investimentos"},
+  etf:        {lbl:"ETF / fundo de índice",        ic:"🌍", cat:"Investimentos"},
+  fundos:     {lbl:"Fundos de investimento",       ic:"🧺", cat:"Investimentos"},
+  acoes:      {lbl:"Ações",                        ic:"📈", cat:"Investimentos"},
+  ouro:       {lbl:"Ouro",                         ic:"🥇", cat:"Investimentos"},
+  cripto:     {lbl:"Criptomoedas",                 ic:"🪙", cat:"Investimentos"},
+  outros:     {lbl:"Outro",                        ic:"💼", cat:"Poupança programada"},
+};
+const instrumentoDe = (k) => INSTRUMENTOS_POUPANCA[k] || INSTRUMENTOS_POUPANCA.outros;
+/** O retorno de referência do instrumento (o mesmo das classes de ativos). */
+const retornoInstrumento = (k) => (CLASSES[k] || CLASSES.outros).ret;
+/** Valor futuro de entregas mensais, à taxa anual dada, ao fim de n anos. */
+function valorFuturoMensal(mensal, taxaAnual, anos){
+  const n = Math.round(anos * 12);
+  const i = Math.pow(1 + taxaAnual / 100, 1 / 12) - 1;
+  return Math.abs(i) < 1e-9 ? mensal * n : mensal * (Math.pow(1 + i, n) - 1) / i;
+}
+const poupancasRegulares = () => S.recorrentes.filter(r => r.poupanca);
+/** O ativo que melhor recebe um instrumento: o ligado, ou o primeiro da mesma classe. */
+const ativoSugerido = (instr) => (S.ativos.find(a => a.classe === instr) || {}).id || "";
+/** Ao lançar o plano, cada entrega vira um aporte no ativo ligado — uma vez por data. */
+function aporteDaPoupanca(r, data, valor){
+  const a = r.ativoId && S.ativos.find(x => x.id === r.ativoId);
+  if (!a || !(valor > 0)) return;
+  if (!Array.isArray(a.aportes)) a.aportes = [];
+  const origem = r.id + "|" + data;
+  if (a.aportes.some(x => x.origem === origem)) return;
+  a.aportes.push({id: uid("ap"), data, valor, origem});
+  a.aquisicao = parseNum(a.aquisicao) + valor;
+  a.atual = parseNum(a.atual) + valor;
+}
+function selectCategoriasPoupanca(id, sel){
+  const cs = S.categorias.filter(c => c.tipo === "despesa" && c.grupo === "poupanca");
+  const lista = cs.length ? cs : S.categorias.filter(c => c.tipo === "despesa");
+  return '<select id="' + esc(id) + '">' + lista.map(c => '<option value="' + esc(c.id) + '"' + (c.id === sel ? " selected" : "") + '>' +
+    esc((c.icone ? c.icone + " " : "") + c.nome) + '</option>').join("") + '</select>';
+}
+
+function viewPoupanca(){
+  const ed = editando.pp ? S.recorrentes.find(r => r.id === editando.pp && r.poupanca) : null;
+  const f = ed || {instrumento: "ppr", frequencia: "mensal"};
+  const instr = f.instrumento || "ppr";
+  const catOmissao = catPorNome(instrumentoDe(instr).cat);
+  const ativoSel = ed ? (f.ativoId || "") : ativoSugerido(instr);
+
+  const form =
+    '<div class="form no-print"><h3>' + (ed ? "Editar poupança regular" : "Nova poupança ou investimento regular") + '</h3>' +
+    '<div class="row">' +
+      '<div style="flex:2 1 200px"><label class="field" for="ppNome">Designação</label>' +
+        '<input id="ppNome" placeholder="Ex.: PPR da Ana" maxlength="60" value="' + esc(f.nome || "") + '"></div>' +
+      '<div style="flex:1 1 190px"><label class="field" for="ppInstrumento">Onde vai o dinheiro</label>' +
+        '<select id="ppInstrumento" data-act="ppInstr">' + Object.entries(INSTRUMENTOS_POUPANCA).map(([k, x]) =>
+          '<option value="' + k + '"' + (instr === k ? " selected" : "") + '>' + esc(x.ic + " " + x.lbl) + '</option>').join("") + '</select></div>' +
+      '<div style="flex:0 0 120px"><label class="field" for="ppValor">Valor (€)</label>' +
+        '<input id="ppValor" inputmode="decimal" placeholder="0,00" value="' + valEur(f.valor) + '"></div>' +
+      '<div style="flex:0 0 170px"><label class="field" for="ppFreq">Periodicidade</label>' +
+        '<select id="ppFreq">' + Object.entries(FREQ).map(([k, v]) =>
+          '<option value="' + k + '"' + (f.frequencia === k ? " selected" : "") + '>' + esc(v.lbl) + '</option>').join("") + '</select></div>' +
+      '<div style="flex:0 0 110px"><label class="field" for="ppDia">Dia do mês <span class="muted">(opc.)</span></label>' +
+        '<input id="ppDia" inputmode="numeric" maxlength="2" placeholder="—" value="' + esc(f.dia || "") + '"></div>' +
+    '</div>' +
+    '<div class="row" style="margin-top:9px">' +
+      '<div style="flex:1 1 200px"><label class="field" for="ppAtivo">Entra no ativo <span class="muted">(opc.)</span></label>' +
+        '<select id="ppAtivo"><option value="">— sem ligação —</option>' + S.ativos.map(a =>
+          '<option value="' + esc(a.id) + '"' + (a.id === ativoSel ? " selected" : "") + '>' + esc(a.nome + " · " + classeDe(a.classe).lbl) + '</option>').join("") + '</select></div>' +
+      '<div style="flex:1 1 170px"><label class="field" for="ppCat">Categoria</label>' + selectCategoriasPoupanca("ppCat", f.categoriaId || catOmissao) + '</div>' +
+      '<div style="flex:1 1 130px"><label class="field" for="ppMembro">Membro</label>' + selectMembros("ppMembro", f.membroId) + '</div>' +
+      '<div style="flex:0 0 150px"><label class="field" for="ppInicio">Início (opc.)</label><input type="month" id="ppInicio" value="' + esc(mesDoDia(f.inicio) || "") + '"></div>' +
+      '<div style="flex:0 0 150px"><label class="field" for="ppFim">Fim (opc.)</label><input type="month" id="ppFim" value="' + esc(mesDoDia(f.fim) || "") + '"></div>' +
+    '</div>' +
+    '<div class="actions"><button class="btn primary" data-act="ppSalvar">' + (ed ? "Guardar alterações" : "Adicionar") + '</button>' +
+      (ed ? '<button class="btn ghost" data-act="cancelarEd" data-k="pp">Cancelar</button>' : "") + '</div></div>';
+
+  const itens = poupancasRegulares();
+  const ativas = itens.filter(r => recAtiva(r, MES));
+  const mensal = ativas.reduce((t, r) => t + recMensal(r), 0);
+  const p = planoMes(MES), real = realMes(MES);
+  const taxa = p.rend > 0 ? (p.saldo + (p.poup || 0)) / p.rend * 100 : 0;
+  const proj10 = ativas.reduce((t, r) => t + valorFuturoMensal(recMensal(r), retornoInstrumento(r.instrumento), 10), 0);
+
+  const linhas = itens.map(r => {
+    const x = instrumentoDe(r.instrumento), ativa = recAtiva(r, MES);
+    const a = r.ativoId && S.ativos.find(z => z.id === r.ativoId);
+    return '<div class="ppItem' + (ativa ? "" : " inativa") + '">' +
+      '<span class="ppIc" aria-hidden="true">' + x.ic + '</span>' +
+      '<div class="ppTxt"><strong>' + esc(r.nome || x.lbl) + '</strong>' + (ativa ? "" : ' <span class="tag">inativa</span>') +
+        '<span class="muted">' + esc(x.lbl) + ' · ' + esc(rotuloFrequencia(r)) + (r.dia ? " · dia " + esc(r.dia) : "") +
+        (a ? ' · entra em <strong>' + esc(a.nome) + '</strong>' : "") + (r.membroId ? " · " + esc(membroRotulo(r.membroId)) : "") + '</span></div>' +
+      '<div class="ppVal"><strong class="num">' + esc(eur(parseNum(r.valor))) + '</strong>' +
+        (r.frequencia !== "mensal" ? '<span class="muted num">' + esc(eur(recMensal(r))) + '/mês</span>' : "") + '</div>' +
+      '<div class="ppAcoes no-print">' +
+        '<button class="btn sm ghost" data-act="recToggle" data-id="' + esc(r.id) + '" title="Ativar/desativar" aria-label="Ativar ou desativar">' + (r.ativo === false ? "○" : "●") + '</button>' +
+        '<button class="btn sm ghost icon" data-act="ppEditar" data-id="' + esc(r.id) + '" aria-label="Editar">' + ic("editar") + '</button>' +
+        '<button class="btn sm ghost icon" data-act="recApagar" data-id="' + esc(r.id) + '" aria-label="Eliminar">' + ic("apagar") + '</button></div>' +
+    '</div>';
+  }).join("");
+
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Poupança e investimento regular</h2>' +
+      '<div class="sub">O que põe de lado todos os meses (ou a cada trimestre, ou às sextas): PPR, depósitos, Certificados, ETF, ações, cripto. ' +
+      'Sai do saldo como uma despesa, mas conta à parte — é dinheiro que fica na família.</div></div></div>' + form +
+    '<div class="grid g4" style="margin:16px 0">' +
+      kpi("Por mês", eur(mensal), ativas.length + (ativas.length === 1 ? " entrega ativa" : " entregas ativas"), "accent") +
+      kpi("Por ano", eur(mensal * 12), "Ao ritmo deste mês", "good") +
+      kpi("Taxa de poupança prevista", pct(taxa), "O que sobra mais o que poupa, sobre o rendimento", taxa >= 20 ? "good" : taxa >= 10 ? "warnb" : "bad") +
+      kpi("Já entregue este mês", eur(real.poup || 0), "Movimentos marcados como poupança", "") +
+    '</div>' +
+    (itens.length ? '<div class="ppLista">' + linhas + '</div>' +
+      '<div class="note" style="margin-top:12px">Ao mesmo ritmo, em <strong>10 anos</strong> entrega ' + esc(eur(mensal * 120)) +
+        ' e, com os retornos de referência de cada instrumento, isso poderá valer cerca de <strong>' + esc(eur(proj10)) + '</strong>. ' +
+        'É uma estimativa, antes de impostos e sem garantias — os mercados sobem e descem.</div>' +
+      '<div class="note no-print" style="margin-top:10px">Em <strong>Lançar o plano deste mês</strong>, as entregas mensais e em dias da semana viram movimentos marcados como poupança e, quando há um ativo ligado, aportes nesse ativo.</div>'
+      : '<div class="empty">Ainda sem poupança regular. Comece por uma pequena entrega mensal — o hábito vale mais do que o valor.</div>') +
+  '</div>';
+}
+Object.assign(ACOES, {
+  ppInstr(el){
+    // Mudar o instrumento acerta a categoria e sugere o ativo da mesma classe
+    const k = el.value, c = catPorNome(instrumentoDe(k).cat), cs = $("#ppCat"), as = $("#ppAtivo");
+    if (cs && Array.prototype.some.call(cs.options, o => o.value === c)) cs.value = c;
+    const sug = ativoSugerido(k);
+    // O ativo segue o instrumento, a não ser que alguém o tenha escolhido à mão
+    if (as && !as.dataset.escolhidaAMao) as.value = sug;
+  },
+  ppSalvar(){
+    const nome = $("#ppNome").value.trim();
+    const valor = parseNum($("#ppValor").value);
+    if (!nome){ invalido("ppNome", "Indique a designação."); return; }
+    if (!(valor > 0)){ invalido("ppValor", "Indique um valor."); return; }
+    const ini = $("#ppInicio").value, fim = $("#ppFim").value;
+    if (ini && fim && fim < ini){ invalido("ppFim", "O fim é anterior ao início."); return; }
+    const diaBruto = $("#ppDia").value.trim();
+    if (diaBruto && !diaDoMesValido(diaBruto)){ invalido("ppDia", "O dia do mês vai de 1 a 31."); return; }
+    const instrumento = INSTRUMENTOS_POUPANCA[$("#ppInstrumento").value] ? $("#ppInstrumento").value : "outros";
+    const dados = {tipo: "despesa", poupanca: true, instrumento, nome, valor: Math.abs(valor),
+      frequencia: FREQ[$("#ppFreq").value] ? $("#ppFreq").value : "mensal",
+      categoriaId: $("#ppCat").value || catPorNome(instrumentoDe(instrumento).cat),
+      membroId: $("#ppMembro").value, ativoId: $("#ppAtivo").value,
+      dia: diaDoMesValido(diaBruto), inicio: ini ? ini + "-01" : "", fim: fim ? fim + "-01" : ""};
+    alterar(() => {
+      const ed = editando.pp && S.recorrentes.find(r => r.id === editando.pp);
+      if (ed){ Object.assign(ed, dados); editando.pp = null; }
+      else S.recorrentes.push(Object.assign({id: uid("rec"), ativo: true}, dados));
+      // Um ativo sem reforço mensal previsto passa a ter este, para as projeções
+      const a = dados.ativoId && S.ativos.find(x => x.id === dados.ativoId);
+      if (a && !(parseNum(a.contribuicao) > 0) && dados.frequencia === "mensal") a.contribuicao = dados.valor;
+    }, "poupança regular");
+    toast("Poupança regular guardada.");
+  },
+  ppEditar(el){ editando.pp = el.dataset.id; render(); window.scrollTo({top: 0}); },
+});
 
 ACOES.sincIr = () => { fecharMenus(); irPagina("config"); setTimeout(() => { const e = $("#cfgSinc"); if (e) e.scrollIntoView({block:"start"}); }, 0); };
 

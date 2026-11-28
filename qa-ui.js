@@ -2639,7 +2639,7 @@ G("rostos dos membros");
      "todos os membros têm rosto e cor");
   ok(qq('[data-act="mbIcone"]').length === S.membros.length, "cada um tem seletor de emoji");
   ok(qq('[data-act="mbCor"]').length === S.membros.length, "e de cor");
-  ok(/rosto/i.test(texto()) || q(".rosto") != null, "a tabela mostra a pastilha do rosto");
+  ok(qq(".pessoas .pessoa .rostoGrande").length === S.membros.length, "cada pessoa é um cartão com o rosto à vista");
 
   // Mudar o emoji pelo select — o clique não serve num select
   var sel = q('[data-act="mbIcone"]');
@@ -3373,7 +3373,10 @@ G("arranque por perfil e estados vazios");
   // A habitação é ortogonal: qualquer agregado combina com qualquer casa
   clicar('[data-act="perfilAgregado"][data-k="sozinho"]');
   eq(ui.perfil.agregado, "sozinho", "escolher o agregado guarda-o");
-  eq(ui.boasPasso, 2, "e avança para a casa");
+  eq(ui.boasPasso, 1, "e fica no primeiro passo, a perguntar quem são");
+  ok(q("#boasAdulto0") != null, "com o nome de quem vive lá");
+  clicar('[data-act="boasPasso"][data-v="2"]');
+  eq(ui.boasPasso, 2, "«Seguinte» avança para a casa");
   eq(qq('[data-act="perfilHabitacao"]').length, Object.keys(PERFIS_HABITACAO).length, "que oferece as habitações");
   eq(qq('[data-act="perfilRegime"]').length, 0, "a arrendar não há regime a escolher");
   clicar('[data-act="perfilHabitacao"][data-k="propria"]');
@@ -3382,6 +3385,7 @@ G("arranque por perfil e estados vazios");
   eq(ui.boasPasso, 1, "«Voltar» recua um passo");
   eq(ui.perfil.habitacao, "propria", "sem esquecer o que já se escolheu");
   clicar('[data-act="perfilAgregado"][data-k="sozinho"]');
+  clicar('[data-act="boasPasso"][data-v="2"]');
   clicar('[data-act="boasPasso"][data-v="3"]');
   eq(ui.boasPasso, 3, "«Seguinte» leva ao rendimento");
   ok(q("#boasBruto") != null, "que pede o vencimento bruto");
@@ -3688,6 +3692,7 @@ G("aviso de uso responsável ao criar um perfil");
   clicar('[data-act="boasPasso"][data-v="1"]');
 
   clicar('[data-act="perfilAgregado"]');
+  clicar('[data-act="boasPasso"][data-v="2"]');
   clicar('[data-act="boasPasso"][data-v="3"]');
   var texto = q("#app").innerText;
   ok(/gratuita, sem fins lucrativos/i.test(texto), "o ecrã de boas-vindas avisa que a ferramenta é gratuita e sem fins lucrativos");
@@ -3770,6 +3775,7 @@ G("boas-vindas: o vencimento do terceiro passo");
   localStorage.removeItem(STORE_KEY);
   S = estadoVazio(); MES = isoMes(hoje()); contextoLimpo(); irPara("painel");
   clicar('[data-act="perfilAgregado"][data-k="casal"]');
+  clicar('[data-act="boasPasso"][data-v="2"]');
   clicar('[data-act="boasPasso"][data-v="3"]');
   preencher("boasBruto", "1.600,00");
   clicar('[data-act="perfilAplicar"]');
