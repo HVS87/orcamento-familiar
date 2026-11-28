@@ -10,6 +10,10 @@ const falhas = [];
 const ok = (c, nome, det) => { if (c) passes++; else { falhas.push(nome + (det != null ? " — " + det : "")); console.log("  FALHOU: " + nome + (det != null ? " — " + det : "")); } };
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
+/* O ficheiro que se oferece para reinstalar depende do sistema onde corre o teste */
+const DO_SISTEMA = process.platform === "win32" ? /-instalador\.exe$/
+  : process.platform === "darwin" ? (process.arch === "arm64" ? /-mac-arm64\.dmg$/ : /-mac-x64\.dmg$/)
+  : /\.AppImage$/;
 
 const pagina = (v, shellMin, extra) => '<!doctype html><script>const VERSAO_APP = "' + v + '";\nconst VERSAO_SHELL_MINIMA = "' + (shellMin || "2.3.0") + '";' + (extra || "") + "</script>";
 function release(versao, opts){
@@ -71,7 +75,7 @@ function montar(embutida, shell, rel, extra){
   ok((await t.at.procurar()).estado === "atual", "uma Release mais antiga não é «nova»");
   t.estado.rel = release("2.4.0", {semHtml: true});
   r = await t.at.procurar();
-  ok(r.estado === "reinstalar" && /instalador\.exe$/.test(r.descarregar), "sem a página na Release: oferece o instalador para este sistema", r.descarregar);
+  ok(r.estado === "reinstalar" && DO_SISTEMA.test(r.descarregar), "sem a página na Release: oferece o ficheiro certo para este sistema", r.descarregar);
 
   console.log("— instalar e aplicar");
   t.estado.rel = release("2.4.0");
@@ -99,7 +103,7 @@ function montar(embutida, shell, rel, extra){
   ok(r.estado === "erro" && /não é da versão/.test(r.erro), "uma página com outra versão lá dentro: recusa", r.erro);
   t.estado.rel = release("2.6.0", {shellMin: "3.0.0"});
   r = await t.at.instalar();
-  ok(r.estado === "reinstalar" && r.shellMinima === "3.0.0" && /instalador\.exe$/.test(r.descarregar), "pede uma aplicação mais nova: não instala, oferece o instalador", JSON.stringify(r));
+  ok(r.estado === "reinstalar" && r.shellMinima === "3.0.0" && DO_SISTEMA.test(r.descarregar), "pede uma aplicação mais nova: não instala, oferece o ficheiro deste sistema", JSON.stringify(r));
   ok(t.at.versoes().ativa === "2.4.0", "e continua na que estava");
 
   console.log("— uma página que não arranca");
