@@ -10,7 +10,7 @@
 
    Só trata do que é da própria origem: pedidos para fora, se algum dia
    houver, passam ao lado sem serem tocados. */
-const CACHE = "orcamento-familiar-v5";   // 2.2.0 — muda a cada versão, para a cópia antiga sair
+const CACHE = "orcamento-familiar-v6";   // 2.3.0 — muda a cada versão, para a cópia antiga sair
 const ATIVOS = ["./", "./index.html", "./orcamento-familiar.html", "./manifest.json",
   "./icones/icone-192.png", "./icones/icone-512.png", "./icones/icone-512-mascara.png"];
 
@@ -38,6 +38,8 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // «Procurar atualizações» quer a página do servidor, não a cópia guardada
+  if (url.searchParams.has("sem-cache")) return;
 
   e.respondWith(
     caches.open(CACHE).then((cache) =>

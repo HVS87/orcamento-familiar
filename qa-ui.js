@@ -4496,7 +4496,7 @@ G("todas as ações do registo, disparadas uma a uma");
                     (têm a sua própria suite, a qa-sinc.js) */
                  "ecra2Abrir", "ecra2Menu", "ecra2Trocar", "ecra2Fechar", "ecra2Apresentacao",
                  "sincCriar", "sincEntrar", "sincLerQR", "sincAgora", "sincCopiar", "sincDesligar", "sincGuardarAvancado",
-                 "appPastaCopias", "appMenuInstalar"];
+                 "appPastaCopias", "appMenuInstalar", "atualProcurar", "atualInstalar", "atualDescarregar"];
   var vistaDe = {rd:"rendimento", cp:"rendimento", comp:"rendimento", mv:"despesas", rec:"despesas",
     lim:"despesas", corte:"despesas", plan:"despesas", lote:"despesas", regra:"despesas",
     obj:"objetivos", cr:"credito", amort:"credito", pat:"ativos", fluxo:"ativos", aporte:"ativos",

@@ -51,6 +51,12 @@ As páginas de cada destino aparecem em fichas por baixo do título, e um destin
 - **Ligações sublinhadas**
 - **Explicadores** ligados ou desligados
 
+## ✨ Novidades da versão 2.3
+
+- **Atualizações sem reinstalar** — no computador e no telemóvel, com os dados e as preferências intactos. Ver [Atualizações](#-atualizações)
+- A sincronização passa a dizer o formato e a versão de cada aparelho; aparelhos em versões diferentes continuam a sincronizar
+- O aviso das boas-vindas explica o que acontece aos dados com a sincronização ligada
+
 ## ✨ Novidades da versão 2.2
 
 - **Acessibilidade** numa secção própria das Definições, com **cores para cada forma de daltonismo** — ver [Acessibilidade](#-acessibilidade)
@@ -667,6 +673,15 @@ Passos 4 e 5 podem trocar de ordem: se criar o ativo primeiro, a ligação faz-s
 
 Manutenção periódica sugerida: atualizar cotações uma vez por mês ou por trimestre (botão ↻), registar cada aporte com a sua data para o retorno ser calculado por TIR, rever o valor dos imóveis uma vez por ano, e atualizar o indexante quando a Euribor se mexer.
 
+## ⬆️ Atualizações
+
+*Definições → Atualizações*: o botão **Procurar atualizações** e a opção **Procurar sempre atualizações ao iniciar** (ligada por omissão). Quem tem a 2.3 ou mais recente já não precisa de reinstalar nada.
+
+- **Aplicação de secretária** (Windows portátil ou instalado, Mac, Linux) — descarrega a página nova da Release do GitHub (`orcamento-familiar-X.html`), confere-a pela soma em `SHA256SUMS-X.txt` e guarda-a na pasta de dados; o protocolo próprio passa a servi-la. O executável não muda, por isso funciona no portátil e no Mac sem assinatura. A página que veio com o executável fica de reserva: uma versão nova que não diga que arrancou em 20 segundos é posta de parte e a aplicação volta à anterior. Quando uma página precisa de uma aplicação mais recente (`VERSAO_SHELL_MINIMA`), oferece-se o ficheiro certo para o sistema
+- **Telemóvel e navegador** — o service worker já trazia a versão nova; procurar lê a versão no servidor sem passar pela cache, e «Atualizar» põe o service worker novo a mandar e recarrega
+- **Dados e sincronização** — o endereço não muda, por isso o armazenamento fica; antes de recarregar, a sincronização envia o que tiver por enviar. As mensagens levam o formato (`FORMATO_SINC`) e a versão de quem as envia: versões diferentes sincronizam, e um formato mais novo é posto de parte pelo aparelho mais antigo, que pede para se atualizar
+- Procurar pergunta só qual é a versão mais recente; não envia dados
+
 ## 🔄 Sincronizar aparelhos
 
 *Definições → Sincronizar*. Num aparelho cria-se um código e aparece um QR; no outro aponta-se a câmara (ou escreve-se o código, em cinco grupos de cinco). A partir daí, cada alteração segue para os outros aparelhos ligados com o mesmo código — dois, três, os que forem.
@@ -742,10 +757,10 @@ Organização do código dentro do `<script>`:
 Cinco suites, mais de 24 600 asserções (e a da sincronização), e uma varredura de desenho, executadas dentro da própria aplicação (a contagem exata varia com a largura da janela: alguns grupos medem o que só existe num tamanho de ecrã, e dizem-no em vez de fingir que mediram). Para as correr, abra a app e cole na consola:
 
 ```js
-["/qa.js","/qa-ui.js","/qa-limites.js","/qa-fuzz.js","/qa-sinc.js","/qa-varrer.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
+["/qa.js","/qa-ui.js","/qa-limites.js","/qa-fuzz.js","/qa-sinc.js","/qa-atualizar.js","/qa-varrer.js"].reduce((p,src)=>p.then(()=>new Promise(r=>{
   const s=document.createElement("script"); s.src=src+"?"+Date.now(); s.onload=r; document.head.appendChild(s);
 })), Promise.resolve()).then(()=>console.log(__QA,__QAUI,__QALIM,__QAFUZZ,__QAVARRER));
-// a qa-sinc.js é assíncrona (cifra e rede): espere por window.__QASINC
+// a qa-sinc.js e a qa-atualizar.js são assíncronas: espere por window.__QASINC e window.__QAATUAL
 ```
 
 | Ficheiro | O que cobre | Asserções |
@@ -755,6 +770,8 @@ Cinco suites, mais de 24 600 asserções (e a da sincronização), e uma varredu
 | `qa-limites.js` | casos adversos: valores absurdos, referências quebradas, fronteiras temporais, compras planeadas com datas impossíveis, volume, identidades contabilísticas | 6604 |
 | `qa-fuzz.js` | estados aleatórios: 58 agregados inteiros gerados ao acaso (membros, rendimentos, rubricas, movimentos, ativos, créditos, objetivos e compras planeadas, com valores hostis à mistura) mais um **macaco** que dá 45 cliques ao acaso sobre 8 desses agregados — na página, na barra de destinos e no painel lateral —, verificando as invariantes a cada passo; **ida e volta pelo disco** (a forma canónica roda igual, `normalizar` é ponto fixo, reler não regrava); **desfazer tudo devolve o princípio** ao byte, depois de 16 ações ao acaso; **migração** de 18 ficheiros antigos ou malformados; e a **matriz de aparência** inteira — 5 paletas × 2 densidades × 3 tamanhos de texto × 2 contrastes × 9 vistas, sem transbordo horizontal (a medida do transbordo fica de fora quando a janela não tem largura — num separador oculto qualquer conteúdo «transborda» zero pixels, e a suite di-lo em vez de fingir que mediu, o que explica a variação na contagem). O gerador cobre também os campos mais recentes — dia do mês com valores impossíveis, notas e meses fechados com chaves inválidas, instantâneos do património com números não finitos, membros com e sem rosto. Verifica ainda, em cada agregado, que as provisões cabem no total de cada rubrica, que a saúde financeira fica entre 0 e 100, e que **simular um cenário de vida nunca altera o orçamento** | 11 000+ |
 | `qa-sinc.js` | **sincronização, dois ecrãs, telemóvel e instalação**: peças e versões (partir e montar dá o mesmo, chaves com pontos e barras, ids repetidos), juntar caso a caso (cada lado mudou uma coisa diferente, a mesma coisa nos dois, apagar depois e antes da última alteração do outro, criados dos dois lados com a mesma ordem), as três propriedades em 60 casos ao acaso (comutativa, associativa, idempotente), identificadores alinhados, o que não viaja, código e cifra (125 bits, mesma caixa para o mesmo código escrito de outra maneira, nada às claras nos bytes, um byte mudado recusado), estrutura do QR, dois aparelhos por uma caixa de faz-de-conta (o essencial, rede em baixo, anexos expirados, envios falhados, outra família na mesma caixa, mensagens velhas, uma alteração feita durante a junção), primeiro encontro (aparelho novo e dois orçamentos diferentes), **12 conversas ao acaso entre dois e três aparelhos** com pausas, anexos a expirar e mensagens baralhadas — acabam todos iguais e nenhum movimento criado se perde —, a página (criar, emparelhar pela ligação do QR, esperar por quem escreve, desfazer, «Apagar tudo» desliga primeiro), uma troca real pelo ntfy.sh em que o serviço só vê texto cifrado, a janela companheira (avisos, detalhes no outro ecrã, complementos), o telemóvel (página até às bordas, margens seguras dos quatro lados, campos a 16 px ao toque, diálogos pela altura visível, os atalhos do ícone cumpridos e tirados do endereço, o aviso do Safari no iPhone com o código em grupos, e o leitor de QR com câmara e leitor de faz-de-conta — lê, liga, desliga a câmara, e sem licença diz o que fazer), e «Instalar como app» no Android, Samsung Internet e iPhone | 261 |
+| `qa-atualizar.js` | **atualizações**: versões comparadas por números, a definição de procurar ao iniciar (ligada por omissão, no aparelho, fora da sincronização), o arranque com e sem ela, a secção e cada estado por palavras, procurar na web (servidor sem cache, versão nova, em dia, erro do servidor, página sem versão, sem rede, em silêncio, duas ao mesmo tempo, nada guardado pelo service worker), atualizar só depois de a sincronização enviar (com tecto de 8 s se a rede encravar), e a sincronização entre versões (formato e versão nas mensagens, versões diferentes juntam, formato mais novo posto de parte, o cartão a dizer quem tem versão mais recente) | 63 |
+| `desktop/testes/atualizacoes.js` | o atualizador da aplicação de secretária em Node, com uma Release em memória: em dia, disponível, sem a página na Release, instalar e servir (com o resto a vir do executável e nada fora das pastas), soma errada, versão trocada, aplicação demasiado antiga, uma página que não arranca e volta atrás, reinstalar mais recente, e uma atualização que pede mais do que a aplicação tem | 33 |
 | `desktop/testes/qr.js` | o QR da página lido por um leitor independente (jsQR), das versões 1 a 10, em duas escalas | 94 |
 | `desktop/testes/e2e.js` | **a aplicação de secretária de ponta a ponta**, com dois ecrãs simulados: origem e isolamento, identificador do navegador só em ASCII, ficheiros da aplicação legíveis pelo protocolo próprio, as seis suites dentro dela, a companheira no segundo ecrã a seguir a principal (página, mês, detalhes, gravações nos dois sentidos), apresentação em ecrã inteiro, trocar de ecrã, um ecrã a desligar-se e a ligar-se, abrir sozinha, cópia diária, dados e janelas entre arranques, um fecho à força, instância única. Corre também contra o executável empacotado (`ORCAMENTO_EXE=…`) | 52 |
 | `qa-varrer.js` | **varredura de desenho**, a correr com a janela no tamanho a medir: todas as páginas, as três vistas dos movimentos, os menus, o painel lateral (ferramentas e detalhes), os diálogos e os três passos das boas-vindas, nos dois modos, e ainda a sincronização (por ligar, com o QR, ligada a dois, opções avançadas, e o emparelhar no iPhone), a companheira (com página fixa e em apresentação) — 90 estados por tamanho. Procura página a andar de lado, lixo no ecrã (`NaN`, `undefined`), identificadores repetidos, botões sem nome, alvos abaixo de 24 px, menus fora do ecrã e o que está escondido mas à vista. Corrida a 320×640, 375×812 (com toque), 390×844, 844×390, 768×1024, 960×640, 1024×768 e 1440×900, sem nenhum problema | 90 por tamanho |

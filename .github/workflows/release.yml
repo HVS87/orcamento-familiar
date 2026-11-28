@@ -46,6 +46,9 @@ jobs:
       - name: O código QR lê-se
         run: node testes/qr.js
 
+      - name: Atualizações (descarregar, conferir, voltar atrás)
+        run: node testes/atualizacoes.js
+
       - name: Compilar
         run: npm run build:${{ matrix.alvo }}
         env:

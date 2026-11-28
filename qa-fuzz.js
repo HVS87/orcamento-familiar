@@ -428,7 +428,7 @@ G("macaco — sequências aleatórias de ações");
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
                    "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
                    "ecra2Apresentacao","sincCriar","sincEntrar","sincLerQR","sincAgora","sincCopiar","sincDesligar",
-                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
+                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar","atualProcurar","atualInstalar","atualDescarregar"];
   var CORRIDAS = 8, PASSOS = 45;
 
   for (var c = 0; c < CORRIDAS; c++){
@@ -547,7 +547,7 @@ G("desfazer tudo devolve o princípio");
   var PROIBIDOS = ["limpar","importJSON","exportJSON","exportCSV","exportPatrimonioCSV",
                    "imprimir","tutorialIniciar","ecra2Abrir","ecra2Menu","ecra2Trocar","ecra2Fechar",
                    "ecra2Apresentacao","sincCriar","sincEntrar","sincLerQR","sincAgora","sincCopiar","sincDesligar",
-                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar"];
+                   "sincGuardarAvancado","appPastaCopias","appInstalar","appMenuInstalar","atualProcurar","atualInstalar","atualDescarregar"];
   var vistas = ["painel","despesas","ativos","creditos","objetivos"];
 
   for (var c = 0; c < 8; c++){

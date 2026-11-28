@@ -2701,6 +2701,10 @@ const AJUDAS_CAMPO = {
 };
 
 const AJUDAS_ACAO = {
+  atualProcurar:["Procurar atualizações", "Pergunta qual é a versão mais recente e diz se há uma nova. Não envia dados seus.", ""],
+  atualInstalar:["Atualizar agora", "Instala a versão nova e recarrega. Os dados e as preferências ficam como estão, e a sincronização envia antes o que tiver por enviar.", ""],
+  atualAuto:  ["Procurar ao iniciar", "Ligado, procura uma versão nova a cada arranque e avisa só se houver.", ""],
+  atualDescarregar:["Descarregar a aplicação nova", "Abre no navegador o ficheiro da aplicação de secretária certo para este sistema, para instalar uma vez.", ""],
   acessVisao: ["Visão das cores", "Ajusta o positivo, o negativo, o aviso e as cores dos gráficos a uma forma de daltonismo, ou a quem não vê cores. A pré-visualização mostra a diferença como essa pessoa a vê.", ""],
   acessGraficos:["Cores dos gráficos", "Com uma visão escolhida, os gráficos e as listas usam cores seguras para ela; as cores de cada categoria ficam guardadas como estão.", ""],
   acessMovimento:["Movimento", "Reduzido desliga animações e transições, mesmo que o sistema as tenha ligadas.", ""],
@@ -2990,6 +2994,7 @@ function estadoVazio(){
     visao: "padrao",       // padrao | protanopia | deuteranopia | tritanopia | acromatopsia
     coresGraficos: true,   // com uma visão escolhida, os gráficos usam cores seguras para ela
     movimento: "auto",     // auto (o do sistema) | reduzido
+    procurarAtualizacoes: true, // procurar uma versão nova ao iniciar
     foco: "normal",        // normal | forte
     ligacoes: "normal",    // normal | sublinhadas
     // `ocultos: null` significa «nunca configurado»: quem resolve é o
@@ -3367,6 +3372,7 @@ function normalizar(d){
   out.movimento = d.movimento === "reduzido" ? "reduzido" : "auto";
   out.foco = d.foco === "forte" ? "forte" : "normal";
   out.ligacoes = d.ligacoes === "sublinhadas" ? "sublinhadas" : "normal";
+  out.procurarAtualizacoes = d.procurarAtualizacoes !== false;
   out.comparar = !!d.comparar;
   out.regrasCategoria = (Array.isArray(d.regrasCategoria) ? d.regrasCategoria : [])
     .filter(r => r && typeof r.padrao === "string" && r.padrao.trim())
@@ -3590,7 +3596,7 @@ function refazer(){
    arrumar uma sugestão ou reordenar os cartões do painel não faz de uns
    dados de demonstração um orçamento de alguém. */
 const CHAVES_INTERFACE = ["paleta", "densidade", "texto", "contraste", "painel",
-  "visao", "coresGraficos", "movimento", "foco", "ligacoes",
+  "visao", "coresGraficos", "movimento", "foco", "ligacoes", "procurarAtualizacoes",
   "dicasOcultas", "tutorialVisto", "comparar", "exemploDemo",
   "recorrenciasIgnoradas"];
 /** Alguma coisa mudou para lá da interface, entre estas duas fotografias? */
@@ -12535,6 +12541,7 @@ function viewConfig(){
     ["cfgAparencia", "Aparência",     aparencia],
     ["cfgDados",     "Dados e cópias",dados + '<div style="height:16px"></div>' + cartaoSaudeDados()],
     ["cfgSinc",      "Sincronizar",   cartaoSinc()],
+    ["cfgAtualizacoes", "Atualizações", cartaoAtualizacoes()],
     ["cfgEcras",     "Dois ecrãs",    cartaoEcras()],
     ["cfgAplicacao", DESKTOP ? "Aplicação" : podeInstalar() ? "Instalar como app" : "Aplicação", cartaoAplicacao()],
     ["cfgSobre",     "Sobre",         sobre],
@@ -17883,7 +17890,11 @@ const reduzMovimento = () => (typeof S !== "undefined" && S && S.movimento === "
    ficou aberta), as fichas grandes abrem-se no lugar ou ao lado, e as
    ações de cada linha aparecem quando o ponteiro passa ou o foco chega.
    --------------------------------------------------------------- */
-const VERSAO_APP = "2.2.0";
+const VERSAO_APP = "2.3.0";
+/* A aplicação de secretária mais antiga que consegue correr esta página. Sobe
+   só quando a página precisar de algo novo do processo principal; até lá, as
+   versões novas chegam à aplicação de secretária sem reinstalar. */
+const VERSAO_SHELL_MINIMA = "2.3.0";
 
 /** Que lista cada formulário alimenta — vazia, o formulário é o ponto de partida. */
 const FORM_TEM_LISTA = {
@@ -18682,11 +18693,15 @@ function qrSVG(texto, rotulo){
    - O que é do aparelho (tema, paleta, tamanho do texto…) não viaja.
    --------------------------------------------------------------- */
 const SINC_KEY = "orcamento-familiar-sinc";
+/* O formato das mensagens. Sobe só se a forma do que viaja mudar; um aparelho
+   que receba um formato mais novo do que o seu ignora-o em segurança e pede
+   para se atualizar, em vez de juntar o que não percebe. */
+const FORMATO_SINC = 1;
 const SINC_VERSOES_KEY = "orcamento-familiar-sinc-versoes";
 const SINC_SERVIDOR = "https://ntfy.sh";
 const PAGINA_ONLINE = "https://hvs87.github.io/orcamento-familiar/orcamento-familiar.html";
 const CHAVES_DO_APARELHO = ["tema", "paleta", "densidade", "texto", "contraste", "ajudas",
-  "visao", "coresGraficos", "movimento", "foco", "ligacoes",
+  "visao", "coresGraficos", "movimento", "foco", "ligacoes", "procurarAtualizacoes",
   "painel", "dicasOcultas", "tutorialVisto", "exemploDemo"];
 const ALFABETO_CODIGO = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -19052,7 +19067,7 @@ function criarSinc(o){
     st.aEnviar = true; o.aoMudar && o.aoMudar();
     try {
       const bytes = await cifrar(o.chave, await comprimir(jsonEstavel({e: L, v: V})));
-      const m = await metaCifrada({t: "estado", de: o.eu.id, nome: o.eu.nome, em: agora(), h});
+      const m = await metaCifrada({t: "estado", de: o.eu.id, nome: o.eu.nome, em: agora(), h, fmt: FORMATO_SINC, va: o.versao || ""});
       await o.transporte.publicarEstado(bytes, m);
       o.meta.gravar({publicado: h});
       st.enviadas++; st.erro = "";
@@ -19067,7 +19082,7 @@ function criarSinc(o){
   async function pedir(){
     if (ultimoPedido && agora() - ultimoPedido < (o.intervaloPedidos == null ? 20000 : o.intervaloPedidos)) return;
     ultimoPedido = agora();
-    await o.transporte.publicarTexto(await metaCifrada({t: "pedido", de: o.eu.id, nome: o.eu.nome, em: agora()}));
+    await o.transporte.publicarTexto(await metaCifrada({t: "pedido", de: o.eu.id, nome: o.eu.nome, em: agora(), fmt: FORMATO_SINC, va: o.versao || ""}));
   }
   /** Junta o que chegou com o que há aqui, sem esperas pelo meio. */
   function juntar(L, R, VR){
@@ -19104,8 +19119,14 @@ function criarSinc(o){
     o.meta.gravar({ultimoId: msg.id});
     if (!info || info.de === o.eu.id) return;      // de outra família, ou deste próprio aparelho
     const pares = Object.assign({}, meta().pares);
-    pares[info.de] = {nome: String(info.nome || "outro aparelho").slice(0, 60), visto: agora()};
+    pares[info.de] = {nome: String(info.nome || "outro aparelho").slice(0, 60), visto: agora(), va: String(info.va || "").slice(0, 20)};
     o.meta.gravar({pares});
+    if ((info.fmt || 1) > FORMATO_SINC){
+      // Formato mais novo do que o deste aparelho: não se junta, pede-se para atualizar
+      st.formatoNovo = info.va || "mais recente";
+      o.aoMudar && o.aoMudar();
+      return;
+    }
     if (info.t === "pedido"){ agendarEnvio(true, 400); return; }
     if (info.t !== "estado" || !msg.attachment) return;
     const ultimos = Object.assign({}, meta().ultimos);
@@ -19293,7 +19314,7 @@ async function sincArrancar(){
     if (!c.codigo || SINC) return;
     const {chave, topico} = await sincChaves(c.codigo);
     SINC = criarSinc({
-      chave, eu: sincAparelho(),
+      chave, eu: sincAparelho(), versao: VERSAO_APP,
       transporte: transporteNtfy(c.servidor || SINC_SERVIDOR, topico),
       ler: sincEstadoLocal,
       aplicar: sincAplicar,
@@ -19410,7 +19431,15 @@ function cartaoSinc(){
   const pares = Object.values(c.pares || {});
   const linhas = [];
   linhas.push(['Este aparelho', esc((c.aparelho || {}).nome || nomeDesteAparelho())]);
-  linhas.push(['Ligado a', pares.length ? pares.map(p => esc(p.nome) + ' <span class="muted">(' + esc(_rel(p.visto)) + ')</span>').join(", ") : '<span class="muted">ainda nenhum — mostre o código no outro aparelho</span>']);
+  linhas.push(['Ligado a', pares.length ? pares.map(p => esc(p.nome) + ' <span class="muted">(' + (p.va ? "versão " + esc(p.va) + ", " : "") + esc(_rel(p.visto)) + ')</span>').join(", ") : '<span class="muted">ainda nenhum — mostre o código no outro aparelho</span>']);
+  /* Um aparelho com versão mais recente: sincronizam na mesma (o formato é o
+     mesmo), mas vale a pena pôr este em dia. Com formato mais novo, este
+     deixa de juntar até se atualizar. */
+  const maisNovo = pares.filter(p => p.va && compararVersoes(p.va, VERSAO_APP) > 0).sort((a, b) => compararVersoes(b.va, a.va))[0];
+  if ((st && st.formatoNovo) || maisNovo) linhas.push(['Versões', '<span class="' + (st && st.formatoNovo ? "neg" : "") + '">' +
+    esc((maisNovo ? maisNovo.nome + " tem a versão " + maisNovo.va : "Outro aparelho tem uma versão mais recente") +
+      (st && st.formatoNovo ? ", que este já não consegue juntar." : ", mais recente do que esta.")) + '</span> ' +
+    '<button class="btn sm" data-act="atualProcurar">' + ic("atualizar") + 'Procurar atualizações</button>']);
   linhas.push(['Estado', esc(c.erro || (st && st.erro) ? "com erro: " + (c.erro || st.erro)
     : !st ? "a ligar…" : !st.online ? "sem ligação ao serviço — tenta de novo sozinho" : "ligado")]);
   if (st && st.ultimaTroca) linhas.push(['Última troca', esc(_rel(st.ultimaTroca)) + (st.comQuem ? " com " + esc(st.comQuem) : "")]);
@@ -19938,6 +19967,219 @@ document.addEventListener("keydown", (e) => {
 });
 Object.assign(ACOES, ACOES_SINC, ACOES_ECRAS, ACOES_INSTALAR, ACOES_ACESS);
 
+/* ---------------------------------------------------------------
+   Atualizações — a versão nova sem reinstalar nada
+
+   Telemóvel e navegador: a aplicação instalada vem do GitHub Pages pelo
+   service worker, que já traz a versão nova por trás; aqui procura-se de
+   propósito (lendo a versão da página no servidor, sem passar pela cache),
+   e «Atualizar» põe o service worker novo a mandar e recarrega.
+
+   Aplicação de secretária: quem procura, descarrega e confere é o processo
+   principal (atualizacoes.js); aqui só se pergunta e se mostra.
+
+   Nos dois casos os dados e as preferências ficam onde estão: o endereço
+   da página não muda, e é a ele que o armazenamento pertence. Antes de
+   recarregar, a sincronização envia o que tiver por enviar.
+   --------------------------------------------------------------- */
+const ATUAL_KEY = "orcamento-familiar-atualizacoes";
+const PAGINA_RELEASES = "https://github.com/HVS87/orcamento-familiar/releases";
+/** Compara versões x.y.z: negativo, zero ou positivo. */
+function compararVersoes(a, b){
+  const pa = String(a || "0").split(/[.-]/).map(n => parseInt(n, 10) || 0);
+  const pb = String(b || "0").split(/[.-]/).map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++){
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+function atualCfg(){
+  try { const c = JSON.parse(localStorage.getItem(ATUAL_KEY) || "null"); return c && typeof c === "object" ? c : {}; }
+  catch(e){ return {}; }
+}
+function atualGravar(patch){
+  const c = Object.assign(atualCfg(), patch);
+  try { localStorage.setItem(ATUAL_KEY, JSON.stringify(c)); } catch(e){}
+  return c;
+}
+/* A transportar entre a procura e o botão: o service worker novo, já instalado */
+let _atualA = false;   // uma operação a decorrer
+/** Envia o que a sincronização tiver por enviar, com tecto: atualizar não pode perder nada. */
+async function sincAntesDeSair(){
+  try { if (window.DESKTOP && DESKTOP.gravado) DESKTOP.gravado(); } catch(e){}
+  if (!SINC) return;
+  try {
+    SINC._registar();
+    await Promise.race([SINC.agora(false), new Promise(r => setTimeout(r, 8000))]);
+  } catch(e){}
+}
+
+/** Na web: lê a versão da página no servidor, passando ao lado da cache. */
+async function procurarWeb(){
+  if (location.protocol.indexOf("http") !== 0)
+    return {estado: "indisponivel", motivo: "Aberta a partir do disco: descarregue a versão nova da página nas Releases."};
+  const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), 15000) : null;
+  try {
+    const r = await fetch(location.pathname + "?sem-cache=" + Date.now(), {cache: "no-store", signal: ctl ? ctl.signal : undefined});
+    if (!r.ok) throw new Error("o servidor respondeu " + r.status);
+    const m = /const VERSAO_APP = "([^"]+)"/.exec(await r.text());
+    if (!m) throw new Error("não se encontrou a versão na página do servidor");
+    const versao = m[1];
+    return {estado: compararVersoes(versao, VERSAO_APP) > 0 ? "disponivel" : "atual", versao, atual: VERSAO_APP, notas: PAGINA_RELEASES};
+  } catch(e){
+    throw new Error(e && e.name === "AbortError" ? "o servidor não respondeu a tempo" : (e.message || String(e)));
+  } finally { if (t) clearTimeout(t); }
+}
+/** Na web: espera que o service worker novo esteja instalado e põe-no a mandar. */
+async function aplicarWeb(){
+  await sincAntesDeSair();
+  const sw = navigator.serviceWorker;
+  const reg = sw && await sw.getRegistration().catch(() => null);
+  if (!reg){ location.reload(); return; }
+  try { await reg.update(); } catch(e){}
+  const espera = (ms) => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 60 && !reg.waiting && reg.installing; i++) await espera(250);
+  if (reg.waiting){
+    let feito = false;
+    sw.addEventListener("controllerchange", () => { if (!feito){ feito = true; location.reload(); } });
+    reg.waiting.postMessage("atualizar-ja");
+    await espera(4000);
+    if (!feito){ feito = true; location.reload(); }
+  } else {
+    location.reload();   // o service worker já é o novo; recarregar traz a página nova
+  }
+}
+
+/** Procura uma versão nova. `silencioso`: ao arrancar, só se diz alguma coisa se houver. */
+async function procurarAtualizacoes(silencioso){
+  if (_atualA || EH_PAINEL) return null;
+  _atualA = true;
+  atualGravar({estado: "a procurar", erro: ""});
+  if (VIEW === "config") pintarAtualizacoes();
+  let r;
+  try {
+    r = DESKTOP && DESKTOP.procurarAtualizacao ? await DESKTOP.procurarAtualizacao() : await procurarWeb();
+    if (r && r.estado === "erro") throw new Error(r.erro);
+  } catch(e){
+    r = {estado: "erro", erro: String(e && e.message || e)};
+  } finally { _atualA = false; }
+  atualGravar(Object.assign({em: Date.now(), erro: ""}, r));
+  if (VIEW === "config") pintarAtualizacoes();
+  if (r.estado === "disponivel" && silencioso){
+    toastComBotao("Há uma versão nova: " + r.versao + ".", (() => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "Atualizar";
+      b.onclick = () => atualizarAgora(); return b;
+    })());
+  } else if (!silencioso){
+    toast(r.estado === "atual" ? "Está na versão mais recente (" + (r.atual || VERSAO_APP) + ")."
+      : r.estado === "disponivel" ? "Há uma versão nova: " + r.versao + "."
+      : r.estado === "reinstalar" ? "A versão " + r.versao + " precisa da aplicação nova — veja em Atualizações."
+      : r.estado === "erro" ? "Não foi possível procurar: " + r.erro
+      : (r.motivo || "Sem atualizações aqui."));
+  }
+  return r;
+}
+/** Instala e passa a usar a versão nova. */
+async function atualizarAgora(){
+  if (_atualA) return;
+  _atualA = true;
+  try {
+    if (DESKTOP && DESKTOP.instalarAtualizacao){
+      atualGravar({estado: "a descarregar"}); if (VIEW === "config") pintarAtualizacoes();
+      const r = await DESKTOP.instalarAtualizacao();
+      atualGravar(Object.assign({em: Date.now()}, r));
+      if (r.estado === "pronta"){
+        toast("Versão " + r.versao + " pronta. A recarregar…");
+        await sincAntesDeSair();
+        guardarSessao();
+        await DESKTOP.aplicarAtualizacao();
+      } else if (r.estado === "erro") toast("Não foi possível atualizar: " + r.erro);
+      if (VIEW === "config") pintarAtualizacoes();
+    } else {
+      atualGravar({estado: "a atualizar"}); if (VIEW === "config") pintarAtualizacoes();
+      guardarSessao();
+      await aplicarWeb();
+    }
+  } finally { _atualA = false; }
+}
+
+function pintarAtualizacoes(){
+  const s = $("#cfgAtualizacoes");
+  if (s && !aEscreverAgora()) s.innerHTML = cartaoAtualizacoes();
+}
+function cartaoAtualizacoes(){
+  const c = atualCfg();
+  const v = DESKTOP && DESKTOP.versoes ? DESKTOP.versoes() : null;
+  const auto = S.procurarAtualizacoes !== false;
+  const rel = (t) => typeof _rel === "function" ? _rel(t) : "";
+  let estado = "";
+  if (c.estado === "a procurar") estado = "A procurar…";
+  else if (c.estado === "a descarregar") estado = "A descarregar e a conferir a versão nova…";
+  else if (c.estado === "a atualizar") estado = "A atualizar…";
+  else if (c.estado === "atual" && compararVersoes(c.versao || VERSAO_APP, VERSAO_APP) <= 0) estado = "Está na versão mais recente.";
+  else if (c.estado === "disponivel" && compararVersoes(c.versao, VERSAO_APP) > 0)
+    estado = '<strong>Há uma versão nova: ' + esc(c.versao) + '.</strong> ' +
+      '<button class="btn sm primary" data-act="atualInstalar">' + ic("atualizar") + 'Atualizar agora</button>';
+  else if (c.estado === "reinstalar" && compararVersoes(c.versao, VERSAO_APP) > 0)
+    estado = '<strong>A versão ' + esc(c.versao) + ' precisa de uma aplicação de secretária mais recente</strong> — é preciso instalá-la uma vez. ' +
+      (c.descarregar ? '<button class="btn sm" data-act="atualDescarregar">' + ic("exportar") + 'Descarregar a aplicação nova</button>' : "");
+  else if (c.estado === "ma") estado = "A versão " + esc(c.versao) + " não arrancou bem neste computador e ficou posta de parte; continua na " + esc(VERSAO_APP) + ".";
+  else if (c.estado === "indisponivel") estado = esc(c.motivo || "");
+  else if (c.estado === "erro") estado = '<span class="neg">Não foi possível procurar: ' + esc(c.erro || "") + '</span>';
+  const falhou = v && v.falhou && compararVersoes(v.falhou, VERSAO_APP) > 0
+    ? '<div class="note" style="border-left-color:var(--warn);margin-top:10px">A versão ' + esc(v.falhou) +
+      ' não arrancou bem, e a aplicação voltou sozinha à ' + esc(VERSAO_APP) + '. Os seus dados não foram tocados.</div>' : "";
+  return '<div class="card"><div class="card-head"><div class="t"><h2>Atualizações</h2>' +
+    '<div class="sub">A versão nova sem reinstalar' + (DESKTOP ? " a aplicação" : "") + '. Os seus dados e preferências ficam como estão.</div></div></div>' +
+    '<div class="tblwrap"><table><tbody>' +
+      '<tr><th scope="row" style="width:34%">Versão</th><td>' + esc(VERSAO_APP) +
+        (v && v.shell && v.shell !== VERSAO_APP ? ' <span class="muted">(aplicação de secretária ' + esc(v.shell) + ')</span>' : "") + '</td></tr>' +
+      '<tr><th scope="row">Última procura</th><td>' + (c.em ? esc(rel(c.em)) : '<span class="muted">ainda nenhuma</span>') + '</td></tr>' +
+      (estado ? '<tr><th scope="row">Estado</th><td id="atualEstado">' + estado + '</td></tr>' : "") +
+    '</tbody></table></div>' + falhou +
+    '<div class="actions" style="margin-top:12px">' +
+      '<button class="btn primary" data-act="atualProcurar"' + (_atualA ? " disabled" : "") + '>' + ic("atualizar") + 'Procurar atualizações</button>' +
+      '<a class="btn ghost" href="' + PAGINA_RELEASES + '" target="_blank" rel="noopener">Ver o que mudou</a></div>' +
+    '<div style="margin-top:14px"><label class="field">Procurar sempre atualizações ao iniciar</label>' +
+      '<div class="seg no-print"><button data-act="atualAuto" data-v="sim" aria-pressed="' + auto + '">Ligado</button>' +
+      '<button data-act="atualAuto" data-v="nao" aria-pressed="' + !auto + '">Desligado</button></div></div>' +
+    '<p class="muted" style="font-size:12px;margin-top:10px">Procurar pergunta ao ' + (DESKTOP ? "GitHub" : "servidor da aplicação") +
+      ' qual é a versão mais recente; não envia dados seus. ' +
+      (DESKTOP ? "A versão nova é conferida pela soma SHA256 publicada com ela antes de ser usada, e a anterior fica de reserva." :
+        "Instalada no telemóvel, a aplicação já traz a versão nova sozinha; aqui pode pedi-la já.") +
+      ' Antes de atualizar, a sincronização envia o que tiver por enviar.</p></div>';
+}
+/**
+ * Ao arrancar: na aplicação de secretária, diz que a página arrancou bem (uma
+ * página atualizada que não o diga é posta de parte); e, se a definição o
+ * pedir, procura uma versão nova daqui a uns segundos, sem estorvar.
+ * Devolve se ficou agendada uma procura.
+ */
+function verificarAoArrancar(){
+  if (EH_PAINEL) return false;
+  try { if (DESKTOP && DESKTOP.arrancou) DESKTOP.arrancou(VERSAO_APP); } catch(e){}
+  if (S.procurarAtualizacoes === false) return false;
+  setTimeout(() => procurarAtualizacoes(true), 4000);
+  return true;
+}
+const ACOES_ATUAL = {
+  atualProcurar(){ procurarAtualizacoes(false); },
+  atualInstalar(){ atualizarAgora(); },
+  atualAuto(el){
+    S.procurarAtualizacoes = el.dataset.v !== "nao";
+    guardar(); pintarAtualizacoes();
+    toast(S.procurarAtualizacoes ? "Passa a procurar atualizações ao iniciar." : "Deixa de procurar atualizações ao iniciar.");
+  },
+  atualDescarregar(){
+    const u = atualCfg().descarregar;
+    if (u && DESKTOP && DESKTOP.abrirDescarga) DESKTOP.abrirDescarga(u);
+  },
+};
+
+Object.assign(ACOES, ACOES_ATUAL);
+
 ACOES.sincIr = () => { fecharMenus(); irPagina("config"); setTimeout(() => { const e = $("#cfgSinc"); if (e) e.scrollIntoView({block:"start"}); }, 0); };
 
 /* ---------------------------------------------------------------
@@ -19953,6 +20195,7 @@ render();
 aplicarAjudas();
 sincLerLigacao();
 sincArrancar();
+verificarAoArrancar();
 /* Ao voltar ao separador (o telemóvel adormece as ligações), vai-se ver o que mudou. */
 document.addEventListener("visibilitychange", () => { if (!document.hidden && SINC) SINC.agora(false); });
 window.addEventListener("online", () => { if (SINC) SINC.agora(false); });
@@ -19980,10 +20223,11 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
       if (!novo) return;
       novo.addEventListener("statechange", () => {
         if (novo.state === "installed" && navigator.serviceWorker.controller){
+          atualGravar({estado: "disponivel", versao: "", em: Date.now()});
           toastComBotao("Há uma versão nova da aplicação.", (() => {
             const b = document.createElement("button");
-            b.type = "button"; b.textContent = "Recarregar";
-            b.onclick = () => location.reload();
+            b.type = "button"; b.textContent = "Atualizar";
+            b.onclick = () => atualizarAgora();
             return b;
           })());
         }

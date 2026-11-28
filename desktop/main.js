@@ -17,6 +17,7 @@ const {app, BrowserWindow, ipcMain, screen, shell, dialog, Menu, protocol, net, 
 const fs = require("fs");
 const path = require("path");
 const {pathToFileURL} = require("url");
+const {criarAtualizacoes} = require("./atualizacoes");
 
 const ESQUEMA = "app";
 const ANFITRIAO = "orcamento";
@@ -89,7 +90,11 @@ const defs = () => Object.assign({painelAuto: false}, lerJSON(FICHEIRO_DEFS(), {
 /* ---------- janelas ---------- */
 let principal = null, companheira = null;
 const corFundo = () => nativeTheme.shouldUseDarkColors ? "#0c1119" : "#f4f6fa";
-const webPreferences = {preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true};
+/* Em modo de teste, uma janela tapada por outras não abranda os temporizadores
+   (o Chromium dá-a como escondida e passa a acordá-los de minuto a minuto).
+   Em uso normal o abrandamento fica: poupa bateria com a janela minimizada. */
+const webPreferences = {preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true,
+  backgroundThrottling: !process.env.ORCAMENTO_ECRAS_TESTE};
 
 function aplicarPolitica(win){
   // Ligações para fora abrem no navegador; dentro da aplicação, nada de janelas soltas
@@ -226,6 +231,21 @@ function copiaDiaria(json){
   } catch(e){ return false; }
 }
 
+/* ---------- atualizações ---------- */
+let ATUAL = null;
+const comErro = (fn) => async () => { try { return await fn(); } catch(e){ return {estado: "erro", erro: String(e && e.message || e)}; } };
+ipcMain.handle("atualizacao-procurar", comErro(() => ATUAL.procurar()));
+ipcMain.handle("atualizacao-instalar", comErro(() => ATUAL.instalar()));
+ipcMain.handle("atualizacao-aplicar", comErro(() => ATUAL.aplicar()));
+ipcMain.on("atualizacao-versoes", e => { e.returnValue = ATUAL ? ATUAL.versoes() : {}; });
+ipcMain.on("arrancou", (e, versao) => { if (ATUAL) ATUAL.arrancou(String(versao || "")); });
+/* Descarregar a aplicação nova (quando a página pede uma mais recente):
+   só para o GitHub do projeto, no navegador de quem usa. */
+ipcMain.handle("abrir-descarga", (e, url) => {
+  if (typeof url === "string" && /^https:\/\/github\.com\/HVS87\/orcamento-familiar\//.test(url)){ shell.openExternal(url); return true; }
+  return false;
+});
+
 /* ---------- ponte com a página ---------- */
 ipcMain.on("versao", e => { e.returnValue = app.getVersion(); });
 ipcMain.on("ecras", e => { e.returnValue = ecras(); });
@@ -311,17 +331,27 @@ if (!app.requestSingleInstanceLock()){
      próprio recusa o pedido). Fica só com letras simples. */
   app.userAgentFallback = app.userAgentFallback.replace(/[^\x20-\x7E]/g, (c) => ({"ç": "c", "Ç": "C"})[c] || "");
   app.whenReady().then(() => {
+    ATUAL = criarAtualizacoes({
+      app, net, raizEmbutida: RAIZ, pastaDados: () => app.getPath("userData"),
+      fonte: process.env.ORCAMENTO_FONTE_ATUALIZACOES || null,
+      prazoArranque: parseInt(process.env.ORCAMENTO_PRAZO_ARRANQUE || "0", 10) || undefined,
+      portatil: !!PORTATIL,
+      aoMudarRaiz: () => {
+        [principal, companheira].forEach(w => { if (w && !w.isDestroyed()) w.webContents.reloadIgnoringCache(); });
+      },
+    });
     protocol.handle(ESQUEMA, (req) => {
       const u = new URL(req.url);
       if (u.host !== ANFITRIAO) return new Response("não encontrado", {status: 404});
       const rel = decodeURIComponent(u.pathname).replace(/^\/+/, "") || "orcamento-familiar.html";
-      const f = path.normalize(path.join(RAIZ, rel));
-      if (!f.startsWith(path.normalize(RAIZ + path.sep)) || !fs.existsSync(f) || fs.statSync(f).isDirectory())
-        return new Response("não encontrado", {status: 404});
+      // A página atualizada, se houver; o resto (ícones, manifesto) cai no que veio com o executável
+      const f = ATUAL.ficheiro(rel);
+      if (!f) return new Response("não encontrado", {status: 404});
       return net.fetch(pathToFileURL(f).toString());
     });
     menu();
     criarPrincipal();
+    ATUAL.vigiar();   // se arrancou numa página atualizada, ela tem de dizer que está bem
     screen.on("display-added", ecrasMudaram);
     screen.on("display-removed", ecrasMudaram);
     screen.on("display-metrics-changed", () => avisar("ecras-mudaram", ecras().length));

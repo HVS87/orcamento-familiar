@@ -141,6 +141,15 @@ try {
     S.visao = "tritanopia"; S.foco = "forte"; S.ligacoes = "sublinhadas"; aplicarTema(); irPagina("analises"); medir(modo + " análises em tritanopia, foco reforçado");
     S.visao = "acromatopsia"; aplicarTema(); irPagina("painel"); medir(modo + " resumo sem cores");
     S.visao = visaoAntes; S.foco = focoAntes; S.ligacoes = ligAntes; aplicarTema();
+    // Atualizações: cada estado da secção
+    var atualAntes = localStorage.getItem(ATUAL_KEY);
+    [{estado: "disponivel", versao: "9.9.9", em: Date.now()}, {estado: "reinstalar", versao: "9.9.9", descarregar: "https://github.com/HVS87/orcamento-familiar/releases", em: Date.now()},
+     {estado: "erro", erro: "o servidor não respondeu a tempo", em: Date.now()}, {estado: "ma", versao: "9.9.9", em: Date.now()}].forEach(function(st){
+      localStorage.setItem(ATUAL_KEY, JSON.stringify(st)); irPagina("config");
+      var ca = document.getElementById("cfgAtualizacoes"); if (ca) ca.scrollIntoView();
+      medir(modo + " atualizações: " + st.estado);
+    });
+    if (atualAntes) localStorage.setItem(ATUAL_KEY, atualAntes); else localStorage.removeItem(ATUAL_KEY);
     // Emparelhar no Safari do iPhone: o aviso de que a app guarda à parte, com o código
     var uaD = Object.getOwnPropertyDescriptor(navigator, "userAgent");
     Object.defineProperty(navigator, "userAgent", {value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", configurable: true});

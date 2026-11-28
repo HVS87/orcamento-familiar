@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld("orcamentoDesktop", {
     ipcRenderer.on("painel-fechado", () => cb({aberta: false}));
     ipcRenderer.on("painel-mudou", (_e, d) => cb(d));
   },
+  procurarAtualizacao: () => ipcRenderer.invoke("atualizacao-procurar"),
+  instalarAtualizacao: () => ipcRenderer.invoke("atualizacao-instalar"),
+  aplicarAtualizacao: () => ipcRenderer.invoke("atualizacao-aplicar"),
+  versoes: () => ipcRenderer.sendSync("atualizacao-versoes"),
+  arrancou: (versao) => ipcRenderer.send("arrancou", String(versao || "")),
+  abrirDescarga: (url) => ipcRenderer.invoke("abrir-descarga", String(url || "")),
   /* só respondem quando a aplicação arranca em modo de teste */
   _testeEcras: (lista) => ipcRenderer.invoke("teste-ecras", lista),
   _testeJanelas: () => ipcRenderer.invoke("teste-janelas"),

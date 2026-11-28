@@ -23,6 +23,36 @@ const DADOS = fs.mkdtempSync(path.join(os.tmpdir(), "orcamento-e2e-"));
 const ECRA1 = {x: 0, y: 0, width: 1536, height: 864};
 const ECRA2 = {x: 1536, y: 0, width: 1280, height: 1024};
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+const http = require("http"), crypto = require("crypto");
+const PRAZO_ARRANQUE = 8000;
+const RELEASE = {modo: "atual", porta: 0};
+const htmlBase = () => fs.readFileSync(path.join(RAIZ, "orcamento-familiar.html"), "utf8");
+const VERSAO_ATUAL = (/const VERSAO_APP = "([^"]+)"/.exec(htmlBase()) || [])[1];
+function paginaVersao(v, opts){
+  let h = htmlBase().replace(/const VERSAO_APP = "[^"]+";/, 'const VERSAO_APP = "' + v + '";');
+  if (opts && opts.shellMin) h = h.replace(/const VERSAO_SHELL_MINIMA = "[^"]+";/, 'const VERSAO_SHELL_MINIMA = "' + opts.shellMin + '";');
+  if (opts && opts.partida) h = h.replace("const VERSAO_SHELL_MINIMA", "const ))( ;\nconst VERSAO_SHELL_MINIMA");   // erro de sintaxe: a página não arranca
+  return Buffer.from(h);
+}
+function releaseAtual(){
+  const m = RELEASE.modo;
+  const v = m === "atual" ? VERSAO_ATUAL : m === "novo" ? "9.9.9" : m === "soma" ? "9.9.12" : m === "shell" ? "9.9.11" : "9.9.13";
+  const html = m === "atual" ? Buffer.from(htmlBase()) : paginaVersao(v, {shellMin: m === "shell" ? "99.0.0" : null, partida: m === "partida"});
+  const nome = "orcamento-familiar-" + v + ".html";
+  const soma = m === "soma" ? "f".repeat(64) : crypto.createHash("sha256").update(html).digest("hex");
+  const base = "http://127.0.0.1:" + RELEASE.porta;
+  return {v, html, somas: soma + "  " + nome + "\n", json: JSON.stringify({tag_name: "v" + v, html_url: "https://github.com/HVS87/orcamento-familiar/releases/tag/v" + v,
+    assets: [{name: nome, browser_download_url: base + "/f/" + nome}, {name: "SHA256SUMS-" + v + ".txt", browser_download_url: base + "/f/somas"},
+      {name: "Orcamento-Familiar-" + v + "-instalador.exe", browser_download_url: "https://github.com/HVS87/orcamento-familiar/releases/download/v" + v + "/Orcamento-Familiar-" + v + "-instalador.exe"},
+      {name: "Orcamento-Familiar-" + v + "-portatil.exe", browser_download_url: "https://github.com/HVS87/orcamento-familiar/releases/download/v" + v + "/Orcamento-Familiar-" + v + "-portatil.exe"}]})};
+}
+const servidorRelease = http.createServer((req, res) => {
+  const r = releaseAtual();
+  if (req.url === "/latest"){ res.writeHead(200, {"Content-Type": "application/json"}); return res.end(r.json); }
+  if (req.url === "/f/somas"){ res.writeHead(200); return res.end(r.somas); }
+  if (req.url.indexOf("/f/orcamento-familiar-") === 0){ res.writeHead(200, {"Content-Type": "text/html"}); return res.end(r.html); }
+  res.writeHead(404); res.end();
+});
 
 let passes = 0;
 const falhas = [];
@@ -40,6 +70,8 @@ function arrancar(extraEnv, args){
   const env = Object.assign({}, process.env, {
     ORCAMENTO_ECRAS_TESTE: JSON.stringify([ECRA1, ECRA2]),
     ORCAMENTO_DADOS: DADOS,
+    ORCAMENTO_FONTE_ATUALIZACOES: "http://127.0.0.1:" + RELEASE.porta + "/latest",
+    ORCAMENTO_PRAZO_ARRANQUE: String(PRAZO_ARRANQUE),
   }, extraEnv || {});
   delete env.ELECTRON_RUN_AS_NODE;
   const exe = process.env.ORCAMENTO_EXE;
@@ -119,6 +151,7 @@ async function suite(w, ficheiro, global, ms){
 const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)]))`);
 
 (async () => {
+  await new Promise(r => servidorRelease.listen(0, "127.0.0.1", () => { RELEASE.porta = servidorRelease.address().port; r(); }));
   const t0 = Date.now();
   console.log("Dados de teste em " + DADOS + (process.env.ORCAMENTO_EXE ? "\nExecutável: " + process.env.ORCAMENTO_EXE : ""));
   let app = arrancar();
@@ -149,9 +182,13 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
 
     G("as suites dentro da aplicação");
     const lista = process.env.ORCAMENTO_RAPIDO
-      ? [["qa.js", "__QA"], ["qa-sinc.js", "__QASINC"]]
-      : [["qa.js", "__QA"], ["qa-ui.js", "__QAUI"], ["qa-limites.js", "__QALIM"], ["qa-fuzz.js", "__QAFUZZ"], ["qa-sinc.js", "__QASINC"], ["qa-varrer.js", "__QAVARRER"]];
+      ? [["qa.js", "__QA"], ["qa-sinc.js", "__QASINC"], ["qa-atualizar.js", "__QAATUAL"]]
+      : [["qa.js", "__QA"], ["qa-ui.js", "__QAUI"], ["qa-limites.js", "__QALIM"], ["qa-fuzz.js", "__QAFUZZ"], ["qa-sinc.js", "__QASINC"], ["qa-atualizar.js", "__QAATUAL"], ["qa-varrer.js", "__QAVARRER"]];
     await P.v(`(carregarExemplo(), document.querySelector('#modalHost [data-dlg="yes"]') && document.querySelector('#modalHost [data-dlg="yes"]').click(), 0)`);
+    /* A própria aplicação grava o resultado da procura automática de
+       atualizações, uns segundos depois de arrancar: espera-se por ela antes de
+       fotografar, para a fotografia ser só do que as suites deviam devolver. */
+    await esperar(P, "!!atualCfg().em", 15000);
     const antes = await memoria(P);
     for (const [f, g] of lista){
       const r = await suite(P, f, g);
@@ -312,17 +349,81 @@ const memoria = (w) => w.v(`JSON.stringify(Object.keys(localStorage).sort().map(
     await dormir(1200);
     P2.fechar();
     app.kill("SIGKILL");
-    await dormir(1500);
+    await dormir(3000);
+    /* Depois de um fecho à força, o Windows pode segurar uns instantes o
+       ficheiro da instância única: se a primeira abertura desistir, abre-se
+       outra vez, como faria quem a usa. */
     app = arrancar();
-    const P3 = await janela(u => u.startsWith("app://orcamento/") && u.indexOf("janela=painel") < 0);
+    let P3 = null;
+    try { P3 = await janela(u => u.startsWith("app://orcamento/") && u.indexOf("janela=painel") < 0, 12000); }
+    catch(err){ try { app.kill(); } catch(e2){} await dormir(2000); app = arrancar(); P3 = await janela(u => u.startsWith("app://orcamento/") && u.indexOf("janela=painel") < 0); }
     await pronta(P3);
     ok(await P3.v(`S.movimentos.some(m => m.id === "e2e-forca")`), "a alteração de um segundo antes do corte está lá");
     await P3.v(`alterar(() => { S.movimentos = S.movimentos.filter(m => m.id !== "e2e-forca"); }, "teste"); 0`);
+
+    G("atualizar sem reinstalar");
+    const semSessao = async (w) => JSON.stringify(JSON.parse(await memoria(w)).filter(([k]) => k !== "orcamento-familiar-sessao" && k !== "orcamento-familiar-atualizacoes"));
+    await P3.v(`alterar(() => { S.movimentos.push({id: "e2e-atual", tipo: "despesa", data: isoDia(hoje()), descricao: "Antes da atualização", valor: 7, categoriaId: S.categorias[0].id, membroId: ""}); }, "teste"); ACOES.acessVisao({dataset: {v: "deuteranopia"}}); 0`);
+    await dormir(800);
+    const dadosAntes = await semSessao(P3);
+    RELEASE.modo = "atual";
+    let ra = await P3.v("procurarAtualizacoes(false).then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "atual", "na mesma versão da Release, está em dia", JSON.stringify(ra));
+    RELEASE.modo = "novo";
+    ra = await P3.v("procurarAtualizacoes(false).then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "disponivel" && ra.versao === "9.9.9", "com uma Release nova, diz que há atualização", JSON.stringify(ra));
+    ok(await P3.v(`irPagina("config"), !!document.querySelector('#cfgAtualizacoes [data-act="atualInstalar"]')`), "e a secção oferece «Atualizar agora»");
+    await P3.v("atualizarAgora(); 0").catch(() => {});
+    ok(await esperar(P3, `typeof VERSAO_APP !== "undefined" && VERSAO_APP === "9.9.9"`, 20000), "atualiza e recarrega para a 9.9.9, sem reinstalar");
+    await pronta(P3);
+    ok(await P3.v(`S.movimentos.some(m => m.id === "e2e-atual")`), "os dados estão lá");
+    ok(await P3.v(`S.visao === "deuteranopia" && document.documentElement.dataset.visao === "deuteranopia"`), "e as preferências também");
+    ok((await semSessao(P3)) === dadosAntes, "o armazenamento é o mesmo, ao byte (tirando onde se estava sentado)");
+    let vs = await P3.v("JSON.stringify(window.orcamentoDesktop.versoes())").then(JSON.parse);
+    ok(vs.ativa === "9.9.9" && vs.shell === require("../package.json").version, "a página é a 9.9.9 dentro da aplicação " + vs.shell, JSON.stringify(vs));
+    await dormir(PRAZO_ARRANQUE + 1500);
+    ok(await P3.v(`VERSAO_APP === "9.9.9"`), "passado o prazo de arranque, fica (disse que arrancou bem)");
+    const fimP3 = new Promise(r => app.on("exit", r));
+    await P3.v("setTimeout(() => window.close(), 50), 0").catch(() => {});
     P3.fechar();
+    await Promise.race([fimP3, dormir(8000)]);
+    await dormir(500);
+    app = arrancar();
+    const P4 = await janela(u => u.startsWith("app://orcamento/") && u.indexOf("janela=painel") < 0);
+    await pronta(P4);
+    ok(await P4.v(`VERSAO_APP === "9.9.9" && S.movimentos.some(m => m.id === "e2e-atual")`), "fechada e aberta outra vez, continua na 9.9.9 com os dados");
+
+    RELEASE.modo = "soma";
+    ra = await P4.v("window.orcamentoDesktop.instalarAtualizacao().then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "erro" && /SHA256/.test(ra.erro), "um ficheiro com a soma errada é recusado", JSON.stringify(ra));
+    ok(await P4.v(`window.orcamentoDesktop.versoes().ativa === "9.9.9"`), "e não se toca em nada");
+    RELEASE.modo = "shell";
+    ra = await P4.v("window.orcamentoDesktop.instalarAtualizacao().then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "reinstalar" && /-instalador\.exe$/.test(ra.descarregar || ""), "uma versão que pede aplicação nova oferece o instalador", JSON.stringify(ra));
+    await P4.v(`atualGravar(${JSON.stringify(ra)}); irPagina("config"); 0`);
+    ok(await P4.v(`!!document.querySelector('#cfgAtualizacoes [data-act="atualDescarregar"]')`), "com o botão para a descarregar");
+
+    RELEASE.modo = "partida";
+    ra = await P4.v("window.orcamentoDesktop.instalarAtualizacao().then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "pronta" && ra.versao === "9.9.13", "uma versão que (sem se saber) não arranca instala-se", JSON.stringify(ra));
+    await P4.v("window.orcamentoDesktop.aplicarAtualizacao(); 0").catch(() => {});
+    await dormir(PRAZO_ARRANQUE + 3000);
+    ok(await esperar(P4, `typeof VERSAO_APP !== "undefined" && VERSAO_APP === "9.9.9"`, 15000), "não disse que arrancou: a aplicação volta sozinha à 9.9.9");
+    await pronta(P4);
+    vs = await P4.v("JSON.stringify(window.orcamentoDesktop.versoes())").then(JSON.parse);
+    ok(vs.falhou === "9.9.13" && vs.ativa === "9.9.9", "e regista qual falhou", JSON.stringify(vs));
+    ok(await P4.v(`S.movimentos.some(m => m.id === "e2e-atual") && S.visao === "deuteranopia"`), "com os dados e as preferências intactos");
+    ok(await P4.v(`irPagina("config"), /não arrancou bem/.test(document.getElementById("cfgAtualizacoes").textContent)`), "e a secção diz o que aconteceu");
+    ra = await P4.v("window.orcamentoDesktop.procurarAtualizacao().then(r => JSON.stringify(r))").then(JSON.parse);
+    ok(ra.estado === "ma", "a versão má não volta a ser oferecida", JSON.stringify(ra));
+    RELEASE.modo = "atual";
+    await P4.v(`alterar(() => { S.movimentos = S.movimentos.filter(m => m.id !== "e2e-atual"); }, "teste"); ACOES.acessVisao({dataset: {v: "padrao"}}); 0`);
+    P4.fechar();
   } catch(e){
     ok(false, "o teste correu até ao fim", e && e.stack);
   } finally {
     try { app.kill(); } catch(e){}
+    try { servidorRelease.close(); } catch(e){}
     await dormir(800);
     try { fs.rmSync(DADOS, {recursive: true, force: true}); } catch(e){}
   }
